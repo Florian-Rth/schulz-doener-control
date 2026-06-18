@@ -1,10 +1,15 @@
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Schulz.DoenerControl.Application.Menu;
+using Schulz.DoenerControl.Application.Notifications;
+using Schulz.DoenerControl.Application.OrderDays;
 using Schulz.DoenerControl.Application.Security;
 using Schulz.DoenerControl.Application.Users;
 using Schulz.DoenerControl.Infrastructure.Menu;
+using Schulz.DoenerControl.Infrastructure.Notifications;
+using Schulz.DoenerControl.Infrastructure.OrderDays;
 using Schulz.DoenerControl.Infrastructure.Persistence;
 using Schulz.DoenerControl.Infrastructure.Persistence.Seeding;
 using Schulz.DoenerControl.Infrastructure.Security;
@@ -30,9 +35,39 @@ public static class DependencyInjection
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IMenuService, MenuService>();
+        services.AddOrderDays(configuration);
         services.AddScoped<DatabaseSeeder>();
         services.AddScoped<DevHistorySeeder>();
         return services;
+    }
+
+    private static void AddOrderDays(this IServiceCollection services, IConfiguration configuration)
+    {
+        services
+            .AddOptions<OrderDayOptions>()
+            .Configure(options => BindOrderDayOptions(configuration, options));
+
+        services.AddScoped<OrderDayClock>();
+        services.AddScoped<INotificationBroadcaster, NotificationBroadcaster>();
+        services.AddScoped<IOrderDayService, OrderDayService>();
+    }
+
+    private static void BindOrderDayOptions(IConfiguration configuration, OrderDayOptions options)
+    {
+        var cutoff = configuration[OrderDayOptions.CutoffConfigKey];
+        if (
+            !string.IsNullOrWhiteSpace(cutoff)
+            && TimeOnly.TryParse(cutoff, CultureInfo.InvariantCulture, out var parsed)
+        )
+        {
+            options.CutoffLocalTime = parsed;
+        }
+
+        var timeZoneId = configuration[OrderDayOptions.TimeZoneConfigKey];
+        if (!string.IsNullOrWhiteSpace(timeZoneId))
+        {
+            options.TimeZoneId = timeZoneId;
+        }
     }
 
     private static void AddPasswordHashing(

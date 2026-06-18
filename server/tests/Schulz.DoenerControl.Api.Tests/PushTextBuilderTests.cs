@@ -34,4 +34,16 @@ public sealed class PushTextBuilderTests
         Assert.Contains("Osmanischer Fleischeimer", synonyms);
         Assert.Contains("Klappkatze", synonyms);
     }
+
+    [Fact]
+    public void Should_Build_Dashboard_Preview_With_Synonym_And_Cutoff()
+    {
+        var preview = PushTextBuilder.BuildOpenDayPreview("Klappkatze", "11:30 Uhr");
+
+        Assert.Equal(
+            "Achtung Kollegen — heute wird ein „Klappkatze\" organisiert! "
+                + "Bestellschluss 11:30 Uhr. Wer ist dabei?",
+            preview
+        );
+    }
 }
