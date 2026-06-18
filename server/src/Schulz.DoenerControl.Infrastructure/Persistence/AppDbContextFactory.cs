@@ -5,13 +5,12 @@ namespace Schulz.DoenerControl.Infrastructure.Persistence;
 
 public sealed class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbContext>
 {
-    private const string DesignTimeConnectionString =
-        "Host=localhost;Port=5432;Database=doenercontrol;Username=postgres;Password=postgres";
+    private const string DesignTimeConnectionString = "Data Source=doenercontrol.db";
 
     public AppDbContext CreateDbContext(string[] args)
     {
         var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
-        optionsBuilder.UseNpgsql(DesignTimeConnectionString);
+        optionsBuilder.UseSqlite(DesignTimeConnectionString);
         return new AppDbContext(optionsBuilder.Options);
     }
 }
