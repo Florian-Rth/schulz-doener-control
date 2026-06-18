@@ -1,0 +1,14 @@
+# Root ignores — language-specific ignores live in server/.gitignore and web/.gitignore.
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors / IDEs
+.idea/
+.vs/
+*.swp
+*~
+
+# Claude Code local (keep shared skills; ignore machine-local settings)
+.claude/settings.local.json

@@ -1,0 +1,57 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{C5DBE162-DB1C-4F13-9EEC-E5F0F993E276}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Schulz.DoenerControl.Core", "src\Schulz.DoenerControl.Core\Schulz.DoenerControl.Core.csproj", "{4EA86707-AB9D-4633-908E-A5A26F3FD859}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Schulz.DoenerControl.Application", "src\Schulz.DoenerControl.Application\Schulz.DoenerControl.Application.csproj", "{6607F859-ED70-458F-83D6-CA8CF21F4DB1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Schulz.DoenerControl.Infrastructure", "src\Schulz.DoenerControl.Infrastructure\Schulz.DoenerControl.Infrastructure.csproj", "{F4E41AA7-E94D-4B9D-A21F-146800A6A9D1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Schulz.DoenerControl.Api", "src\Schulz.DoenerControl.Api\Schulz.DoenerControl.Api.csproj", "{F58089CE-EC6F-4581-A7DC-F1CA665D86F8}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{EBCDE35D-778C-4497-974A-0B6B9BF32BCF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Schulz.DoenerControl.Api.Tests", "tests\Schulz.DoenerControl.Api.Tests\Schulz.DoenerControl.Api.Tests.csproj", "{2AAE01E7-77EB-494F-82EF-5C06851D7D46}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4EA86707-AB9D-4633-908E-A5A26F3FD859}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4EA86707-AB9D-4633-908E-A5A26F3FD859}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4EA86707-AB9D-4633-908E-A5A26F3FD859}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4EA86707-AB9D-4633-908E-A5A26F3FD859}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6607F859-ED70-458F-83D6-CA8CF21F4DB1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6607F859-ED70-458F-83D6-CA8CF21F4DB1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6607F859-ED70-458F-83D6-CA8CF21F4DB1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6607F859-ED70-458F-83D6-CA8CF21F4DB1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F4E41AA7-E94D-4B9D-A21F-146800A6A9D1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F4E41AA7-E94D-4B9D-A21F-146800A6A9D1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F4E41AA7-E94D-4B9D-A21F-146800A6A9D1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F4E41AA7-E94D-4B9D-A21F-146800A6A9D1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F58089CE-EC6F-4581-A7DC-F1CA665D86F8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F58089CE-EC6F-4581-A7DC-F1CA665D86F8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F58089CE-EC6F-4581-A7DC-F1CA665D86F8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F58089CE-EC6F-4581-A7DC-F1CA665D86F8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2AAE01E7-77EB-494F-82EF-5C06851D7D46}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2AAE01E7-77EB-494F-82EF-5C06851D7D46}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2AAE01E7-77EB-494F-82EF-5C06851D7D46}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2AAE01E7-77EB-494F-82EF-5C06851D7D46}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{4EA86707-AB9D-4633-908E-A5A26F3FD859} = {C5DBE162-DB1C-4F13-9EEC-E5F0F993E276}
+		{6607F859-ED70-458F-83D6-CA8CF21F4DB1} = {C5DBE162-DB1C-4F13-9EEC-E5F0F993E276}
+		{F4E41AA7-E94D-4B9D-A21F-146800A6A9D1} = {C5DBE162-DB1C-4F13-9EEC-E5F0F993E276}
+		{F58089CE-EC6F-4581-A7DC-F1CA665D86F8} = {C5DBE162-DB1C-4F13-9EEC-E5F0F993E276}
+		{2AAE01E7-77EB-494F-82EF-5C06851D7D46} = {EBCDE35D-778C-4497-974A-0B6B9BF32BCF}
+	EndGlobalSection
+EndGlobal
