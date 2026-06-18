@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Schulz.DoenerControl.Application.Menu;
 using Schulz.DoenerControl.Application.Security;
 using Schulz.DoenerControl.Application.Users;
+using Schulz.DoenerControl.Infrastructure.Menu;
 using Schulz.DoenerControl.Infrastructure.Persistence;
 using Schulz.DoenerControl.Infrastructure.Persistence.Seeding;
 using Schulz.DoenerControl.Infrastructure.Security;
@@ -27,6 +29,7 @@ public static class DependencyInjection
         services.AddSingleton<ILoginLockout, LoginLockout>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IMenuService, MenuService>();
         services.AddScoped<DatabaseSeeder>();
         services.AddScoped<DevHistorySeeder>();
         return services;
