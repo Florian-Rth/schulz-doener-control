@@ -35,7 +35,8 @@ notifications — but it sits on the **serious Schulz Machine-Eye design system*
 
 ## Menu & order configuration
 
-Menu items: **Döner, Dürüm, Big Döner, Dönerbox, Danny-Box, Pizza**.
+Menu items (default prices, all editable per order): **Döner 7,50 € · Dürüm 8,00 € ·
+Big Döner 9,50 € · Dönerbox 6,50 € · Danny-Box 6,00 € · Pizza 9,00 €**.
 
 - **Danny-Box** — insider item: a Dönerbox with just Pommes, meat & sauce — no salad/bread.
 - **Pizza** → variant selector: Salami, Margherita, Funghi, Tonno, Hawaii.
@@ -62,24 +63,34 @@ real order history over the last 3 months** (sauce ratios, meat loyalty, product
 etc.). **15 Tiere exist, prioritized in order** — the first matching one wins. A catalog
 screen lists all of them, with the user's own Tier badged.
 
-Known Tiere (priority order, fallback last):
+All 15 Tiere, in **priority order** (first match wins). Inputs are computed over the
+user's orders in the last 3 months: `garlic`/`spicy` = share of orders containing
+Knoblauch / Scharf; `kalbR`/`haehnR` = ratio among orders that have a meat;
+`noSauce` = share of Döner-kind orders with no sauce; `allThree` = share with ≥3 sauces;
+product counts (`pizza`/`danny`/`big`/`box`/`duerum`); `uniq` = distinct products;
+`n` = order count; `meated` = count of orders with a meat. (Source of truth: the
+`computeTier` function in [the mock](mocks/Schulz%20Döner%20Control.dc.html).)
 
-| Tier | Trigger (informal) |
-|------|--------------------|
-| 🦨 Die Bürowaffe | Knobi + scharf |
-| 🐺 Der Knoblauch-Wolf | heavy Knoblauch |
-| 🐉 Der Schärfe-Drache | heavy Scharf |
-| 🍕 Der Pizza-Verräter | orders Pizza |
-| 📦 Der Danny-Jünger | Danny-Box loyalist |
-| 🐗 Die Big-Döner-Wildsau | Big Döner habit |
-| 🦖 Der Kalb-Rex | Kalb loyalty |
-| 🐔 Das Angst-Hähnchen | always Hähnchen |
-| 🐭 Die Trockenmaus | few/no sauces |
-| 🦥 Das Gewohnheits-Faultier | same order every time |
-| 🌯 Der solide Döner-Bürger | **fallback** |
+| # | Tier | Trigger |
+|---|------|---------|
+| 1 | 🦨 Die Bürowaffe | `garlic ≥ 0.6 && spicy ≥ 0.6` |
+| 2 | 🐺 Der Knoblauch-Wolf | `garlic ≥ 0.7` |
+| 3 | 🐉 Der Schärfe-Drache | `spicy ≥ 0.7` |
+| 4 | 🍕 Der Pizza-Verräter | `pizza ≥ 2` |
+| 5 | 📦 Der Danny-Jünger | `danny ≥ 2` |
+| 6 | 🐗 Die Big-Döner-Wildsau | `big ≥ max(2, n·0.4)` |
+| 7 | 🦖 Der Kalb-Rex | `kalbR == 1 && meated ≥ 5` |
+| 8 | 🐔 Das Angst-Hähnchen | `haehnR == 1 && meated ≥ 5` |
+| 9 | 🐙 Der Soßen-Messie | `allThree ≥ 0.5` |
+| 10 | 🐭 Die Trockenmaus | `noSauce ≥ 0.5` |
+| 11 | 🦅 Der Dürüm-Adler | `duerum ≥ max(2, n·0.5)` |
+| 12 | 🦫 Der Pommes-Biber | `box ≥ max(2, n·0.4)` |
+| 13 | 🐒 Das Chaos-Äffchen | `uniq ≥ 5` |
+| 14 | 🦥 Das Gewohnheits-Faultier | `uniq ≤ 1 && n ≥ 5` |
+| 15 | 🌯 Der solide Döner-Bürger | **fallback** |
 
-> The full set of 15 (and the exact threshold rules) still needs to be finalized — the
-> above are the ones specified so far.
+Each Tier carries a German tagline + ~3 tag chips (exact text lives in the mock's
+`TIER_CATALOG`).
 
 ### Döner-Synonyme in notifications
 
@@ -102,6 +113,13 @@ Industrial machine-monitoring aesthetic.
 - The diagonal **"Schräge"** bevel on red chrome surfaces.
 - **Material Icons**, outlined style.
 - **No AI-slop gradients.**
+
+The **authoritative visual + interaction design is the mock** in [`mocks/`](mocks/) —
+specifically `mocks/Schulz Döner Control.dc.html`. It is the source of truth for layout,
+exact colors (red `#C90023`/hover `#A8001D`, navy `#002230`, teal `#00728E`, muted
+`#8898a6`, success `#2E7D32`, orange `#ED701C`, gold `#FAB014`, PayPal blue `#0070BA`),
+the **Schräge** bevel (`clip-path:polygon(82% 0,100% 0,100% 100%,75% 100%)` overlay on
+red surfaces), copy, and the menu/tier data.
 
 ## Screens & flow
 
