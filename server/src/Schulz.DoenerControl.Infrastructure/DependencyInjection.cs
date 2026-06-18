@@ -2,9 +2,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Schulz.DoenerControl.Application.Security;
+using Schulz.DoenerControl.Application.Users;
 using Schulz.DoenerControl.Infrastructure.Persistence;
 using Schulz.DoenerControl.Infrastructure.Persistence.Seeding;
 using Schulz.DoenerControl.Infrastructure.Security;
+using Schulz.DoenerControl.Infrastructure.Users;
 
 namespace Schulz.DoenerControl.Infrastructure;
 
@@ -22,6 +24,9 @@ public static class DependencyInjection
         );
         services.TryAddSingletonTimeProvider();
         services.AddPasswordHashing(configuration);
+        services.AddSingleton<ILoginLockout, LoginLockout>();
+        services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IUserService, UserService>();
         services.AddScoped<DatabaseSeeder>();
         services.AddScoped<DevHistorySeeder>();
         return services;
