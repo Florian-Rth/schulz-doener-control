@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+  <style>
+    @keyframes pulseDot { 0% { box-shadow:0 0 0 0 rgba(46,125,50,.55) } 70% { box-shadow:0 0 0 7px rgba(46,125,50,0) } 100% { box-shadow:0 0 0 0 rgba(46,125,50,0) } }
+    @keyframes spin360 { to { transform: rotate(360deg) } }
+    @keyframes slideDown { from { opacity:0; transform: translateY(-14px) } to { opacity:1; transform: translateY(0) } }
+    * { box-sizing: border-box; }
+  </style>
+</helmet>
+
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#26262a;padding:24px;box-sizing:border-box;font-family:'Open Sans','Helvetica Neue',Arial,sans-serif">
+  <x-import component="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+
+    <!-- ============================ LOGIN ============================ -->
+    <sc-if value="{{ isLogin }}" hint-placeholder-val="{{ true }}">
+      <div style="min-height:100%;background:#FBF7F6;display:flex;flex-direction:column;padding:0 28px 28px">
+        <div style="height:64px;flex-shrink:0"></div>
+        <div style="display:flex;flex-direction:column;align-items:center;text-align:center;flex:1;justify-content:center;gap:4px">
+          <img src="assets/logo.png" alt="Schulz Döner Control" style="width:248px;height:auto;display:block;margin-bottom:6px">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.14em;color:#C90023;text-transform:uppercase">Betriebs-Kantinen-System</div>
+          <h1 style="font-size:22px;font-weight:700;color:#002230;margin:14px 0 2px;letter-spacing:-.01em">Mitarbeiter-Login</h1>
+          <p style="font-size:13px;color:#8898a6;margin:0 0 22px;max-width:260px;line-height:1.45">Zugang nur für autorisiertes Döner-Personal. Bitte Werks-Kennung eingeben.</p>
+
+          <div style="width:100%;display:flex;flex-direction:column;gap:14px;text-align:left">
+            <label style="display:flex;flex-direction:column;gap:6px">
+              <span style="font-size:12px;font-weight:600;color:#4a6573">Benutzername</span>
+              <input value="{{ username }}" onChange="{{ onUsername }}" placeholder="z. B. m.wagner" autocapitalize="none" autocomplete="username" style="padding:13px 14px;border:1.5px solid rgba(0,34,48,.14);border-radius:12px;font-size:15px;font-family:'Open Sans',sans-serif;outline:none;background:#fff;color:#002230" />
+            </label>
+            <label style="display:flex;flex-direction:column;gap:6px">
+              <span style="font-size:12px;font-weight:600;color:#4a6573">Passwort</span>
+              <input type="password" value="{{ pin }}" onChange="{{ onPin }}" placeholder="••••••••" autocomplete="current-password" style="padding:13px 14px;border:1.5px solid rgba(0,34,48,.14);border-radius:12px;font-size:15px;font-family:'Open Sans',sans-serif;outline:none;background:#fff;color:#002230" />
+            </label>
+          </div>
+
+          <button onClick="{{ login }}" style="margin-top:22px;width:100%;background:#C90023;color:#fff;border:none;border-radius:12px;padding:16px;font-size:16px;font-weight:700;font-family:'Open Sans',sans-serif;cursor:pointer;box-shadow:0 6px 16px rgba(201,0,35,.28)" style-hover="background:#A8001D">Anmelden</button>
+
+          <div style="display:flex;align-items:center;gap:7px;margin-top:18px;font-size:11px;color:#8898a6;font-weight:600">
+            <span style="width:8px;height:8px;border-radius:50%;background:#2E7D32;animation:pulseDot 2s infinite"></span>
+            Döner-Server erreichbar · Werk HB-01 · v3.0
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ============================ HOME / DASHBOARD ============================ -->
+    <sc-if value="{{ isHome }}">
+      <div style="min-height:100%;background:#ECEAEA;display:flex;flex-direction:column;padding:0 16px 36px">
+        <div style="height:54px;flex-shrink:0"></div>
+
+        <!-- Push-Toast -->
+        <sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+          <div onClick="{{ dismissToast }}" style="position:sticky;top:8px;z-index:60;background:#002230;color:#fff;border-radius:14px;padding:12px 13px;display:flex;gap:11px;align-items:flex-start;box-shadow:0 12px 34px rgba(0,0,0,.34);animation:slideDown .3s ease;margin-bottom:12px;cursor:pointer">
+            <div style="width:30px;height:30px;border-radius:8px;background:#C90023;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="font-family:'Material Icons Outlined';font-size:18px;color:#fff">notifications_active</span></div>
+            <div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:700;letter-spacing:.02em;margin-bottom:2px">Schulz Döner Control · jetzt</div><div style="font-size:12px;color:rgba(255,255,255,.82);line-height:1.4">{{ toast }}</div></div>
+          </div>
+        </sc-if>
+
+        <!-- Red chrome header w/ Schräge bevel -->
+        <div style="position:relative;overflow:hidden;background:#C90023;border-radius:16px;padding:16px 18px;display:flex;align-items:center;gap:12px;box-shadow:0 6px 18px rgba(201,0,35,.22)">
+          <div style="position:absolute;inset:0;background:rgba(0,0,0,.18);clip-path:polygon(82% 0,100% 0,100% 100%,75% 100%);pointer-events:none"></div>
+          <div style="position:relative;z-index:1;width:42px;height:42px;border-radius:11px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center">
+            <span style="font-family:'Material Icons Outlined';font-size:26px;color:#fff">kebab_dining</span>
+          </div>
+          <div style="position:relative;z-index:1;flex:1">
+            <div style="font-size:17px;font-weight:700;color:#fff;line-height:1.15;letter-spacing:-.01em">Döner Control</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.78);font-weight:600;letter-spacing:.03em">WERKS-KANTINE · HB-01</div>
+          </div>
+          <div style="position:relative;z-index:1;display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.16);border-radius:20px;padding:5px 11px">
+            <span style="width:7px;height:7px;border-radius:50%;background:#7CFFA0;animation:pulseDot 2s infinite"></span>
+            <span style="font-size:11px;font-weight:700;color:#fff;letter-spacing:.04em">LIVE</span>
+          </div>
+        </div>
+
+        <!-- Greeting -->
+        <div style="display:flex;align-items:center;gap:12px;margin:20px 2px 14px">
+          <div style="flex:1">
+            <div style="font-size:21px;font-weight:700;color:#002230;letter-spacing:-.01em">Moin, {{ firstName }} 🥙</div>
+            <div style="font-size:13px;color:#8898a6">Donnerstag · die heilige Döner-Schicht</div>
+          </div>
+          <div style="width:44px;height:44px;border-radius:50%;background:#00728E;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px">MW</div>
+        </div>
+
+        <!-- Döner-Tier -->
+        <div style="position:relative;overflow:hidden;background:#002230;border-radius:16px;padding:16px;margin-bottom:14px;color:#fff;display:flex;gap:14px;align-items:center;box-shadow:0 4px 14px rgba(0,34,48,.25)">
+          <div style="position:absolute;inset:0;background:rgba(255,255,255,.04);clip-path:polygon(78% 0,100% 0,100% 100%,62% 100%);pointer-events:none"></div>
+          <div style="position:relative;z-index:1;width:60px;height:60px;border-radius:14px;background:rgba(201,0,35,.18);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:34px;line-height:1">{{ tierEmoji }}</div>
+          <div style="position:relative;z-index:1;flex:1;min-width:0">
+            <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#7ACCEB;margin-bottom:2px">Dein Döner-Tier</div>
+            <div style="font-size:18px;font-weight:700;letter-spacing:-.01em;line-height:1.15">{{ tierName }}</div>
+            <div style="font-size:12px;color:rgba(255,255,255,.72);line-height:1.4;margin-top:3px">{{ tierTagline }}</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.5);margin-top:6px">Aus {{ tierCount }} Bestellungen der letzten 3 Monate</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:9px">
+              <sc-for list="{{ tierTags }}" as="t" hint-placeholder-count="3">
+                <span style="font-size:11px;font-weight:700;color:#fff;background:rgba(255,255,255,.13);border-radius:20px;padding:3px 10px">{{ t }}</span>
+              </sc-for>
+            </div>
+            <button onClick="{{ goTiere }}" style="margin-top:10px;background:none;color:rgba(255,255,255,.6);border:none;padding:0;font-size:11px;font-weight:600;font-family:'Open Sans',sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:3px" style-hover="color:#fff">Alle Tiere ansehen<span style="font-family:'Material Icons Outlined';font-size:14px">chevron_right</span></button>
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div style="font-size:11px;font-weight:700;letter-spacing:.1em;color:#8898a6;text-transform:uppercase;margin:2px 2px 10px">Werks-Überwachung</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div style="background:#fff;border-radius:14px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,.10);display:flex;gap:11px;align-items:center">
+            <div style="width:38px;height:38px;border-radius:10px;background:#FCE9EC;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="font-family:'Material Icons Outlined';font-size:21px;color:#C90023">restaurant</span></div>
+            <div><div style="font-size:10px;color:#8898a6;font-weight:600;text-transform:uppercase;letter-spacing:.03em">Döner gesamt</div><div style="font-size:21px;font-weight:700;color:#002230;line-height:1.1">1.337</div></div>
+          </div>
+          <div style="background:#fff;border-radius:14px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,.10);display:flex;gap:11px;align-items:center">
+            <div style="width:38px;height:38px;border-radius:10px;background:#E6F4EA;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="font-family:'Material Icons Outlined';font-size:21px;color:#2E7D32">euro</span></div>
+            <div><div style="font-size:10px;color:#8898a6;font-weight:600;text-transform:uppercase;letter-spacing:.03em">Diesen Monat</div><div style="font-size:21px;font-weight:700;color:#002230;line-height:1.1">312,50<span style="font-size:12px;font-weight:600;color:#8898a6"> €</span></div></div>
+          </div>
+          <div style="background:#fff;border-radius:14px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,.10);display:flex;gap:11px;align-items:center">
+            <div style="width:38px;height:38px;border-radius:10px;background:#FFF3E0;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="font-family:'Material Icons Outlined';font-size:21px;color:#ED701C">payments</span></div>
+            <div><div style="font-size:10px;color:#8898a6;font-weight:600;text-transform:uppercase;letter-spacing:.03em">Offen</div><div style="font-size:21px;font-weight:700;color:#ED701C;line-height:1.1">2</div></div>
+          </div>
+          <div style="background:#fff;border-radius:14px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,.10);display:flex;gap:11px;align-items:center">
+            <div style="width:38px;height:38px;border-radius:10px;background:#FCE9EC;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="font-family:'Material Icons Outlined';font-size:21px;color:#C90023">local_fire_department</span></div>
+            <div><div style="font-size:10px;color:#8898a6;font-weight:600;text-transform:uppercase;letter-spacing:.03em">Streak</div><div style="font-size:21px;font-weight:700;color:#002230;line-height:1.1">14<span style="font-size:12px;font-weight:600;color:#8898a6"> Wo.</span></div></div>
+          </div>
+        </div>
+
+        <!-- DÖNER-TAG: closed -->
+        <sc-if value="{{ dayClosed }}">
+          <div style="background:#fff;border-radius:16px;padding:24px 20px;margin-top:14px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.10);border:1.5px dashed rgba(201,0,35,.3)">
+            <div style="font-size:11px;font-weight:700;letter-spacing:.1em;color:#C90023;text-transform:uppercase;margin-bottom:8px">Status: Kein Döner-Tag</div>
+            <span style="font-family:'Material Icons Outlined';font-size:46px;color:#cfd6da">no_meals</span>
+            <div style="font-size:17px;font-weight:700;color:#002230;margin:8px 0 4px">Heute hat noch niemand Hunger angemeldet</div>
+            <p style="font-size:13px;color:#8898a6;margin:0 0 18px;line-height:1.45">Eröffne den Döner-Tag und die Kollegen können einsteigen.</p>
+            <button onClick="{{ openDay }}" style="width:100%;background:#C90023;color:#fff;border:none;border-radius:12px;padding:16px;font-size:16px;font-weight:700;font-family:'Open Sans',sans-serif;cursor:pointer;box-shadow:0 6px 16px rgba(201,0,35,.28);display:flex;align-items:center;justify-content:center;gap:8px" style-hover="background:#A8001D"><span style="font-family:'Material Icons Outlined';font-size:22px">campaign</span>Ich will heute Döner!</button>
+          </div>
+        </sc-if>
+
+        <!-- DÖNER-TAG: open -->
+        <sc-if value="{{ dayOpen }}">
+          <div style="background:#fff;border-radius:16px;margin-top:14px;box-shadow:0 2px 6px rgba(0,0,0,.10);overflow:hidden">
+            <div style="background:#C90023;padding:14px 16px;display:flex;align-items:center;gap:9px;position:relative;overflow:hidden">
+              <div style="position:absolute;inset:0;background:rgba(0,0,0,.16);clip-path:polygon(82% 0,100% 0,100% 100%,75% 100%)"></div>
+              <span style="position:relative;z-index:1;width:9px;height:9px;border-radius:50%;background:#7CFFA0;animation:pulseDot 1.6s infinite"></span>
+              <div style="position:relative;z-index:1;flex:1"><div style="font-size:15px;font-weight:700;color:#fff">Döner-Tag läuft</div><div style="font-size:11px;color:rgba(255,255,255,.8)">Bestellschluss 11:30 Uhr</div></div>
+              <span style="position:relative;z-index:1;font-size:12px;font-weight:700;color:#fff;background:rgba(255,255,255,.18);padding:4px 10px;border-radius:20px">{{ orderCount }} dabei</span>
+            </div>
+            <div style="padding:16px">
+              <div style="background:#F4F6F8;border:1px solid rgba(0,34,48,.08);border-radius:10px;padding:10px 12px;margin-bottom:12px;display:flex;gap:10px;align-items:flex-start">
+                <span style="font-family:'Material Icons Outlined';font-size:20px;color:#8898a6;flex-shrink:0">notifications_active</span>
+                <div style="min-width:0"><div style="font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#8898a6;margin-bottom:2px">Gesendete Benachrichtigung</div><div style="font-size:12px;color:#002230;line-height:1.4">{{ notifText }}</div></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;background:#FCE9EC;border-radius:10px;padding:10px 12px;margin-bottom:14px">
+                <span style="font-family:'Material Icons Outlined';font-size:22px;color:#C90023">directions_car</span>
+                <div style="flex:1;font-size:13px;color:#002230"><b>Abholer heute:</b> Lukas Brandt</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:2px">
+                <sc-for list="{{ orderRows }}" as="o" hint-placeholder-count="3">
+                  <div style="display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px solid rgba(0,34,48,.07)">
+                    <div style="{{ o.avatarStyle }}">{{ o.initials }}</div>
+                    <div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600;color:#002230">{{ o.product }}</div><div style="font-size:12px;color:#8898a6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ o.person }} · {{ o.desc }}</div></div>
+                    <div style="font-size:13px;font-weight:700;color:#002230">{{ o.priceLabel }}</div>
+                  </div>
+                </sc-for>
+              </div>
+              <button onClick="{{ goOrder }}" style="margin-top:16px;width:100%;background:#C90023;color:#fff;border:none;border-radius:12px;padding:15px;font-size:15px;font-weight:700;font-family:'Open Sans',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px" style-hover="background:#A8001D"><span style="font-family:'Material Icons Outlined';font-size:20px">add</span>Meine Bestellung abgeben</button>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- Döner-Bestenliste -->
+        <div style="background:#fff;border-radius:16px;padding:16px;margin-top:14px;box-shadow:0 2px 6px rgba(0,0,0,.10)">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+            <span style="font-family:'Material Icons Outlined';font-size:20px;color:#FAB014">emoji_events</span>
+            <span style="font-size:14px;font-weight:700;color:#002230">Döner-Bestenliste</span>
+            <span style="flex:1"></span>
+            <span style="font-size:11px;font-weight:600;color:#8898a6">2026</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px solid rgba(0,34,48,.07)">
+            <span style="width:24px;text-align:center;font-size:18px">🥇</span>
+            <div style="width:34px;height:34px;border-radius:50%;background:#45B8A1;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px">TK</div>
+            <div style="flex:1;font-size:14px;font-weight:600;color:#002230">Tobias Klein</div>
+            <div style="font-size:14px;font-weight:700;color:#C90023">142</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px solid rgba(0,34,48,.07)">
+            <span style="width:24px;text-align:center;font-size:18px">🥈</span>
+            <div style="width:34px;height:34px;border-radius:50%;background:#00728E;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px">LB</div>
+            <div style="flex:1;font-size:14px;font-weight:600;color:#002230">Lukas Brandt</div>
+            <div style="font-size:14px;font-weight:700;color:#002230">119</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px solid rgba(0,34,48,.07)">
+            <span style="width:24px;text-align:center;font-size:18px">🥉</span>
+            <div style="width:34px;height:34px;border-radius:50%;background:#ED701C;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px">SY</div>
+            <div style="flex:1;font-size:14px;font-weight:600;color:#002230">Sara Yılmaz</div>
+            <div style="font-size:14px;font-weight:700;color:#002230">97</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:11px;padding:9px 10px;margin:6px -10px 0;background:#FCE9EC;border-radius:10px">
+            <span style="width:24px;text-align:center;font-size:13px;font-weight:700;color:#C90023">4.</span>
+            <div style="width:34px;height:34px;border-radius:50%;background:#C90023;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px">MW</div>
+            <div style="flex:1;font-size:14px;font-weight:700;color:#C90023">Markus Wagner <span style="font-size:11px;font-weight:600;color:#C90023;opacity:.7">· du</span></div>
+            <div style="font-size:14px;font-weight:700;color:#C90023">91</div>
+          </div>
+          <div style="text-align:center;font-size:11px;color:#8898a6;margin-top:10px">Nur noch 6 Döner bis Platz 3 🌯</div>
+        </div>
+
+        <!-- Offene Zahlungen -->
+        <div style="background:#fff;border-radius:16px;padding:16px;margin-top:14px;box-shadow:0 2px 6px rgba(0,0,0,.10)">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <span style="font-size:13px;font-weight:700;color:#002230">Offene Zahlungen</span>
+            <span style="font-size:11px;font-weight:700;color:#fff;background:#ED701C;border-radius:10px;padding:1px 8px">2</span>
+            <span style="flex:1"></span>
+            <span style="font-size:12px;font-weight:700;color:#ED701C">11,50 €</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid rgba(0,34,48,.07)">
+            <div style="width:36px;height:36px;border-radius:50%;background:#00728E;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px">LB</div>
+            <div style="flex:1"><div style="font-size:14px;font-weight:600;color:#002230">Lukas Brandt</div><div style="font-size:12px;color:#8898a6">Döner-Tag · letzte Woche</div></div>
+            <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:4px"><span style="font-size:14px;font-weight:700;color:#002230">8,50 €</span>
+              <button onClick="{{ payLukas }}" style="background:#0070BA;color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;font-family:'Open Sans',sans-serif;cursor:pointer">PayPal</button></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:11px;padding:10px 0 0">
+            <div style="width:36px;height:36px;border-radius:50%;background:#ED701C;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px">SY</div>
+            <div style="flex:1"><div style="font-size:14px;font-weight:600;color:#002230">Sara Yılmaz</div><div style="font-size:12px;color:#8898a6">Ayran-Schulden</div></div>
+            <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:4px"><span style="font-size:14px;font-weight:700;color:#002230">3,00 €</span>
+              <button onClick="{{ paySara }}" style="background:#0070BA;color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;font-family:'Open Sans',sans-serif;cursor:pointer">PayPal</button></div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ============================ DÖNER-TIERE ============================ -->
+    <sc-if value="{{ isTiere }}">
+      <div style="min-height:100%;background:#ECEAEA;display:flex;flex-direction:column;padding:0 16px 36px">
+        <div style="height:54px;flex-shrink:0"></div>
+        <div style="position:relative;overflow:hidden;background:#C90023;border-radius:16px;padding:14px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 6px 18px rgba(201,0,35,.22)">
+          <div style="position:absolute;inset:0;background:rgba(0,0,0,.18);clip-path:polygon(82% 0,100% 0,100% 100%,75% 100%)"></div>
+          <button onClick="{{ goHome }}" style="position:relative;z-index:1;width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.16);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer"><span style="font-family:'Material Icons Outlined';font-size:22px;color:#fff">arrow_back</span></button>
+          <div style="position:relative;z-index:1;flex:1"><div style="font-size:17px;font-weight:700;color:#fff">Döner-Tiere</div><div style="font-size:11px;color:rgba(255,255,255,.78)">Alle 15 erfassten Exemplare</div></div>
+        </div>
+
+        <p style="font-size:13px;color:#4a6573;line-height:1.5;margin:16px 2px 14px">Dein Döner-Tier wird automatisch aus deinen Bestellungen der letzten 3 Monate berechnet. Diese Exemplare sind im System erfasst:</p>
+
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <sc-for list="{{ tierCatalog }}" as="t" hint-placeholder-count="6">
+            <div style="{{ t.cardStyle }}">
+              <div style="{{ t.emojiStyle }}">{{ t.emoji }}</div>
+              <div style="flex:1;min-width:0;padding-top:1px">
+                <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+                  <span style="font-size:15px;font-weight:700;color:#002230">{{ t.name }}</span>
+                  <sc-if value="{{ t.mine }}" hint-placeholder-val="{{ false }}"><span style="font-size:9px;font-weight:800;letter-spacing:.06em;color:#fff;background:#C90023;border-radius:20px;padding:2px 7px">DEIN TIER</span></sc-if>
+                </div>
+                <div style="font-size:12px;color:#8898a6;line-height:1.45;margin-top:3px">{{ t.tagline }}</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+
+        <button onClick="{{ goHome }}" style="margin-top:18px;width:100%;background:transparent;color:#C90023;border:1.5px solid #C90023;border-radius:12px;padding:14px;font-size:15px;font-weight:700;font-family:'Open Sans',sans-serif;cursor:pointer">Zurück zur Übersicht</button>
+      </div>
+    </sc-if>
+
+    <!-- ============================ ORDER ============================ -->
+    <sc-if value="{{ isOrder }}">
+      <div style="min-height:100%;background:#ECEAEA;display:flex;flex-direction:column;padding:0 16px 36px">
+        <div style="height:54px;flex-shrink:0"></div>
+        <div style="position:relative;overflow:hidden;background:#C90023;border-radius:16px;padding:14px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 6px 18px rgba(201,0,35,.22)">
+          <div style="position:absolute;inset:0;background:rgba(0,0,0,.18);clip-path:polygon(82% 0,100% 0,100% 100%,75% 100%)"></div>
+          <button onClick="{{ goHome }}" style="position:relative;z-index:1;width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.16);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer"><span style="font-family:'Material Icons Outlined';font-size:22px;color:#fff">arrow_back</span></button>
+          <div style="position:relative;z-index:1;flex:1"><div style="font-size:17px;font-weight:700;color:#fff">Bestellung, Chef</div><div style="font-size:11px;color:rgba(255,255,255,.78)">Döner-Tag · Donnerstag</div></div>
+        </div>
+
+        <div style="font-size:11px;font-weight:700;letter-spacing:.1em;color:#8898a6;text-transform:uppercase;margin:20px 2px 10px">Was darf's sein, Chef?</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px">
+          <sc-for list="{{ productList }}" as="p" hint-placeholder-count="6">
+            <div onClick="{{ p.onSelect }}" style="{{ p.cardStyle }}">
+              <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
+                <span style="{{ p.iconStyle }}">{{ p.icon }}</span>
+                <sc-if value="{{ p.badge }}" hint-placeholder-val="{{ false }}"><span style="font-size:8px;font-weight:800;letter-spacing:.08em;color:#fff;background:#C90023;border-radius:20px;padding:2px 7px">INSIDER</span></sc-if>
+              </div>
+              <span style="{{ p.nameStyle }}">{{ p.name }}</span>
+              <span style="{{ p.subStyle }}">{{ p.sub }}</span>
+            </div>
+          </sc-for>
+        </div>
+
+        <!-- Pizza-Sorte -->
+        <sc-if value="{{ pizzaVisible }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top:18px">
+            <div style="font-size:12px;font-weight:600;color:#4a6573;margin-bottom:8px">Welche Pizza?</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px">
+              <sc-for list="{{ pizzaChips }}" as="pz" hint-placeholder-count="4">
+                <button onClick="{{ pz.onClick }}" style="{{ pz.style }}">{{ pz.name }}</button>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- Fleisch -->
+        <sc-if value="{{ meatVisible }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top:18px">
+            <div style="font-size:12px;font-weight:600;color:#4a6573;margin-bottom:8px">Fleisch</div>
+            <div style="display:flex;gap:10px">
+              <button onClick="{{ setKalb }}" style="{{ kalbStyle }}">Kalb</button>
+              <button onClick="{{ setHaehnchen }}" style="{{ haehnchenStyle }}">Hähnchen</button>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- Soße (Mehrfachauswahl) -->
+        <sc-if value="{{ meatVisible }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top:18px">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px"><span style="font-size:12px;font-weight:600;color:#4a6573">Soße</span><span style="font-size:11px;color:#8898a6">· Mehrfachauswahl</span></div>
+            <div style="display:flex;gap:10px">
+              <sc-for list="{{ sauceChips }}" as="sa" hint-placeholder-count="3">
+                <button onClick="{{ sa.onClick }}" style="{{ sa.style }}"><span style="{{ sa.iconStyle }}">{{ sa.emoji }}</span>{{ sa.name }}</button>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- Extrawünsche -->
+        <div style="margin-top:18px">
+          <div style="font-size:12px;font-weight:600;color:#4a6573;margin-bottom:8px">Extrawünsche</div>
+          <textarea value="{{ extra }}" onChange="{{ onExtra }}" rows="2" placeholder="Ohne Zwiebeln, viel Salat, Soße separat …" style="width:100%;padding:13px 14px;border:1.5px solid rgba(0,34,48,.14);border-radius:12px;font-size:14px;font-family:'Open Sans',sans-serif;outline:none;background:#fff;color:#002230;resize:none;line-height:1.45"></textarea>
+        </div>
+
+        <div style="margin-top:16px">
+          <div style="font-size:12px;font-weight:600;color:#4a6573;margin-bottom:8px">Preis</div>
+          <div style="display:flex;align-items:center;background:#fff;border:1.5px solid rgba(0,34,48,.14);border-radius:12px;padding:0 14px">
+            <input value="{{ price }}" onChange="{{ onPrice }}" inputmode="decimal" style="flex:1;border:none;outline:none;padding:13px 0;font-size:16px;font-weight:700;font-family:'Open Sans',sans-serif;background:transparent;color:#002230" />
+            <span style="font-size:16px;font-weight:700;color:#8898a6">€</span>
+          </div>
+        </div>
+
+        <!-- Abholer toggle -->
+        <div onClick="{{ togglePickup }}" style="margin-top:16px;background:#fff;border-radius:14px;padding:15px 16px;display:flex;align-items:center;gap:13px;box-shadow:0 1px 3px rgba(0,0,0,.10);cursor:pointer">
+          <span style="font-family:'Material Icons Outlined';font-size:26px;color:#C90023">directions_car</span>
+          <div style="flex:1"><div style="font-size:14px;font-weight:700;color:#002230">Ich hole heute ab 🚗</div><div style="font-size:12px;color:#8898a6;line-height:1.4">Du wirst Abholer & sammelst das Geld per PayPal ein.</div></div>
+          <div style="{{ switchTrackStyle }}"><div style="{{ switchKnobStyle }}"></div></div>
+        </div>
+
+        <button onClick="{{ submitOrder }}" style="{{ submitStyle }}"><span style="font-family:'Material Icons Outlined';font-size:21px">check_circle</span>Bestellung abgeben</button>
+      </div>
+    </sc-if>
+
+    <!-- ============================ SUCCESS ============================ -->
+    <sc-if value="{{ isSuccess }}">
+      <div style="min-height:100%;background:#ECEAEA;display:flex;flex-direction:column;padding:0 20px 32px">
+        <div style="height:64px;flex-shrink:0"></div>
+        <div style="text-align:center;margin-bottom:8px">
+          <div style="width:78px;height:78px;border-radius:50%;background:#E6F4EA;display:flex;align-items:center;justify-content:center;margin:0 auto 12px"><span style="font-family:'Material Icons Outlined';font-size:46px;color:#2E7D32">check</span></div>
+          <h1 style="font-size:23px;font-weight:700;color:#002230;margin:0 0 4px;letter-spacing:-.01em">Erledigt, Chef</h1>
+          <p style="font-size:14px;color:#8898a6;margin:0">Bestellung in der Werks-Telemetrie verbucht ✓</p>
+        </div>
+
+        <!-- Order summary -->
+        <div style="background:#fff;border-radius:14px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.10);margin-top:18px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:16px;font-weight:700;color:#002230">{{ sProduct }}</span><span style="font-size:18px;font-weight:700;color:#C90023">{{ sPriceLabel }}</span></div>
+          <div style="font-size:12px;color:#8898a6;margin-top:3px">{{ sDetail }}</div>
+        </div>
+
+        <!-- Payment: I owe abholer -->
+        <sc-if value="{{ sOwes }}">
+          <div style="background:#fff;border-radius:14px;padding:18px 16px;box-shadow:0 1px 3px rgba(0,0,0,.10);margin-top:14px;text-align:center">
+            <div style="font-size:11px;font-weight:700;letter-spacing:.08em;color:#8898a6;text-transform:uppercase;margin-bottom:10px">Bezahlung an Abholer</div>
+            <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:6px">
+              <div style="width:38px;height:38px;border-radius:50%;background:#00728E;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px">LB</div>
+              <span style="font-size:15px;font-weight:600;color:#002230">{{ sAbholer }}</span>
+            </div>
+            <div style="font-size:34px;font-weight:700;color:#002230;letter-spacing:-.02em;margin-bottom:14px">{{ sPriceLabel }}</div>
+            <button onClick="{{ payAbholer }}" style="width:100%;background:#0070BA;color:#fff;border:none;border-radius:12px;padding:15px;font-size:15px;font-weight:700;font-family:'Open Sans',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px" style-hover="background:#005ea0"><span style="font-family:'Material Icons Outlined';font-size:20px">account_balance_wallet</span>Jetzt {{ sPriceLabel }} per PayPal senden</button>
+            <div style="font-size:11px;color:#8898a6;margin-top:9px">Öffnet PayPal.Me · Betrag voreingestellt</div>
+          </div>
+        </sc-if>
+
+        <!-- Payment: I am the abholer -->
+        <sc-if value="{{ sIsPickup }}">
+          <div style="background:#002230;border-radius:14px;padding:18px 16px;margin-top:14px;color:#fff;text-align:center">
+            <span style="font-family:'Material Icons Outlined';font-size:34px;color:#FAB014">directions_car</span>
+            <div style="font-size:17px;font-weight:700;margin:6px 0 4px">Du holst heute ab, Chef!</div>
+            <p style="font-size:13px;color:rgba(255,255,255,.78);margin:0 0 8px;line-height:1.45">Du sammelst <b style="color:#fff">{{ sCollectLabel }}</b> von {{ sCollectCount }} Kollegen ein.</p>
+            <div style="font-size:12px;color:#7ACCEB;font-weight:600">Die PayPal-Links sind automatisch an dich verschickt 📲</div>
+          </div>
+        </sc-if>
+
+        <button onClick="{{ goHome }}" style="margin-top:16px;width:100%;background:transparent;color:#C90023;border:1.5px solid #C90023;border-radius:12px;padding:14px;font-size:15px;font-weight:700;font-family:'Open Sans',sans-serif;cursor:pointer">Zurück zur Übersicht</button>
+      </div>
+    </sc-if>
+
+  </x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const MENU = [
+  { id:'doener', name:'Döner',     price:7.50, kind:'doener', icon:'kebab_dining' },
+  { id:'duerum', name:'Dürüm',     price:8.00, kind:'doener', icon:'wrap_text' },
+  { id:'big',    name:'Big Döner', price:9.50, kind:'doener', icon:'lunch_dining' },
+  { id:'box',    name:'Dönerbox',  price:6.50, kind:'doener', icon:'takeout_dining' },
+  { id:'danny',  name:'Danny-Box', price:6.00, kind:'doener', icon:'workspace_premium', note:'Pommes · Fleisch · Soße' },
+  { id:'pizza',  name:'Pizza',     price:9.00, kind:'pizza',  icon:'local_pizza' },
+];
+const PIZZAS = ['Salami', 'Margherita', 'Funghi', 'Tonno', 'Hawaii'];
+const SAUCES = [
+  { name:'Kräuter',   emoji:'🌿' },
+  { name:'Knoblauch', emoji:'🧄' },
+  { name:'Scharf',    emoji:'🌶' },
+];
+
+const SEED = [
+  { person:'Lukas Brandt', initials:'LB', product:'Dürüm Kalb',    desc:'Scharf, ohne Zwiebeln', price:8.00, color:'#00728E', pickup:true },
+  { person:'Sara Yılmaz',  initials:'SY', product:'Döner Hähnchen', desc:'Mit allem, extra Knobi', price:7.50, color:'#ED701C' },
+  { person:'Tobias Klein', initials:'TK', product:'Salami Pizza',   desc:'Ohne Käse-Rand',         price:9.00, color:'#45B8A1' },
+];
+
+const DOENER_SYNONYME = [
+  'Drehspieß-Tasche', 'Osmanischer Fleischeimer', 'Fleisch-Rucksack', 'Donatello',
+  'Rindfleisch-Knoppers', 'Drehmoment-Mäppchen', 'Anatolische Fleischbombe', 'Klappkatze',
+];
+
+// Bestell-Historie des Chefs (letzte 3 Monate) — Basis für sein Döner-Tier
+const MY_HISTORY = [
+  { productId:'doener', kind:'doener', meat:'Kalb',     sauces:['Knoblauch','Kräuter'] },
+  { productId:'doener', kind:'doener', meat:'Kalb',     sauces:['Knoblauch','Scharf'] },
+  { productId:'duerum', kind:'doener', meat:'Kalb',     sauces:['Knoblauch','Kräuter','Scharf'] },
+  { productId:'doener', kind:'doener', meat:'Kalb',     sauces:['Knoblauch'] },
+  { productId:'big',    kind:'doener', meat:'Kalb',     sauces:['Knoblauch','Scharf'] },
+  { productId:'doener', kind:'doener', meat:'Hähnchen', sauces:['Knoblauch','Kräuter'] },
+  { productId:'box',    kind:'doener', meat:'Kalb',     sauces:['Knoblauch'] },
+  { productId:'doener', kind:'doener', meat:'Kalb',     sauces:['Kräuter'] },
+  { productId:'doener', kind:'doener', meat:'Kalb',     sauces:['Knoblauch','Scharf'] },
+  { productId:'duerum', kind:'doener', meat:'Kalb',     sauces:['Knoblauch','Kräuter'] },
+  { productId:'doener', kind:'doener', meat:'Kalb',     sauces:['Knoblauch','Scharf'] },
+  { productId:'doener', kind:'doener', meat:'Kalb',     sauces:['Knoblauch'] },
+];
+
+// Aus den echten Bestellungen das Döner-Tier ableiten (wie das Schlaf-Tier, nur ehrlicher)
+function computeTier(hist) {
+  const n = hist.length || 1;
+  const has = sauce => hist.filter(o => (o.sauces || []).includes(sauce)).length;
+  const garlic = has('Knoblauch') / n, spicy = has('Scharf') / n;
+  const meated = hist.filter(o => o.meat);
+  const kalbR  = meated.length ? hist.filter(o => o.meat === 'Kalb').length / meated.length : 0;
+  const haehnR = meated.length ? hist.filter(o => o.meat === 'Hähnchen').length / meated.length : 0;
+  const noSauce  = hist.filter(o => o.kind === 'doener' && !(o.sauces || []).length).length / n;
+  const allThree = hist.filter(o => (o.sauces || []).length >= 3).length / n;
+  const c = id => hist.filter(o => o.productId === id).length;
+  const pizza = c('pizza'), danny = c('danny'), big = c('big'), box = c('box'), duerum = c('duerum');
+  const uniq = new Set(hist.map(o => o.productId)).size;
+  const T = (emoji, name, tagline, tags) => ({ emoji, name, tagline, tags, count: n });
+
+  if (garlic >= 0.6 && spicy >= 0.6) return T('🦨','Die Bürowaffe','Knoblauch UND scharf, fast immer. Nach dem Mittag wird dein Großraumbüro zur Sperrzone erklärt.',['Biogefahr','Knobi+Scharf','Evakuierung']);
+  if (garlic >= 0.7) return T('🐺','Der Knoblauch-Wolf','Extra Knobi ist Pflicht. Kollegen halten ab 14 Uhr respektvollen Sicherheitsabstand.',['Knobi: MAX','Rudeltier','Atem 🚫']);
+  if (spicy >= 0.7) return T('🐉','Der Schärfe-Drache','„Extra scharf" ist deine Grundeinstellung. Die Klospülung läuft längst auf Werks-Notruf.',['Scharf 🌶','Feuerfest','Reue: 0']);
+  if (pizza >= 2) return T('🍕','Der Pizza-Verräter','Geht zum Dönermann – und bestellt Pizza. Im alten Anatolien wärst du dafür verbannt worden.',['Abtrünnig','Pizza','Schande']);
+  if (danny >= 2) return T('📦','Der Danny-Jünger','Pommes, Fleisch, Soße – kein Salat, kein Brot, keine Reue. Lebt streng nach dem Danny-Kodex.',['Insider','Carb-Kult','Eingeweiht']);
+  if (big >= Math.max(2, n * 0.4)) return T('🐗','Die Big-Döner-Wildsau','Normale Portionen empfindest du als persönliche Beleidigung. Hunger-Level: betriebsgefährdend.',['XXL','Maßlos','Respekt']);
+  if (kalbR === 1 && meated.length >= 5) return T('🦖','Der Kalb-Rex','Hähnchen ist für dich Beilage, kein Fleisch. Vegetarier wittern instinktiv Gefahr.',['Team Kalb','Apex','Pures Fleisch']);
+  if (haehnR === 1 && meated.length >= 5) return T('🐔','Das Angst-Hähnchen','Immer Hähnchen, nie Kalb. Beim Döner so risikofreudig wie bei der Steuererklärung.',['Team Hähnchen','Vorsichtig','Brav']);
+  if (allThree >= 0.5) return T('🐙','Der Soßen-Messie','Kräuter, Knobi UND scharf – auf alles. „Sich entscheiden" steht nicht auf deiner Karte.',['Alle Soßen','Chaos','Trieft']);
+  if (noSauce >= 0.5) return T('🐭','Die Trockenmaus','Döner fast immer ohne Soße. Entweder eiserne Diät – oder einfach freudlos.',['Knochentrocken','Spaßbremse','Soße? Nein']);
+  if (duerum >= Math.max(2, n * 0.5)) return T('🦅','Der Dürüm-Adler','Schwebt donnerstags pünktlich ein und greift sich den größten Wickel der Werkstatt.',['Dürüm','Frühbucher','Greift zu']);
+  if (box >= Math.max(2, n * 0.4)) return T('🦫','Der Pommes-Biber','Box-Fanatiker. Wo Pommes drin sind, baust du sofort dein Revier.',['Box','Carb-Loader','Nager']);
+  if (uniq >= 5) return T('🐒','Das Chaos-Äffchen','Jede Woche etwas anderes. Eine Speisekarte ist für dich eine Mutprobe.',['Wankelmütig','Planlos','Mutig']);
+  if (uniq <= 1 && n >= 5) return T('🦥','Das Gewohnheits-Faultier','Seit drei Monaten exakt dasselbe. Kreativität erfolgreich nach extern ausgelagert.',['Stur','Verlässlich','Gähn']);
+  return T('🌯','Der solide Döner-Bürger','Unauffällig, zuverlässig, mittelmäßig – der Beamte unter den Döner-Essern.',['Solide','Durchschnitt','Korrekt']);
+}
+
+// Alle im System erfassten Döner-Tiere (für die Übersicht) — Reihenfolge = Priorität
+const TIER_CATALOG = [
+  { emoji:'🦨', name:'Die Bürowaffe',            tagline:'Knoblauch UND scharf, fast immer. Nach dem Mittag wird dein Großraumbüro zur Sperrzone erklärt.' },
+  { emoji:'🐺', name:'Der Knoblauch-Wolf',       tagline:'Extra Knobi ist Pflicht. Kollegen halten ab 14 Uhr respektvollen Sicherheitsabstand.' },
+  { emoji:'🐉', name:'Der Schärfe-Drache',       tagline:'„Extra scharf" ist deine Grundeinstellung. Die Klospülung läuft längst auf Werks-Notruf.' },
+  { emoji:'🍕', name:'Der Pizza-Verräter',       tagline:'Geht zum Dönermann – und bestellt Pizza. Im alten Anatolien wärst du dafür verbannt worden.' },
+  { emoji:'📦', name:'Der Danny-Jünger',         tagline:'Pommes, Fleisch, Soße – kein Salat, kein Brot, keine Reue. Lebt streng nach dem Danny-Kodex.' },
+  { emoji:'🐗', name:'Die Big-Döner-Wildsau',    tagline:'Normale Portionen empfindest du als persönliche Beleidigung. Hunger-Level: betriebsgefährdend.' },
+  { emoji:'🦖', name:'Der Kalb-Rex',             tagline:'Hähnchen ist für dich Beilage, kein Fleisch. Vegetarier wittern instinktiv Gefahr.' },
+  { emoji:'🐔', name:'Das Angst-Hähnchen',       tagline:'Immer Hähnchen, nie Kalb. Beim Döner so risikofreudig wie bei der Steuererklärung.' },
+  { emoji:'🐙', name:'Der Soßen-Messie',         tagline:'Kräuter, Knobi UND scharf – auf alles. „Sich entscheiden" steht nicht auf deiner Karte.' },
+  { emoji:'🐭', name:'Die Trockenmaus',          tagline:'Döner fast immer ohne Soße. Entweder eiserne Diät – oder einfach freudlos.' },
+  { emoji:'🦅', name:'Der Dürüm-Adler',          tagline:'Schwebt donnerstags pünktlich ein und greift sich den größten Wickel der Werkstatt.' },
+  { emoji:'🦫', name:'Der Pommes-Biber',         tagline:'Box-Fanatiker. Wo Pommes drin sind, baust du sofort dein Revier.' },
+  { emoji:'🐒', name:'Das Chaos-Äffchen',        tagline:'Jede Woche etwas anderes. Eine Speisekarte ist für dich eine Mutprobe.' },
+  { emoji:'🦥', name:'Das Gewohnheits-Faultier', tagline:'Seit drei Monaten exakt dasselbe. Kreativität erfolgreich nach extern ausgelagert.' },
+  { emoji:'🌯', name:'Der solide Döner-Bürger',  tagline:'Unauffällig, zuverlässig, mittelmäßig – der Beamte unter den Döner-Essern.' },
+];
+
+const eur = n => Number(n).toFixed(2).replace('.', ',') + ' €';
+const initialsOf = n => n.trim().split(/\s+/).map(w => w[0]).join('').slice(0,2).toUpperCase();
+
+class Component extends DCLogic {
+  state = {
+    screen: 'login',
+    name: 'Markus Wagner',
+    username: 'm.wagner',
+    pin: 'doener123',
+    dayOpen: false,
+    productId: null,
+    meat: 'Kalb',
+    sauces: [],
+    pizzaVariant: 'Salami',
+    extra: '',
+    price: '',
+    pickup: false,
+    orders: [],
+    lastOrder: null,
+    daySynonym: null,
+    toast: null,
+  };
+
+  onUsername = e => this.setState({ username: e.target.value });
+  onPin = e => this.setState({ pin: e.target.value });
+  login = () => this.setState({ screen: 'home' });
+  openDay = () => {
+    const syn = DOENER_SYNONYME[Math.floor(Math.random() * DOENER_SYNONYME.length)];
+    const toast = `Push an 8 Kollegen gesendet: „Heute wird ein ${syn} organisiert!" 🌯`;
+    this.setState({ dayOpen: true, orders: [...SEED], daySynonym: syn, toast });
+    clearTimeout(this._toastT);
+    this._toastT = setTimeout(() => this.setState({ toast: null }), 6500);
+  };
+  dismissToast = () => { clearTimeout(this._toastT); this.setState({ toast: null }); };
+  goOrder = () => this.setState({ screen: 'order' });
+  goTiere = () => this.setState({ screen: 'tiere' });
+  goHome = () => this.setState({ screen: 'home', productId: null, sauces: [], pizzaVariant: 'Salami', extra: '', price: '', pickup: false, meat: 'Kalb' });
+  selectProduct = (id, price) => () => this.setState({ productId: id, price: price.toFixed(2) });
+  setKalb = () => this.setState({ meat: 'Kalb' });
+  setHaehnchen = () => this.setState({ meat: 'Hähnchen' });
+  toggleSauce = name => () => this.setState(s => ({ sauces: s.sauces.includes(name) ? s.sauces.filter(x => x !== name) : [...s.sauces, name] }));
+  setPizza = v => () => this.setState({ pizzaVariant: v });
+  onExtra = e => this.setState({ extra: e.target.value });
+  onPrice = e => this.setState({ price: e.target.value });
+  togglePickup = () => this.setState(s => ({ pickup: !s.pickup }));
+  openUrl = u => () => window.open(u, '_blank');
+  payLukas = this.openUrl('https://paypal.me/LukasBrandtHB/8.50EUR');
+  paySara = this.openUrl('https://paypal.me/SaraYHB/3.00EUR');
+
+  submitOrder = () => {
+    const s = this.state;
+    const prod = MENU.find(p => p.id === s.productId);
+    if (!prod) return;
+    const isPizza = prod.kind === 'pizza';
+    const price = parseFloat(String(s.price).replace(',', '.')) || prod.price;
+    const productLabel = isPizza ? `Pizza ${s.pizzaVariant}` : `${prod.name} ${s.meat}`;
+    const sauceLabel = isPizza ? '' : (s.sauces.length ? s.sauces.join(', ') : 'ohne Soße');
+    const detail = [sauceLabel, s.extra].filter(Boolean).join(' · ') || 'Standard';
+    const myOrder = { person: s.name, initials: initialsOf(s.name), product: productLabel, desc: detail, price, color: '#C90023', me: true };
+    const newOrders = [...s.orders, myOrder];
+    const others = newOrders.filter(o => !o.me);
+    const collectTotal = others.reduce((a, o) => a + o.price, 0);
+    const lastOrder = {
+      product: productLabel,
+      detail,
+      price,
+      priceLabel: eur(price),
+      iAmPickup: s.pickup,
+      abholer: 'Lukas Brandt',
+      paypalUrl: `https://paypal.me/LukasBrandtHB/${price.toFixed(2)}EUR`,
+      collectLabel: eur(collectTotal),
+      collectCount: others.length,
+    };
+    this.setState({ orders: newOrders, lastOrder, screen: 'success' });
+  };
+
+  payAbholer = () => { const lo = this.state.lastOrder; if (lo) window.open(lo.paypalUrl, '_blank'); };
+
+  renderVals() {
+    const s = this.state;
+    const selProd = MENU.find(p => p.id === s.productId);
+    const lo = s.lastOrder || {};
+    const tier = computeTier(MY_HISTORY); // aus echten Bestellungen der letzten 3 Monate
+    const syn = s.daySynonym;
+    const notifText = syn ? `Achtung Kollegen — heute wird ein „${syn}" organisiert! Bestellschluss 11:30 Uhr. Wer ist dabei?` : '';
+    const isDoener = !!(selProd && selProd.kind === 'doener');
+    const isPizza  = !!(selProd && selProd.kind === 'pizza');
+
+    const productList = MENU.map(p => {
+      const sel = s.productId === p.id;
+      return {
+        icon: p.icon,
+        name: p.name,
+        sub: p.note ? p.note : eur(p.price),
+        badge: p.id === 'danny',
+        onSelect: this.selectProduct(p.id, p.price),
+        cardStyle: { display:'flex', flexDirection:'column', gap:6, alignItems:'flex-start', padding:14, borderRadius:14, cursor:'pointer', background: sel ? '#FCE9EC' : '#fff', border: '2px solid ' + (sel ? '#C90023' : 'rgba(0,34,48,0.10)'), boxShadow:'0 1px 3px rgba(0,0,0,.10)', transition:'all .12s', minHeight:92 },
+        iconStyle: { fontFamily:"'Material Icons Outlined'", fontSize:26, color: sel ? '#C90023' : '#8898a6' },
+        nameStyle: { fontSize:15, fontWeight:700, color: sel ? '#C90023' : '#002230' },
+        subStyle: { fontSize:11, fontWeight:600, color: '#8898a6' },
+      };
+    });
+
+    const chip = active => ({ padding:'9px 14px', borderRadius:20, fontSize:13, fontWeight:700, fontFamily:"'Open Sans',sans-serif", cursor:'pointer', border:'1.5px solid ' + (active ? '#C90023' : 'rgba(0,34,48,.16)'), background: active ? '#C90023' : '#fff', color: active ? '#fff' : '#4a6573' });
+    const pizzaChips = PIZZAS.map(v => ({ name: v, onClick: this.setPizza(v), style: chip(s.pizzaVariant === v) }));
+    const tierCatalog = TIER_CATALOG.map(t => {
+      const mine = t.name === tier.name;
+      return {
+        emoji: t.emoji, name: t.name, tagline: t.tagline, mine,
+        cardStyle: { display:'flex', gap:13, alignItems:'flex-start', padding:'13px 14px', borderRadius:14, background: mine ? '#FCE9EC' : '#fff', border: '1.5px solid ' + (mine ? '#C90023' : 'rgba(0,34,48,.08)'), boxShadow:'0 1px 3px rgba(0,0,0,.08)' },
+        emojiStyle: { width:46, height:46, borderRadius:12, background: mine ? '#fff' : '#F4F6F8', display:'flex', alignItems:'center', justifyContent:'center', fontSize:26, flexShrink:0 },
+      };
+    });
+
+    const sauceChips = SAUCES.map(sc => {
+      const active = s.sauces.includes(sc.name);
+      return {
+        name: sc.name, emoji: sc.emoji, onClick: this.toggleSauce(sc.name),
+        style: { flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:6, padding:'11px 6px', borderRadius:11, fontSize:13, fontWeight:700, fontFamily:"'Open Sans',sans-serif", cursor:'pointer', border:'1.5px solid ' + (active ? '#C90023' : 'rgba(0,34,48,.14)'), background: active ? '#FCE9EC' : '#fff', color: active ? '#C90023' : '#4a6573' },
+        iconStyle: { fontSize:15, lineHeight:1 },
+      };
+    });
+
+    const segBase = { flex:1, padding:'12px', borderRadius:11, fontSize:14, fontWeight:700, fontFamily:"'Open Sans',sans-serif", cursor:'pointer', border:'1.5px solid' };
+    const segOn  = { ...segBase, background:'#C90023', color:'#fff', borderColor:'#C90023' };
+    const segOff = { ...segBase, background:'#fff', color:'#4a6573', borderColor:'rgba(0,34,48,.14)' };
+
+    const submitDisabled = !s.productId;
+    const submitStyle = { marginTop:18, width:'100%', background: submitDisabled ? '#d8a3ac' : '#C90023', color:'#fff', border:'none', borderRadius:12, padding:16, fontSize:16, fontWeight:700, fontFamily:"'Open Sans',sans-serif", cursor: submitDisabled ? 'not-allowed' : 'pointer', boxShadow: submitDisabled ? 'none' : '0 6px 16px rgba(201,0,35,.28)', display:'flex', alignItems:'center', justifyContent:'center', gap:8 };
+
+    const switchTrackStyle = { width:46, height:28, borderRadius:14, background: s.pickup ? '#C90023' : '#cfd6da', flexShrink:0, position:'relative', transition:'background .15s' };
+    const switchKnobStyle = { position:'absolute', top:3, left:3, width:22, height:22, borderRadius:'50%', background:'#fff', boxShadow:'0 1px 3px rgba(0,0,0,.3)', transform: s.pickup ? 'translateX(18px)' : 'translateX(0)', transition:'transform .15s' };
+
+    const orderRows = s.orders.map(o => ({
+      ...o,
+      priceLabel: eur(o.price),
+      avatarStyle: { width:36, height:36, borderRadius:'50%', background:o.color, color:'#fff', fontSize:13, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 },
+    }));
+    const orderTotal = s.orders.reduce((a, o) => a + o.price, 0);
+
+    return {
+      isLogin: s.screen === 'login',
+      isHome: s.screen === 'home',
+      isOrder: s.screen === 'order',
+      isSuccess: s.screen === 'success',
+      isTiere: s.screen === 'tiere',
+      goTiere: this.goTiere, tierCatalog,
+      firstName: (s.name || 'Kollege').trim().split(/\s+/)[0],
+      username: s.username, pin: s.pin, onUsername: this.onUsername, onPin: this.onPin, login: this.login,
+      dayOpen: s.dayOpen, dayClosed: !s.dayOpen, openDay: this.openDay, goOrder: this.goOrder, goHome: this.goHome,
+      tierEmoji: tier.emoji, tierName: tier.name, tierTagline: tier.tagline, tierTags: tier.tags, tierCount: tier.count,
+      toast: s.toast, dismissToast: this.dismissToast, notifText,
+      orderRows, orderCount: s.orders.length, orderTotalLabel: eur(orderTotal),
+      payLukas: this.payLukas, paySara: this.paySara,
+      productList,
+      meatVisible: isDoener,
+      pizzaVisible: isPizza, pizzaChips,
+      sauceChips,
+      kalbStyle: s.meat === 'Kalb' ? segOn : segOff,
+      haehnchenStyle: s.meat === 'Hähnchen' ? segOn : segOff,
+      setKalb: this.setKalb, setHaehnchen: this.setHaehnchen,
+      extra: s.extra, onExtra: this.onExtra,
+      price: s.price, onPrice: this.onPrice,
+      togglePickup: this.togglePickup, switchTrackStyle, switchKnobStyle,
+      submitOrder: this.submitOrder, submitStyle,
+      sProduct: lo.product, sDetail: lo.detail, sPriceLabel: lo.priceLabel,
+      sIsPickup: !!lo.iAmPickup, sOwes: lo.product ? !lo.iAmPickup : false,
+      sAbholer: lo.abholer, payAbholer: this.payAbholer,
+      sCollectLabel: lo.collectLabel, sCollectCount: lo.collectCount,
+    };
+  }
+}
+</script>
+</body>
+</html>
