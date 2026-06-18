@@ -5,12 +5,30 @@ import { RouterProvider } from "@tanstack/react-router";
 import "@fontsource/open-sans/400.css";
 import "@fontsource/open-sans/600.css";
 import "@fontsource/open-sans/700.css";
-import { StrictMode } from "react";
+import { StrictMode, useEffect } from "react";
 import { createRoot } from "react-dom/client";
+import { AuthProvider, useAuth } from "@/features/auth";
+import { registerHardLogout } from "@/lib/api";
 import { queryClient } from "@/lib/query-client";
 import { router } from "@/lib/router";
 import { AppGlobalStyles } from "@/styles/AppGlobalStyles";
 import { theme } from "@/styles/theme";
+
+// Reads the live auth context and feeds it into the router context so the guard
+// can decide in `beforeLoad`. Also registers the hard-logout navigation that the
+// apiClient invokes when a 401 cannot be recovered by a refresh.
+const InnerApp = () => {
+  const auth = useAuth();
+
+  useEffect(() => {
+    registerHardLogout(() => {
+      auth.clear();
+      void router.navigate({ to: "/login", search: { redirect: router.state.location.href } });
+    });
+  }, [auth]);
+
+  return <RouterProvider router={router} context={{ auth }} />;
+};
 
 const rootElement = document.getElementById("root");
 
@@ -24,7 +42,9 @@ createRoot(rootElement).render(
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <AppGlobalStyles />
-        <RouterProvider router={router} />
+        <AuthProvider>
+          <InnerApp />
+        </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
   </StrictMode>,

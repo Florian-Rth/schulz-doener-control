@@ -9,50 +9,177 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as AuthRouteImport } from './routes/_auth'
+import { Route as AuthIndexRouteImport } from './routes/_auth/index'
+import { Route as AuthTiereRouteImport } from './routes/_auth/tiere'
+import { Route as AuthPasswortAendernRouteImport } from './routes/_auth/passwort-aendern'
+import { Route as AuthOrderRouteImport } from './routes/_auth/order'
+import { Route as AuthErledigtRouteImport } from './routes/_auth/erledigt'
 
-const IndexRoute = IndexRouteImport.update({
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/_auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthIndexRoute = AuthIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthTiereRoute = AuthTiereRouteImport.update({
+  id: '/tiere',
+  path: '/tiere',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthPasswortAendernRoute = AuthPasswortAendernRouteImport.update({
+  id: '/passwort-aendern',
+  path: '/passwort-aendern',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthOrderRoute = AuthOrderRouteImport.update({
+  id: '/order',
+  path: '/order',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthErledigtRoute = AuthErledigtRouteImport.update({
+  id: '/erledigt',
+  path: '/erledigt',
+  getParentRoute: () => AuthRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
+  '/': typeof AuthIndexRoute
+  '/login': typeof LoginRoute
+  '/erledigt': typeof AuthErledigtRoute
+  '/order': typeof AuthOrderRoute
+  '/passwort-aendern': typeof AuthPasswortAendernRoute
+  '/tiere': typeof AuthTiereRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/erledigt': typeof AuthErledigtRoute
+  '/order': typeof AuthOrderRoute
+  '/passwort-aendern': typeof AuthPasswortAendernRoute
+  '/tiere': typeof AuthTiereRoute
+  '/': typeof AuthIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
+  '/_auth': typeof AuthRouteWithChildren
+  '/login': typeof LoginRoute
+  '/_auth/erledigt': typeof AuthErledigtRoute
+  '/_auth/order': typeof AuthOrderRoute
+  '/_auth/passwort-aendern': typeof AuthPasswortAendernRoute
+  '/_auth/tiere': typeof AuthTiereRoute
+  '/_auth/': typeof AuthIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/erledigt'
+    | '/order'
+    | '/passwort-aendern'
+    | '/tiere'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/login' | '/erledigt' | '/order' | '/passwort-aendern' | '/tiere' | '/'
+  id:
+    | '__root__'
+    | '/_auth'
+    | '/login'
+    | '/_auth/erledigt'
+    | '/_auth/order'
+    | '/_auth/passwort-aendern'
+    | '/_auth/tiere'
+    | '/_auth/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRouteWithChildren
+  LoginRoute: typeof LoginRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_auth': {
+      id: '/_auth'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_auth/': {
+      id: '/_auth/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthIndexRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/tiere': {
+      id: '/_auth/tiere'
+      path: '/tiere'
+      fullPath: '/tiere'
+      preLoaderRoute: typeof AuthTiereRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/passwort-aendern': {
+      id: '/_auth/passwort-aendern'
+      path: '/passwort-aendern'
+      fullPath: '/passwort-aendern'
+      preLoaderRoute: typeof AuthPasswortAendernRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/order': {
+      id: '/_auth/order'
+      path: '/order'
+      fullPath: '/order'
+      preLoaderRoute: typeof AuthOrderRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/erledigt': {
+      id: '/_auth/erledigt'
+      path: '/erledigt'
+      fullPath: '/erledigt'
+      preLoaderRoute: typeof AuthErledigtRouteImport
+      parentRoute: typeof AuthRoute
     }
   }
 }
 
+interface AuthRouteChildren {
+  AuthErledigtRoute: typeof AuthErledigtRoute
+  AuthOrderRoute: typeof AuthOrderRoute
+  AuthPasswortAendernRoute: typeof AuthPasswortAendernRoute
+  AuthTiereRoute: typeof AuthTiereRoute
+  AuthIndexRoute: typeof AuthIndexRoute
+}
+
+const AuthRouteChildren: AuthRouteChildren = {
+  AuthErledigtRoute: AuthErledigtRoute,
+  AuthOrderRoute: AuthOrderRoute,
+  AuthPasswortAendernRoute: AuthPasswortAendernRoute,
+  AuthTiereRoute: AuthTiereRoute,
+  AuthIndexRoute: AuthIndexRoute,
+}
+
+const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
+  AuthRoute: AuthRouteWithChildren,
+  LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

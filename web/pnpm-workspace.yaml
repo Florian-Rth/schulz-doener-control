@@ -1,0 +1,5 @@
+# MSW's only lifecycle script is a browser service-worker init that this app
+# (which uses MSW for node-based tests) does not need. Explicitly mark it
+# reviewed-and-disallowed so `pnpm install` exits cleanly under strictDepBuilds.
+allowBuilds:
+  msw: false

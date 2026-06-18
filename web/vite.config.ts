@@ -35,5 +35,12 @@ export default defineConfig({
     globals: true,
     setupFiles: "./src/test/setup.ts",
     css: false,
+    server: {
+      deps: {
+        // MUI ships ESM that does a directory import of react-transition-group,
+        // which Node's ESM resolver rejects. Inlining lets Vite resolve it.
+        inline: [/@mui\/material/, /react-transition-group/],
+      },
+    },
   },
 });

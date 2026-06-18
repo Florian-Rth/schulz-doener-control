@@ -1,0 +1,108 @@
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
+import type { FC } from "react";
+import { PrimaryButton } from "@/components/buttons";
+import { authCopy } from "../../copy";
+import { useLoginForm } from "../../hooks/use-login-form";
+import { LoginField } from "./internal/LoginField";
+import { ServerStatusLine } from "./internal/ServerStatusLine";
+
+interface LoginPageProps {
+  /** Optional deep-link target to return to after a successful login. */
+  redirect?: string;
+}
+
+// Layout shell for the login screen: a centered column on the login background,
+// matching the mock. Logic lives in `useLoginForm`; this body only composes.
+export const LoginPage: FC<LoginPageProps> = ({ redirect }) => {
+  const { form, onSubmit, isPending, serverError } = useLoginForm({ redirect });
+
+  return (
+    <Stack
+      sx={(theme) => ({
+        minHeight: "100%",
+        width: "100%",
+        px: 3.5,
+        pb: 3.5,
+        backgroundColor: theme.palette.background.login,
+      })}
+    >
+      <Stack sx={{ height: "64px", flexShrink: 0 }} aria-hidden />
+      <Stack
+        sx={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          textAlign: "center",
+          gap: 0.5,
+        }}
+      >
+        <Typography
+          sx={{
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: "0.14em",
+            color: "primary.main",
+            textTransform: "uppercase",
+          }}
+        >
+          {authCopy.eyebrow}
+        </Typography>
+        <Typography
+          component="h1"
+          sx={{
+            fontSize: 22,
+            fontWeight: 700,
+            color: "navy.main",
+            mt: 1.75,
+            letterSpacing: "-0.01em",
+          }}
+        >
+          {authCopy.heading}
+        </Typography>
+        <Typography
+          sx={{ fontSize: 13, color: "muted.main", maxWidth: 260, lineHeight: 1.45, mb: 1.5 }}
+        >
+          {authCopy.subline}
+        </Typography>
+
+        <Stack
+          component="form"
+          noValidate
+          onSubmit={onSubmit}
+          sx={{ width: "100%", gap: 0.5, textAlign: "left" }}
+        >
+          <LoginField
+            control={form.control}
+            name="username"
+            label={authCopy.usernameLabel}
+            placeholder={authCopy.usernamePlaceholder}
+            autoComplete="username"
+          />
+          <LoginField
+            control={form.control}
+            name="password"
+            label={authCopy.passwordLabel}
+            placeholder={authCopy.passwordPlaceholder}
+            type="password"
+            autoComplete="current-password"
+          />
+
+          {serverError !== null ? (
+            <Typography role="alert" sx={{ fontSize: 13, color: "primary.main", fontWeight: 600 }}>
+              {serverError}
+            </Typography>
+          ) : null}
+
+          <PrimaryButton type="submit" loading={isPending} sx={{ mt: 1.5 }}>
+            {authCopy.submit}
+          </PrimaryButton>
+        </Stack>
+
+        <Stack sx={{ mt: 2.25 }}>
+          <ServerStatusLine label={authCopy.serverStatus} />
+        </Stack>
+      </Stack>
+    </Stack>
+  );
+};
