@@ -5,6 +5,7 @@ using Schulz.DoenerControl.Application.OrderDays;
 using Schulz.DoenerControl.Core;
 using Schulz.DoenerControl.Core.Entities;
 using Schulz.DoenerControl.Core.Enums;
+using Schulz.DoenerControl.Infrastructure.Debts;
 using Schulz.DoenerControl.Infrastructure.Persistence;
 
 namespace Schulz.DoenerControl.Infrastructure.OrderDays;
@@ -16,16 +17,19 @@ public sealed class OrderDayService : IOrderDayService
     private readonly AppDbContext database;
     private readonly OrderDayClock clock;
     private readonly INotificationBroadcaster broadcaster;
+    private readonly CloseDayDebtGenerator debtGenerator;
 
     public OrderDayService(
         AppDbContext database,
         OrderDayClock clock,
-        INotificationBroadcaster broadcaster
+        INotificationBroadcaster broadcaster,
+        CloseDayDebtGenerator debtGenerator
     )
     {
         this.database = database;
         this.clock = clock;
         this.broadcaster = broadcaster;
+        this.debtGenerator = debtGenerator;
     }
 
     public async Task<Result<OrderDayDetails?>> GetTodayAsync(Guid callerId, CancellationToken ct)
@@ -117,12 +121,13 @@ public sealed class OrderDayService : IOrderDayService
         if (day.Status == OrderDayStatus.Closed)
             return Result<CloseDayResult>.Conflict("Der Döner-Tag ist bereits geschlossen.");
 
+        var now = clock.UtcNow();
         day.Status = OrderDayStatus.Closed;
-        day.ClosedAt = clock.UtcNow();
+        day.ClosedAt = now;
 
-        // Extension point for the debt-generation feature: on close, one Debt per non-pickup payer
-        // → the collector. Until that lands, closing crystallizes no debts.
-        var debtsCreated = 0;
+        // On close, crystallize the day's debts: one Debt per non-pickup payer → the collector for
+        // their own order price. Persisted in the same SaveChanges as the close transition.
+        var debtsCreated = await debtGenerator.GenerateForCloseAsync(day, now, ct);
 
         await database.SaveChangesAsync(ct);
 

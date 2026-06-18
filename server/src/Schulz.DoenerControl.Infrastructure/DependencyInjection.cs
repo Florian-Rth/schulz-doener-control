@@ -2,12 +2,14 @@ using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Schulz.DoenerControl.Application.Debts;
 using Schulz.DoenerControl.Application.Menu;
 using Schulz.DoenerControl.Application.Notifications;
 using Schulz.DoenerControl.Application.OrderDays;
 using Schulz.DoenerControl.Application.Orders;
 using Schulz.DoenerControl.Application.Security;
 using Schulz.DoenerControl.Application.Users;
+using Schulz.DoenerControl.Infrastructure.Debts;
 using Schulz.DoenerControl.Infrastructure.Menu;
 using Schulz.DoenerControl.Infrastructure.Notifications;
 using Schulz.DoenerControl.Infrastructure.OrderDays;
@@ -40,6 +42,7 @@ public static class DependencyInjection
         services.AddOrderDays(configuration);
         services.AddScoped<IOrderService, OrderService>();
         services.AddScoped<IPickupService, PickupService>();
+        services.AddScoped<IDebtService, DebtService>();
         services.AddScoped<DatabaseSeeder>();
         services.AddScoped<DevHistorySeeder>();
         return services;
@@ -53,6 +56,7 @@ public static class DependencyInjection
 
         services.AddScoped<OrderDayClock>();
         services.AddScoped<INotificationBroadcaster, NotificationBroadcaster>();
+        services.AddScoped<CloseDayDebtGenerator>();
         services.AddScoped<IOrderDayService, OrderDayService>();
     }
 
