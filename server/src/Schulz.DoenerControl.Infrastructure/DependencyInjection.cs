@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Schulz.DoenerControl.Application.Security;
 using Schulz.DoenerControl.Infrastructure.Persistence;
 using Schulz.DoenerControl.Infrastructure.Persistence.Seeding;
+using Schulz.DoenerControl.Infrastructure.Security;
 
 namespace Schulz.DoenerControl.Infrastructure;
 
@@ -19,9 +21,55 @@ public static class DependencyInjection
             options.UseSqlite(configuration.GetConnectionString(AppDbConnectionName))
         );
         services.TryAddSingletonTimeProvider();
+        services.AddPasswordHashing(configuration);
         services.AddScoped<DatabaseSeeder>();
         services.AddScoped<DevHistorySeeder>();
         return services;
+    }
+
+    private static void AddPasswordHashing(
+        this IServiceCollection services,
+        IConfiguration configuration
+    )
+    {
+        services
+            .AddOptions<PasswordHashingOptions>()
+            .Configure(options => BindPasswordHashing(configuration, options))
+            .Validate(
+                options => !string.IsNullOrWhiteSpace(options.Pepper),
+                $"'{PasswordHashingOptions.PepperConfigKey}' must be configured with a non-empty "
+                    + "server-side pepper."
+            )
+            .Validate(
+                options => options.MemorySize >= 8192,
+                $"'{PasswordHashingOptions.ParametersConfigSection}:MemorySize' must be at least 8192."
+            )
+            .Validate(
+                options => options.Iterations >= 1,
+                $"'{PasswordHashingOptions.ParametersConfigSection}:Iterations' must be at least 1."
+            )
+            .ValidateOnStart();
+
+        services.AddSingleton<IPasswordHasher, Argon2idPasswordHasher>();
+    }
+
+    private static void BindPasswordHashing(
+        IConfiguration configuration,
+        PasswordHashingOptions options
+    )
+    {
+        options.Pepper = configuration[PasswordHashingOptions.PepperConfigKey] ?? string.Empty;
+
+        var parameters = configuration.GetSection(PasswordHashingOptions.ParametersConfigSection);
+        if (int.TryParse(parameters["MemorySize"], out var memorySize))
+        {
+            options.MemorySize = memorySize;
+        }
+
+        if (int.TryParse(parameters["Iterations"], out var iterations))
+        {
+            options.Iterations = iterations;
+        }
     }
 
     public static async Task MigrateAndSeedAsync(
