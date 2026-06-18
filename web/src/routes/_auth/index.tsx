@@ -1,13 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useAuth } from "@/features/auth";
-import { HomePage } from "@/features/home";
+import { DashboardProvider } from "@/features/home";
 
-const HomeRoute = () => {
-  // The home greeting uses the user's real first name from the live session.
-  const { user } = useAuth();
-  return <HomePage greetingName={user?.firstName ?? "Chef"} />;
-};
-
+// The home/dashboard screen. The greeting name + all slices come from the
+// server-driven `GET /api/dashboard` aggregate inside the provider.
 export const Route = createFileRoute("/_auth/")({
-  component: HomeRoute,
+  component: DashboardProvider,
 });
