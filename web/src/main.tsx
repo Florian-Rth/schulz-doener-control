@@ -9,6 +9,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { queryClient } from "@/lib/query-client";
 import { router } from "@/lib/router";
+import { AppGlobalStyles } from "@/styles/AppGlobalStyles";
 import { theme } from "@/styles/theme";
 
 const rootElement = document.getElementById("root");
@@ -22,6 +23,7 @@ createRoot(rootElement).render(
     <QueryClientProvider client={queryClient}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
+        <AppGlobalStyles />
         <RouterProvider router={router} />
       </ThemeProvider>
     </QueryClientProvider>
