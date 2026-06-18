@@ -1,0 +1,1 @@
+export { BenachrichtigungenPage } from "./BenachrichtigungenPage";

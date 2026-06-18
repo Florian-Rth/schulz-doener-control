@@ -9,6 +9,7 @@ import { StrictMode, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { AuthProvider, useAuth } from "@/features/auth";
 import { registerHardLogout } from "@/lib/api";
+import { registerServiceWorker } from "@/lib/push";
 import { queryClient } from "@/lib/query-client";
 import { router } from "@/lib/router";
 import { AppGlobalStyles } from "@/styles/AppGlobalStyles";
@@ -35,6 +36,10 @@ const rootElement = document.getElementById("root");
 if (rootElement === null) {
   throw new Error("Root-Element wurde nicht gefunden.");
 }
+
+// Register the Web Push service worker up front (no-op when unsupported) so the
+// push handler is ready before the user opts in via the subscribe card.
+void registerServiceWorker();
 
 createRoot(rootElement).render(
   <StrictMode>
