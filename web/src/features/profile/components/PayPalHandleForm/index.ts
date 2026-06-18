@@ -1,0 +1,1 @@
+export { PayPalHandleForm } from "./PayPalHandleForm";

@@ -1,0 +1,1 @@
+export { TiereCatalogPage } from "./TiereCatalogPage";
