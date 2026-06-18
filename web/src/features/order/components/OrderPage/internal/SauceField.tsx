@@ -1,0 +1,41 @@
+import Stack from "@mui/material/Stack";
+import type { FC } from "react";
+import { Controller } from "react-hook-form";
+import { MultiSelectChips } from "@/components";
+import { orderCopy, SAUCE_LABELS } from "../../../copy";
+import { useOrderFormContext } from "../../../order-context";
+import type { SauceType } from "../../../types";
+import { SectionLabel } from "./SectionLabel";
+
+// Sauce multi-select (Kräuter / Knoblauch / Scharf). Rendered only when
+// meatVisible. Toggling accumulates / removes a sauce on the RHF `sauces` array.
+export const SauceField: FC = () => {
+  const { form, menu } = useOrderFormContext();
+  const options = menu.sauceOptions.map((sauce) => ({
+    value: sauce,
+    label: SAUCE_LABELS[sauce].label,
+    emoji: SAUCE_LABELS[sauce].emoji,
+  }));
+
+  return (
+    <Stack sx={{ gap: 1 }}>
+      <SectionLabel label={orderCopy.sauceSection} hint={orderCopy.sauceHint} />
+      <Controller
+        control={form.control}
+        name="sauces"
+        render={({ field }) => (
+          <MultiSelectChips
+            options={options}
+            value={field.value}
+            onToggle={(value: SauceType) => {
+              const next = field.value.includes(value)
+                ? field.value.filter((entry) => entry !== value)
+                : [...field.value, value];
+              field.onChange(next);
+            }}
+          />
+        )}
+      />
+    </Stack>
+  );
+};
