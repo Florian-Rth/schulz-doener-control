@@ -10,6 +10,7 @@ using Schulz.DoenerControl.Application.Notifications;
 using Schulz.DoenerControl.Application.OrderDays;
 using Schulz.DoenerControl.Application.Orders;
 using Schulz.DoenerControl.Application.Security;
+using Schulz.DoenerControl.Application.Tiers;
 using Schulz.DoenerControl.Application.Users;
 using Schulz.DoenerControl.Infrastructure.Dashboard;
 using Schulz.DoenerControl.Infrastructure.Debts;
@@ -21,6 +22,7 @@ using Schulz.DoenerControl.Infrastructure.Orders;
 using Schulz.DoenerControl.Infrastructure.Persistence;
 using Schulz.DoenerControl.Infrastructure.Persistence.Seeding;
 using Schulz.DoenerControl.Infrastructure.Security;
+using Schulz.DoenerControl.Infrastructure.Tiers;
 using Schulz.DoenerControl.Infrastructure.Users;
 
 namespace Schulz.DoenerControl.Infrastructure;
@@ -48,6 +50,7 @@ public static class DependencyInjection
         services.AddScoped<IPickupService, PickupService>();
         services.AddScoped<IDebtService, DebtService>();
         services.AddScoped<ILeaderboardService, LeaderboardService>();
+        services.AddScoped<ITierService, TierService>();
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<DatabaseSeeder>();
         services.AddScoped<DevHistorySeeder>();
