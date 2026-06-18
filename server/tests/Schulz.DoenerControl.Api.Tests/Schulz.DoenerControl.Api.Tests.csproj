@@ -10,6 +10,16 @@
     <ProjectReference Include="..\..\src\Schulz.DoenerControl.Api\Schulz.DoenerControl.Api.csproj" />
   </ItemGroup>
 
+  <!--
+    Each [DisableWafCache] AppFixture boots its own FastEndpoints host. FastEndpoints' one-time
+    global setup in UseFastEndpoints mutates shared static config and is not reentrant, so running
+    test collections in parallel intermittently throws during host startup (MapFastEndpoints).
+    Serializing collections removes that race; per-class DB isolation is unaffected.
+  -->
+  <ItemGroup>
+    <None Update="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit.v3" />
