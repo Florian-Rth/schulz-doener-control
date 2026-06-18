@@ -16,6 +16,14 @@ if (builder.Environment.IsDevelopment())
 
 var app = builder.Build();
 
+// The integration-test harness owns migration + seeding (it controls the isolated SQLite
+// file per fixture); auto-migrating here too would race it. Everywhere else, migrate + seed
+// on startup so the app is ready to serve.
+if (!app.Environment.IsEnvironment("Testing"))
+{
+    await app.Services.MigrateAndSeedAsync(seedDevHistory: app.Environment.IsDevelopment());
+}
+
 app.UseFastEndpoints();
 
 if (app.Environment.IsDevelopment())

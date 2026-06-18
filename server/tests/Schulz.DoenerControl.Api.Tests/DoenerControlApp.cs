@@ -4,26 +4,45 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Schulz.DoenerControl.Infrastructure;
 using Schulz.DoenerControl.Infrastructure.Persistence;
 
 namespace Schulz.DoenerControl.Api.Tests;
 
-// Real-SQLite integration test harness. FastEndpoints.Testing gives one fixture instance
-// per test class, so each test class gets its own isolated temp-file SQLite database.
-// Parallel test classes are safe because the file names carry a unique Guid.
+// Real-SQLite integration test harness. Each test class gets its own fully isolated SQLite
+// database so parallel classes never see each other's data.
+//
+// [DisableWafCache] is essential here: by default AppFixture caches a single SUT and shares it
+// across every test class depending on this fixture type, which would also share one host —
+// and thus one AppDbContext registration / one database — defeating per-class isolation.
+// Disabling the cache boots a fresh SUT, and a fresh database, per test class.
+[DisableWafCache]
 public sealed class DoenerControlApp : AppFixture<Program>
 {
-    private string databaseFilePath = string.Empty;
+    // A per-fixture, in-memory shared-cache database. The unique name makes test classes
+    // process-isolated (no shared files, no timing/ordering races); the ".db" token keeps the
+    // data source human-recognizable. A shared-cache in-memory DB lives only as long as at
+    // least one connection is open — keepAliveConnection guarantees that for the fixture
+    // lifetime, and EF's per-request connections join the same cache by name.
+    private readonly string connectionString = new SqliteConnectionStringBuilder
+    {
+        DataSource = $"doener-test-{Guid.NewGuid():N}.db",
+        Mode = SqliteOpenMode.Memory,
+        Cache = SqliteCacheMode.Shared,
+    }.ToString();
+
+    private SqliteConnection keepAliveConnection = null!;
 
     protected override void ConfigureApp(IWebHostBuilder builder)
     {
-        databaseFilePath = Path.Combine(Path.GetTempPath(), $"doener-test-{Guid.NewGuid():N}.db");
+        keepAliveConnection = new SqliteConnection(connectionString);
+        keepAliveConnection.Open();
 
         builder.UseEnvironment("Testing");
 
         // Test secrets injected via host config so no real production secret is ever needed.
         // The wiring slots exist now; the auth feature consumes them later.
-        builder.UseSetting("ConnectionStrings:AppDb", $"Data Source={databaseFilePath}");
+        builder.UseSetting("ConnectionStrings:AppDb", connectionString);
         builder.UseSetting("Auth:Pepper", TestConfig.Pepper);
         builder.UseSetting("Auth:JwtSigningKey", TestConfig.JwtSigningKey);
         builder.UseSetting("Auth:JwtIssuer", TestConfig.JwtIssuer);
@@ -35,33 +54,25 @@ public sealed class DoenerControlApp : AppFixture<Program>
 
     protected override void ConfigureServices(IServiceCollection services)
     {
-        // Strip the real AppDbContext registration and re-point it at our isolated temp file.
+        // Strip the real AppDbContext registration and re-point it at this fixture's database.
         services.RemoveAll<DbContextOptions<AppDbContext>>();
         services.RemoveAll<AppDbContext>();
-        services.AddDbContext<AppDbContext>(options =>
-            options.UseSqlite($"Data Source={databaseFilePath}")
-        );
+        services.AddDbContext<AppDbContext>(options => options.UseSqlite(connectionString));
     }
 
     protected override async ValueTask SetupAsync()
     {
-        using var scope = Services.CreateScope();
-        var database = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-        // Apply REAL migrations (no-op until the InitialCreate migration lands in F1),
-        // never EnsureCreated, so the migration itself is exercised by every test.
-        await database.Database.MigrateAsync();
+        // The harness is the single owner of migration + seeding under the Testing environment
+        // (Program skips its startup migrate there to avoid racing this). Applies the REAL
+        // migrations — never EnsureCreated — so the migration itself is exercised by every test,
+        // then runs the runtime user seed so authenticated tests have real accounts.
+        await Services.MigrateAndSeedAsync();
     }
 
     protected override ValueTask TearDownAsync()
     {
-        // Release the file handle before deleting the throwaway database.
-        SqliteConnection.ClearAllPools();
-        if (File.Exists(databaseFilePath))
-        {
-            File.Delete(databaseFilePath);
-        }
-
+        // Closing the only open connection drops this fixture's in-memory database.
+        keepAliveConnection.Dispose();
         return ValueTask.CompletedTask;
     }
 }

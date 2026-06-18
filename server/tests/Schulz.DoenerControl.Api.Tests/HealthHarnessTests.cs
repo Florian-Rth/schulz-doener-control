@@ -42,6 +42,6 @@ public sealed class HealthHarnessTests : DoenerControlTestBase
 
         Assert.NotNull(connectionString);
         Assert.Contains("doener-test-", connectionString);
-        Assert.EndsWith(".db", connectionString);
+        Assert.Contains(".db", connectionString);
     }
 }

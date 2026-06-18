@@ -1,0 +1,184 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Schulz.DoenerControl.Core.Entities;
+using Schulz.DoenerControl.Core.Enums;
+using Schulz.DoenerControl.Infrastructure.Persistence;
+using Xunit;
+
+namespace Schulz.DoenerControl.Api.Tests;
+
+// Exercises the real InitialCreate migration applied to a fresh SQLite database by the
+// harness, plus the reference + user seed. Asserts the menu and users are present and that
+// the schema's unique constraints actually fire on real inserts.
+public sealed class SchemaAndSeedTests : DoenerControlTestBase
+{
+    public SchemaAndSeedTests(DoenerControlApp app)
+        : base(app) { }
+
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    [Fact]
+    public async Task Should_Seed_Six_Menu_Items_When_Migration_Applied()
+    {
+        using var scope = App.Services.CreateScope();
+        var database = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var menu = await database.MenuItems.OrderBy(item => item.SortOrder).ToListAsync(Ct);
+
+        Assert.Equal(6, menu.Count);
+        Assert.Equal(
+            new[] { "doener", "duerum", "big", "box", "danny", "pizza" },
+            menu.Select(item => item.Id).ToArray()
+        );
+
+        var danny = menu.Single(item => item.Id == "danny");
+        Assert.True(danny.IsInsider);
+        Assert.Equal(600, danny.DefaultPriceCents);
+        Assert.Equal(ProductKind.Doener, danny.Kind);
+
+        var pizza = menu.Single(item => item.Id == "pizza");
+        Assert.Equal(ProductKind.Pizza, pizza.Kind);
+        Assert.Equal(900, pizza.DefaultPriceCents);
+    }
+
+    [Fact]
+    public async Task Should_Seed_Thirteen_Active_Employees_When_Migration_Applied()
+    {
+        using var scope = App.Services.CreateScope();
+        var database = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var users = await database.Users.ToListAsync(Ct);
+
+        Assert.Equal(13, users.Count);
+        Assert.All(users, user => Assert.True(user.IsActive));
+        Assert.All(users, user => Assert.NotEmpty(user.PasswordHash));
+        Assert.All(users, user => Assert.NotEmpty(user.PasswordSalt));
+        Assert.All(
+            users,
+            user => Assert.Equal(user.Username.ToLowerInvariant(), user.NormalizedUserName)
+        );
+    }
+
+    [Fact]
+    public async Task Should_Seed_Verified_Dev_User_When_Migration_Applied()
+    {
+        using var scope = App.Services.CreateScope();
+        var database = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var chef = await database.Users.SingleAsync(
+            user => user.NormalizedUserName == "m.wagner",
+            Ct
+        );
+
+        Assert.False(chef.MustChangePassword);
+        Assert.Equal("Markus Wagner", chef.DisplayName);
+        Assert.Equal(UserRole.Admin, chef.Role);
+    }
+
+    [Fact]
+    public async Task Should_Reject_Duplicate_NormalizedUserName_When_Inserted()
+    {
+        using var scope = App.Services.CreateScope();
+        var database = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        database.Users.Add(
+            new User
+            {
+                Id = Guid.NewGuid(),
+                Username = "M.Wagner",
+                NormalizedUserName = "m.wagner",
+                DisplayName = "Doppelgaenger",
+                PasswordHash = new byte[] { 1 },
+                PasswordSalt = new byte[] { 1 },
+                Role = UserRole.Employee,
+                IsActive = true,
+                MustChangePassword = true,
+                AvatarColorHex = "#000000",
+                CreatedAt = DateTimeOffset.UtcNow,
+            }
+        );
+
+        await Assert.ThrowsAsync<DbUpdateException>(() => database.SaveChangesAsync(Ct));
+    }
+
+    [Fact]
+    public async Task Should_Reject_Second_Order_For_Same_User_And_Day_When_Inserted()
+    {
+        using var scope = App.Services.CreateScope();
+        var database = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var user = await database.Users.FirstAsync(Ct);
+        var now = DateTimeOffset.UtcNow;
+        var day = new OrderDay
+        {
+            Id = Guid.NewGuid(),
+            Date = DateOnly.FromDateTime(now.UtcDateTime),
+            Status = OrderDayStatus.Open,
+            Synonym = "Klappkatze",
+            OrderCutoffAt = now.AddHours(2),
+            OpenedByUserId = user.Id,
+            OpenedAt = now,
+        };
+        database.OrderDays.Add(day);
+        await database.SaveChangesAsync(Ct);
+
+        database.Orders.Add(BuildOrder(day.Id, user.Id, now));
+        await database.SaveChangesAsync(Ct);
+
+        database.Orders.Add(BuildOrder(day.Id, user.Id, now));
+
+        await Assert.ThrowsAsync<DbUpdateException>(() => database.SaveChangesAsync(Ct));
+    }
+
+    [Fact]
+    public async Task Should_Roundtrip_Sauce_Flags_When_Order_Persisted()
+    {
+        using var scope = App.Services.CreateScope();
+        var database = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var user = await database.Users.FirstAsync(Ct);
+        var now = DateTimeOffset.UtcNow;
+        var day = new OrderDay
+        {
+            Id = Guid.NewGuid(),
+            Date = DateOnly.FromDateTime(now.UtcDateTime).AddDays(-3),
+            Status = OrderDayStatus.Open,
+            Synonym = "Donatello",
+            OrderCutoffAt = now.AddHours(2),
+            OpenedByUserId = user.Id,
+            OpenedAt = now,
+        };
+        database.OrderDays.Add(day);
+
+        var order = BuildOrder(day.Id, user.Id, now);
+        order.Sauces = Sauce.Knoblauch | Sauce.Scharf;
+        database.Orders.Add(order);
+        await database.SaveChangesAsync(Ct);
+        database.ChangeTracker.Clear();
+
+        var stored = await database.Orders.SingleAsync(o => o.Id == order.Id, Ct);
+
+        Assert.True((stored.Sauces & Sauce.Knoblauch) != 0);
+        Assert.True((stored.Sauces & Sauce.Scharf) != 0);
+        Assert.True((stored.Sauces & Sauce.Kraeuter) == 0);
+    }
+
+    private static Order BuildOrder(Guid orderDayId, Guid userId, DateTimeOffset now) =>
+        new()
+        {
+            Id = Guid.NewGuid(),
+            OrderDayId = orderDayId,
+            UserId = userId,
+            ProductId = "doener",
+            Kind = ProductKind.Doener,
+            Meat = MeatType.Kalb,
+            PizzaVariant = null,
+            Sauces = Sauce.Knoblauch,
+            PriceCents = 750,
+            Extra = null,
+            IsPickup = false,
+            OccurredOn = now,
+            CreatedAt = now,
+            UpdatedAt = now,
+        };
+}
