@@ -1,5 +1,6 @@
 export {
   authKeys,
+  ensureAuthStatus,
   ensureSession,
   resolveAuthStatus,
   useLogin,

@@ -1,5 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { CancelledError, useMutation, useQuery } from "@tanstack/react-query";
 import { ApiError, apiClient } from "@/lib/api";
 import { LoginResponseSchema, SessionSchema } from "./schemas";
 import type { AuthStatus, LoginForm, LoginResponse, Session } from "./types";
@@ -24,6 +24,37 @@ export const ensureSession = async (queryClient: QueryClient): Promise<Session |
     queryKey: authKeys.session,
     queryFn: ({ signal }) => fetchSession(signal),
   });
+
+// A cancelled/aborted in-flight fetch — caused by a torn-down navigation or React
+// StrictMode's throwaway dev mount (which removes the session query's observer and
+// cancels the shared fetch mid-flight) — surfaces as a CancelledError/AbortError
+// out of ensureQueryData. It is not a real failure.
+const isCancelledError = (error: unknown): boolean => {
+  if (error instanceof CancelledError) {
+    return true;
+  }
+  return error instanceof Error && (error.name === "CancelledError" || error.name === "AbortError");
+};
+
+// Guard helper for route `beforeLoad`s: resolves the session and returns the auth
+// status, tolerant of the benign cancellation above. It retries once (the churn
+// has settled by the live navigation pass) so the guard still makes the correct
+// redirect decision instead of throwing a CancelledError into the router. Returns
+// "loading" only if both attempts are cancelled, in which case no redirect is made
+// and the superseding navigation re-resolves.
+export const ensureAuthStatus = async (queryClient: QueryClient): Promise<AuthStatus> => {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const session = await ensureSession(queryClient);
+      return session ? "authenticated" : "anonymous";
+    } catch (error) {
+      if (!isCancelledError(error)) {
+        throw error;
+      }
+    }
+  }
+  return "loading";
+};
 
 // Fetches the current session. A 401 (anonymous) is mapped to `null` rather than
 // thrown so the AuthProvider can render the anonymous state instead of erroring.

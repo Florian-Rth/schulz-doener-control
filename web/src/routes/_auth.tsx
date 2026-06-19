@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { ensureSession, resolveAuthStatus } from "@/features/auth";
+import { ensureAuthStatus } from "@/features/auth";
 
 // Pathless layout route = the auth guard. `beforeLoad` ensures the session is
 // resolved (from cache or a `GET /api/auth/me` fetch) via the router's
@@ -8,8 +8,7 @@ import { ensureSession, resolveAuthStatus } from "@/features/auth";
 // that just refetched the session is reflected immediately, with no render lag.
 export const Route = createFileRoute("/_auth")({
   beforeLoad: async ({ context, location }) => {
-    await ensureSession(context.queryClient);
-    if (resolveAuthStatus(context.queryClient) === "anonymous") {
+    if ((await ensureAuthStatus(context.queryClient)) === "anonymous") {
       throw redirect({
         to: "/login",
         search: { redirect: location.href },
