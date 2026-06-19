@@ -14,24 +14,40 @@ public sealed class OrderWindowTests
     [Fact]
     public void Should_AllowOrder_When_OpenAndBeforeCutoff()
     {
-        Assert.True(OrderWindow.CanOrder(OrderDayStatus.Open, Cutoff, Cutoff.AddMinutes(-1)));
+        Assert.True(OrderWindow.CanOrder(OrderDayStatus.Open, null, Cutoff, Cutoff.AddMinutes(-1)));
     }
 
     [Fact]
     public void Should_AllowOrder_When_OpenAndExactlyAtCutoff()
     {
-        Assert.True(OrderWindow.CanOrder(OrderDayStatus.Open, Cutoff, Cutoff));
+        Assert.True(OrderWindow.CanOrder(OrderDayStatus.Open, null, Cutoff, Cutoff));
     }
 
     [Fact]
     public void Should_RejectOrder_When_OneTickPastCutoff()
     {
-        Assert.False(OrderWindow.CanOrder(OrderDayStatus.Open, Cutoff, Cutoff.AddTicks(1)));
+        Assert.False(OrderWindow.CanOrder(OrderDayStatus.Open, null, Cutoff, Cutoff.AddTicks(1)));
     }
 
     [Fact]
     public void Should_RejectOrder_When_DayClosed()
     {
-        Assert.False(OrderWindow.CanOrder(OrderDayStatus.Closed, Cutoff, Cutoff.AddMinutes(-1)));
+        Assert.False(
+            OrderWindow.CanOrder(OrderDayStatus.Closed, null, Cutoff, Cutoff.AddMinutes(-1))
+        );
+    }
+
+    [Fact]
+    public void Should_Reject_When_OrderingClosedAt_Set()
+    {
+        // Ordering is manually locked even though the day is open and we are well before the cutoff.
+        Assert.False(
+            OrderWindow.CanOrder(
+                OrderDayStatus.Open,
+                Cutoff.AddMinutes(-5),
+                Cutoff,
+                Cutoff.AddMinutes(-1)
+            )
+        );
     }
 }

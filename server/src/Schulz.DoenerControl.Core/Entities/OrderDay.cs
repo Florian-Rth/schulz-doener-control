@@ -23,6 +23,10 @@ public sealed class OrderDay
 
     public DateTimeOffset? ClosedAt { get; set; }
 
+    // When the collector manually locks ordering ("Bestellung schließen"), before the time cutoff and
+    // distinct from closing the whole day. Null = ordering still open.
+    public DateTimeOffset? OrderingClosedAt { get; set; }
+
     // The single designated collector who pays the shop; null until designated.
     public Guid? CollectorUserId { get; set; }
 

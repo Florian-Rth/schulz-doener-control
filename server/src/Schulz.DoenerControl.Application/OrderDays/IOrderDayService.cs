@@ -11,5 +11,10 @@ public interface IOrderDayService
 
     Task<Result<CloseDayResult>> CloseAsync(CloseDayCommand command, CancellationToken ct);
 
+    Task<Result<OrderDayDetails>> CloseOrderingAsync(
+        CloseOrderingCommand command,
+        CancellationToken ct
+    );
+
     Task<Result<OrderDayDetails>> GetByIdAsync(GetOrderDayQuery query, CancellationToken ct);
 }

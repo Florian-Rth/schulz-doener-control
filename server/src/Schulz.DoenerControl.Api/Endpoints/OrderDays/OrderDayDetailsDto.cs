@@ -18,6 +18,7 @@ public sealed record OrderDayDetailsDto(
     IReadOnlyList<string> PickupNames,
     IReadOnlyList<OrderRowSummaryDto> Orders,
     bool ICanStillOrder,
+    bool IsOrderingClosed,
     Guid? MyOrderId
 );
 
@@ -50,6 +51,7 @@ public static class OrderDayDetailsMapper
             details.PickupNames,
             details.Orders.Select(ToRowDto).ToList(),
             details.ICanStillOrder,
+            details.IsOrderingClosed,
             details.MyOrderId
         );
 

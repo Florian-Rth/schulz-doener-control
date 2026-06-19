@@ -8,6 +8,7 @@ public enum ResultStatus
     NotFound,
     Conflict,
     Validation,
+    Forbidden,
 }
 
 public sealed record Result<T>
@@ -48,6 +49,9 @@ public sealed record Result<T>
 
     public static Result<T> Validation(params string[] errors) =>
         new(ResultStatus.Validation, default, ToReadOnly(errors));
+
+    public static Result<T> Forbidden(params string[] errors) =>
+        new(ResultStatus.Forbidden, default, ToReadOnly(errors));
 
     private static ReadOnlyCollection<string> ToReadOnly(string[] errors) =>
         errors.Length == 0 ? NoErrors : new ReadOnlyCollection<string>(errors);

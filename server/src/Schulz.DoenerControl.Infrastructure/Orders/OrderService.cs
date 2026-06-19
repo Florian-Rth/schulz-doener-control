@@ -31,7 +31,14 @@ public sealed class OrderService : IOrderService
         if (day is null)
             return Result<OrderDetails>.NotFound("Döner-Tag nicht gefunden.");
 
-        if (!OrderWindow.CanOrder(day.Status, day.OrderCutoffAt, clock.UtcNow()))
+        if (
+            !OrderWindow.CanOrder(
+                day.Status,
+                day.OrderingClosedAt,
+                day.OrderCutoffAt,
+                clock.UtcNow()
+            )
+        )
             return Result<OrderDetails>.Conflict(CutoffMessage);
 
         var menuItem = await database.MenuItems.FirstOrDefaultAsync(
@@ -122,7 +129,14 @@ public sealed class OrderService : IOrderService
         if (day is null)
             return Result.NotFound("Döner-Tag nicht gefunden.");
 
-        if (!OrderWindow.CanOrder(day.Status, day.OrderCutoffAt, clock.UtcNow()))
+        if (
+            !OrderWindow.CanOrder(
+                day.Status,
+                day.OrderingClosedAt,
+                day.OrderCutoffAt,
+                clock.UtcNow()
+            )
+        )
             return Result.Conflict(CutoffMessage);
 
         var order = await database.Orders.FirstOrDefaultAsync(

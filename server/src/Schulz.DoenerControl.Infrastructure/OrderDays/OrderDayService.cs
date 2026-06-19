@@ -154,6 +154,37 @@ public sealed class OrderDayService : IOrderDayService
         );
     }
 
+    public async Task<Result<OrderDayDetails>> CloseOrderingAsync(
+        CloseOrderingCommand command,
+        CancellationToken ct
+    )
+    {
+        var day = await database.OrderDays.FirstOrDefaultAsync(d => d.Id == command.OrderDayId, ct);
+        if (day is null)
+            return Result<OrderDayDetails>.NotFound("Döner-Tag nicht gefunden.");
+
+        // Only the designated collector may lock ordering. No collector means nobody may — the
+        // "one designated payer" model. This is a deliberately stricter rule than close-day.
+        if (day.CollectorUserId != command.CallerUserId)
+            return Result<OrderDayDetails>.Forbidden(
+                "Nur der Abholer darf die Bestellung schließen."
+            );
+
+        if (day.Status == OrderDayStatus.Closed)
+            return Result<OrderDayDetails>.Conflict("Der Döner-Tag ist bereits geschlossen.");
+
+        if (day.OrderingClosedAt is not null)
+            return Result<OrderDayDetails>.Conflict("Die Bestellung ist bereits geschlossen.");
+
+        day.OrderingClosedAt = clock.UtcNow();
+        await database.SaveChangesAsync(ct);
+
+        var reloaded = await LoadDay(d => d.Id == day.Id, ct);
+        return Result<OrderDayDetails>.Success(
+            await ProjectAsync(reloaded!, command.CallerUserId, ct)
+        );
+    }
+
     public async Task<Result<OrderDayDetails>> GetByIdAsync(
         GetOrderDayQuery query,
         CancellationToken ct
@@ -196,9 +227,14 @@ public sealed class OrderDayService : IOrderDayService
 
         var now = clock.UtcNow();
         var isPastCutoff = now > day.OrderCutoffAt;
-        var isOpen = day.Status == OrderDayStatus.Open;
         var myOrder = orders.FirstOrDefault(order => order.UserId == callerId);
         var cutoffLabel = clock.CutoffLabel();
+        var canStillOrder = OrderWindow.CanOrder(
+            day.Status,
+            day.OrderingClosedAt,
+            day.OrderCutoffAt,
+            now
+        );
 
         return new OrderDayDetails(
             day.Id,
@@ -212,7 +248,8 @@ public sealed class OrderDayService : IOrderDayService
             orders.Count,
             pickupNames,
             rows,
-            isOpen && !isPastCutoff,
+            canStillOrder,
+            day.OrderingClosedAt is not null,
             myOrder?.Id
         );
     }

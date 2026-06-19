@@ -83,7 +83,14 @@ public sealed class PickupService : IPickupService
         if (day is null)
             return Result<PickupResult>.NotFound("Döner-Tag nicht gefunden.");
 
-        if (!OrderWindow.CanOrder(day.Status, day.OrderCutoffAt, clock.UtcNow()))
+        if (
+            !OrderWindow.CanOrder(
+                day.Status,
+                day.OrderingClosedAt,
+                day.OrderCutoffAt,
+                clock.UtcNow()
+            )
+        )
             return Result<PickupResult>.Conflict(CutoffMessage);
 
         var order = await database
