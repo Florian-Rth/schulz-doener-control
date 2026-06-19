@@ -28,6 +28,10 @@ export interface DashboardContextValue {
   /** Collector-only: closes the day and creates the debts. */
   closeDay: (dayId: string) => void;
   isClosingDay: boolean;
+  /** Personal "ich hab bezahlt" confirmation for an open debt (one-way). */
+  settle: (debtId: string) => void;
+  /** True only for the debt row whose settle is currently in flight. */
+  isSettling: (debtId: string) => boolean;
   /** Navigates to the order screen. */
   goOrder: () => void;
   /** Navigates to the Döner-Tiere catalog. */

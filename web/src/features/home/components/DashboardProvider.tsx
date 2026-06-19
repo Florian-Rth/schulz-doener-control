@@ -57,6 +57,8 @@ const DashboardReady: FC<ReadyProps> = ({ dashboard }) => {
     isClosingOrdering: operations.isClosingOrdering,
     closeDay: operations.closeDay,
     isClosingDay: operations.isClosingDay,
+    settle: operations.settle,
+    isSettling: operations.isSettling,
     goOrder: operations.goOrder,
     goTiere: operations.goTiere,
     goPrint: operations.goPrint,

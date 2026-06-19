@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiClient } from "@/lib/api";
+import { ApiError, apiClient } from "@/lib/api";
 import { homeCopy } from "./copy";
 import { DashboardSchema } from "./schemas";
 import type { Dashboard } from "./types";
@@ -76,6 +76,30 @@ export const useCloseDay = ({ onError }: CloseMutationOptions) => {
     },
     onError: () => {
       onError(homeCopy.closeDayFailed);
+    },
+  });
+};
+
+// POST /api/debts/{id}/settle — the caller's personal "ich hab bezahlt"
+// confirmation (FEATURE 4). One-way: the server marks the debt Settled and it
+// drops off the open-debts list, so we invalidate the dashboard to let it
+// disappear on refetch. A 409 means it was already settled (our view is stale)
+// — we still refresh quietly and swallow the error; no toast either way.
+const settleDebt = async (debtId: string): Promise<void> => {
+  await apiClient.post(`/api/debts/${debtId}/settle`);
+};
+
+export const useSettleDebt = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: settleDebt,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
+    },
+    onError: (error) => {
+      if (error instanceof ApiError && error.status === 409) {
+        void queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
+      }
     },
   });
 };

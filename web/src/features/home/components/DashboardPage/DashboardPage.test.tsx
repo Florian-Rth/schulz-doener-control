@@ -423,4 +423,92 @@ describe("DashboardPage", () => {
       await findByText("Döner-Tag konnte nicht geschlossen werden, Chef."),
     ).toBeInTheDocument();
   });
+
+  it("feuert nach Bestätigung den Settle-POST für die Schuld und invalidiert das Dashboard", async () => {
+    let settledDebtId: string | null = null;
+    let dashboardFetches = 0;
+    mswServer.use(
+      http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
+      http.get("*/api/dashboard", () => {
+        dashboardFetches += 1;
+        return HttpResponse.json(buildDashboard());
+      }),
+      http.post("*/api/debts/:debtId/settle", ({ params }) => {
+        settledDebtId = String(params.debtId);
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+
+    const { findByText, findAllByRole, findByRole } = renderApp({ initialPath: "/" });
+    const user = userEvent.setup();
+
+    // wait for the debt rows to render, then open the confirm dialog on row 1
+    expect(await findByText("Offene Zahlungen")).toBeInTheDocument();
+    const settleButtons = await findAllByRole("button", { name: "Erledigt" });
+    expect(settleButtons).toHaveLength(2);
+    const fetchesBefore = dashboardFetches;
+    await user.click(settleButtons[0]);
+
+    // confirmation makes the one-way nature explicit before firing
+    await user.click(await findByRole("button", { name: "Hab ich bezahlt" }));
+
+    await waitFor(() => {
+      expect(settledDebtId).toBe("debt-1");
+    });
+    // onSuccess invalidates dashboardKeys.all → a refetch fires
+    await waitFor(() => {
+      expect(dashboardFetches).toBeGreaterThan(fetchesBefore);
+    });
+  });
+
+  it("deaktiviert die Erledigt-Bestätigung, solange der Settle läuft", async () => {
+    let releaseSettle: () => void = () => {};
+    mswServer.use(
+      http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
+      http.get("*/api/dashboard", () => HttpResponse.json(buildDashboard())),
+      http.post("*/api/debts/:debtId/settle", async () => {
+        await new Promise<void>((resolve) => {
+          releaseSettle = resolve;
+        });
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+
+    const { findByText, findAllByRole, findByRole } = renderApp({ initialPath: "/" });
+    const user = userEvent.setup();
+
+    expect(await findByText("Offene Zahlungen")).toBeInTheDocument();
+    const settleButtons = await findAllByRole("button", { name: "Erledigt" });
+    await user.click(settleButtons[0]);
+
+    const confirm = await findByRole("button", { name: "Hab ich bezahlt" });
+    await user.click(confirm);
+
+    // mutation hangs until we release → confirm + row pill disable meanwhile
+    await waitFor(() => {
+      expect(confirm).toBeDisabled();
+    });
+    expect(settleButtons[0]).toBeDisabled();
+
+    releaseSettle();
+  });
+
+  it("hält den PayPal-Button einer Schuld deaktiviert, wenn keine PayPal-URL vorliegt", async () => {
+    useDashboardHandlers(
+      buildDashboard({
+        debts: {
+          ...baseDebts,
+          rows: [{ ...baseDebts.rows[0], paypalUrl: null }],
+          openCount: 1,
+        },
+      }),
+    );
+    const { findByText, findByRole } = renderApp({ initialPath: "/" });
+
+    expect(await findByText("Offene Zahlungen")).toBeInTheDocument();
+    // null paypalUrl → the pill renders as a disabled <button>, not a link
+    const payButton = await findByRole("button", { name: "PayPal" });
+    expect(payButton).toBeDisabled();
+    expect(payButton).not.toHaveAttribute("href");
+  });
 });

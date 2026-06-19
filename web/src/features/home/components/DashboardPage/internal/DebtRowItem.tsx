@@ -4,6 +4,7 @@ import type { FC } from "react";
 import { Avatar, PayPalButton } from "@/components";
 import { homeCopy } from "../../../copy";
 import type { DebtRow } from "../../../types";
+import { SettleDebtButton } from "./SettleDebtButton";
 
 interface DebtRowItemProps {
   debt: DebtRow;
@@ -37,9 +38,12 @@ export const DebtRowItem: FC<DebtRowItemProps> = ({ debt, divider }) => {
         <Typography sx={{ fontSize: "0.875rem", fontWeight: 700, color: "navy.main" }}>
           {debt.amountLabel} €
         </Typography>
-        <PayPalButton href={debt.paypalUrl} size="pill">
-          {homeCopy.pay}
-        </PayPalButton>
+        <Stack direction="row" sx={{ alignItems: "center", gap: 0.75 }}>
+          <SettleDebtButton debtId={debt.id} />
+          <PayPalButton href={debt.paypalUrl} size="pill">
+            {homeCopy.pay}
+          </PayPalButton>
+        </Stack>
       </Stack>
     </Stack>
   );

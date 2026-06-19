@@ -38,6 +38,15 @@ export const homeCopy = {
   // Open payments
   paymentsTitle: "Offene Zahlungen",
   pay: "PayPal",
+  // Per-debt "ich hab bezahlt" confirmation (FEATURE 4 settle). One-way: a
+  // settled debt verschwindet aus der Liste und kann nicht zurückgeholt werden.
+  settle: "Erledigt",
+  settleDialogTitle: "Schuld als bezahlt markieren?",
+  settleDialogBody:
+    "Bestätige nur, wenn du wirklich gezahlt hast, Chef. Die Schuld verschwindet dann aus deiner Liste — das lässt sich nicht rückgängig machen.",
+  settleConfirm: "Hab ich bezahlt",
+  settlePending: "Wird abgehakt …",
+  settleCancel: "Doch nicht",
   // Loading / error
   loading: "Lädt …",
   loadFailed: "Übersicht konnte nicht geladen werden, Chef.",

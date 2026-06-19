@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { useCloseDay, useCloseOrdering, useOpenDay } from "../api";
+import { useCloseDay, useCloseOrdering, useOpenDay, useSettleDebt } from "../api";
 
 export interface DashboardOperations {
   toast: string | null;
@@ -11,6 +11,10 @@ export interface DashboardOperations {
   isClosingOrdering: boolean;
   closeDay: (dayId: string) => void;
   isClosingDay: boolean;
+  /** Personal "ich hab bezahlt" confirmation for an open debt (one-way settle). */
+  settle: (debtId: string) => void;
+  /** True only for the debt row whose settle is currently in flight. */
+  isSettling: (debtId: string) => boolean;
   goOrder: () => void;
   goTiere: () => void;
   goPrint: () => void;
@@ -39,6 +43,10 @@ export const useDashboardOperations = ({
   };
   const closeOrderingMutation = useCloseOrdering({ onError: showError });
   const closeDayMutation = useCloseDay({ onError: showError });
+  const settleMutation = useSettleDebt();
+  // The debt row whose settle is in flight, so only that row disables its
+  // control. null = none pending.
+  const [settlingDebtId, setSettlingDebtId] = useState<string | null>(null);
 
   // Reset the dismissed flag whenever a fresh toast arrives (render-phase update,
   // tracked against the previous server value — no useEffect, no flicker).
@@ -68,6 +76,15 @@ export const useDashboardOperations = ({
       closeDayMutation.mutate(dayId);
     },
     isClosingDay: closeDayMutation.isPending,
+    settle: (debtId: string) => {
+      setSettlingDebtId(debtId);
+      settleMutation.mutate(debtId, {
+        onSettled: () => {
+          setSettlingDebtId(null);
+        },
+      });
+    },
+    isSettling: (debtId: string) => settlingDebtId === debtId,
     goOrder: () => {
       void navigate({ to: "/order" });
     },
