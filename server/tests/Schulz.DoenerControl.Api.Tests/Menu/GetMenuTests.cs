@@ -42,10 +42,11 @@ public sealed class GetMenuTests : DoenerControlTestBase
         Assert.NotNull(body);
         Assert.Equal(6, body!.Items.Count);
 
-        // Vocabularies arrive in one round-trip so the SPA never hardcodes the closed enums.
+        // Vocabularies arrive in one round-trip as the canonical ASCII enum tokens (the exact strings
+        // the SPA's order schema enumerates and PutMyOrder accepts) so the SPA never hardcodes them.
         Assert.Equal(["Salami", "Margherita", "Funghi", "Tonno", "Hawaii"], body.PizzaVariants);
-        Assert.Equal(["Kräuter", "Knoblauch", "Scharf"], body.SauceOptions);
-        Assert.Equal(["Kalb", "Hähnchen"], body.MeatOptions);
+        Assert.Equal(["Kraeuter", "Knoblauch", "Scharf"], body.SauceOptions);
+        Assert.Equal(["Kalb", "Haehnchen"], body.MeatOptions);
     }
 
     [Fact]

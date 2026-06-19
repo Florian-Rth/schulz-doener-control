@@ -95,10 +95,17 @@ public sealed class GetDashboardTests : DoenerControlTestBase
         );
         Assert.NotNull(body);
 
+        // Greeting identity: the chef's first name + display name drive the dashboard header.
+        Assert.Equal("Markus", body!.FirstName);
+        Assert.Equal("Markus Wagner", body.DisplayName);
+
         // Stats: lifetime counts every chef order; monthly sums only the current calendar month by
         // OccurredOn; open = the one open debt; streak = 3 consecutive ISO weeks ending this week.
-        Assert.Equal(4, body!.Stats.TotalLifetimeCount);
-        Assert.Equal(expectedMonthlyCents, body.Stats.MonthlySpendCents);
+        // Money labels are the bare German number (no " €" suffix — the SPA appends its own unit).
+        Assert.Equal(4, body.Stats.TotalDoener);
+        Assert.Equal("4", body.Stats.TotalDoenerLabel);
+        Assert.Equal(expectedMonthlyCents, body.Stats.MonthSpendCents);
+        Assert.DoesNotContain("€", body.Stats.MonthSpendLabel);
         Assert.Equal(1, body.Stats.OpenPaymentsCount);
         Assert.Equal(3, body.Stats.StreakWeeks);
 
@@ -106,22 +113,29 @@ public sealed class GetDashboardTests : DoenerControlTestBase
         Assert.Equal("🐺", body.Tier.Emoji);
         Assert.Equal("Der Knoblauch-Wolf", body.Tier.Name);
 
-        // Leaderboard for the current year: Lukas (6) is rank 1; the chef row (3 this-year orders)
-        // is flagged as the current user.
+        // Leaderboard for the current year: Lukas (6) is rank 1 (🥇); the chef row (3 this-year
+        // orders) is flagged as me.
+        Assert.Equal(now.Year, body.Leaderboard.Year);
         Assert.NotEmpty(body.Leaderboard.Rows);
         var chefRow = Assert.Single(body.Leaderboard.Rows, row => row.UserId == chefId);
-        Assert.True(chefRow.IsCurrentUser);
+        Assert.True(chefRow.IsMe);
         Assert.Equal(3, chefRow.Count);
         var lukasRow = Assert.Single(body.Leaderboard.Rows, row => row.UserId == lukasId);
         Assert.Equal(1, lukasRow.Rank);
         Assert.Equal(6, lukasRow.Count);
+        Assert.Equal("🥇", lukasRow.Medal);
 
-        // Open debts ledger: the single 11,50 € the chef owes Lukas.
-        Assert.Equal(1, body.OpenDebts.OpenCount);
-        Assert.Equal(1150, body.OpenDebts.TotalCents);
-        var debtRow = Assert.Single(body.OpenDebts.Debts);
-        Assert.Equal("Lukas Brandt", debtRow.PersonName);
+        // Today: no day was opened in this fixture → the flat day object reports closed.
+        Assert.False(body.Day.IsOpen);
+        Assert.Null(body.Day.Id);
+
+        // Open debts ledger: the single 11,50 the chef owes Lukas (creditor side, bare label).
+        Assert.Equal(1, body.Debts.OpenCount);
+        Assert.Equal(1150, body.Debts.TotalCents);
+        var debtRow = Assert.Single(body.Debts.Rows);
+        Assert.Equal("Lukas Brandt", debtRow.CreditorName);
         Assert.Equal(1150, debtRow.AmountCents);
+        Assert.DoesNotContain("€", debtRow.AmountLabel);
     }
 
     // Adds one closed OrderDay + one doener Order for the user. The OrderDay's Date is made unique
