@@ -482,3 +482,10 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Local SQLite databases (dev runtime + smoke tests) — never commit
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
