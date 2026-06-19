@@ -15,4 +15,11 @@ public static class TestConfig
     // Deliberately weak Argon2id parameters to keep the red-green loop fast.
     public const string PasswordHashingMemorySize = "8192";
     public const string PasswordHashingIterations = "1";
+
+    // A real, valid VAPID keypair (generated for tests) so the Web Push options bind and validate;
+    // the HTTP transport is doubled in tests, so these never reach a real push service.
+    public const string VapidSubject = "mailto:doener-test@schulz.st";
+    public const string VapidPublicKey =
+        "BCy0Q-NZf71xT2pIibjFMezeXEgjL_CBkWVzKJxQfJRFZy-yVsocvOyAetkUrQf55jsAx5EBFlPE-zCSOlrecyI";
+    public const string VapidPrivateKey = "fyNk3V-ZI8ckZH6yszXnefXx_Kvze3R8SICDHgYjuXs";
 }

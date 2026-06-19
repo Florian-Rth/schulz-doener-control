@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Schulz.DoenerControl.Application.Calculators;
 using Schulz.DoenerControl.Application.Notifications;
 using Schulz.DoenerControl.Application.OrderDays;
+using Schulz.DoenerControl.Application.Push;
 using Schulz.DoenerControl.Core;
 using Schulz.DoenerControl.Core.Entities;
 using Schulz.DoenerControl.Core.Enums;
@@ -17,18 +18,21 @@ public sealed class OrderDayService : IOrderDayService
     private readonly AppDbContext database;
     private readonly OrderDayClock clock;
     private readonly INotificationBroadcaster broadcaster;
+    private readonly IPushBroadcaster pushBroadcaster;
     private readonly CloseDayDebtGenerator debtGenerator;
 
     public OrderDayService(
         AppDbContext database,
         OrderDayClock clock,
         INotificationBroadcaster broadcaster,
+        IPushBroadcaster pushBroadcaster,
         CloseDayDebtGenerator debtGenerator
     )
     {
         this.database = database;
         this.clock = clock;
         this.broadcaster = broadcaster;
+        this.pushBroadcaster = pushBroadcaster;
         this.debtGenerator = debtGenerator;
     }
 
@@ -74,10 +78,11 @@ public sealed class OrderDayService : IOrderDayService
         };
         database.OrderDays.Add(day);
 
+        var pushBody = PushTextBuilder.BuildOpenDayBody(synonym);
         var notifiedCount = await broadcaster.BroadcastDayOpenedAsync(
             day.Id,
             NotificationTitle,
-            PushTextBuilder.BuildOpenDayBody(synonym),
+            pushBody,
             command.CallerUserId,
             ct
         );
@@ -89,7 +94,7 @@ public sealed class OrderDayService : IOrderDayService
         catch (DbUpdateException)
         {
             // Lost the simultaneous-open race on the unique Date index → re-read and return the
-            // winner's day instead of erroring.
+            // winner's day instead of erroring. No push fires for a day we did not open.
             database.ChangeTracker.Clear();
             var winner = await LoadDay(d => d.Date == today, ct);
             if (winner is null)
@@ -99,6 +104,15 @@ public sealed class OrderDayService : IOrderDayService
                 new OpenDayResult(await ProjectAsync(winner, command.CallerUserId, ct), 0)
             );
         }
+
+        // Fire the real Web Push only after the open is committed, so a day that lost the race never
+        // pushes. Mirrors the in-app feed broadcast: every OTHER active subscriber, the synonym body.
+        await pushBroadcaster.BroadcastDayOpenedAsync(
+            NotificationTitle,
+            pushBody,
+            command.CallerUserId,
+            ct
+        );
 
         var reloaded = await LoadDay(d => d.Id == day.Id, ct);
         return Result<OpenDayResult>.Success(

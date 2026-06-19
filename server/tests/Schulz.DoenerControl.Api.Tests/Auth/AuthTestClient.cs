@@ -83,6 +83,15 @@ public sealed class AuthTestClient
         return await SendAsync(request);
     }
 
+    public async Task<HttpResponseMessage> DeleteJsonAsync(string url, object body)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Delete, url)
+        {
+            Content = JsonContent.Create(body),
+        };
+        return await SendAsync(request);
+    }
+
     public async Task<HttpResponseMessage> GetAsync(string url)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, url);

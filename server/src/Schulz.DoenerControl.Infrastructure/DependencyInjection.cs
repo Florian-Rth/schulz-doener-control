@@ -10,6 +10,7 @@ using Schulz.DoenerControl.Application.Notifications;
 using Schulz.DoenerControl.Application.OrderDays;
 using Schulz.DoenerControl.Application.Orders;
 using Schulz.DoenerControl.Application.Profile;
+using Schulz.DoenerControl.Application.Push;
 using Schulz.DoenerControl.Application.Security;
 using Schulz.DoenerControl.Application.Tiers;
 using Schulz.DoenerControl.Application.Users;
@@ -23,6 +24,7 @@ using Schulz.DoenerControl.Infrastructure.Orders;
 using Schulz.DoenerControl.Infrastructure.Persistence;
 using Schulz.DoenerControl.Infrastructure.Persistence.Seeding;
 using Schulz.DoenerControl.Infrastructure.Profile;
+using Schulz.DoenerControl.Infrastructure.Push;
 using Schulz.DoenerControl.Infrastructure.Security;
 using Schulz.DoenerControl.Infrastructure.Tiers;
 using Schulz.DoenerControl.Infrastructure.Users;
@@ -48,6 +50,7 @@ public static class DependencyInjection
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IProfileService, ProfileService>();
         services.AddScoped<IMenuService, MenuService>();
+        services.AddPush(configuration);
         services.AddOrderDays(configuration);
         services.AddScoped<IOrderService, OrderService>();
         services.AddScoped<IPickupService, PickupService>();
@@ -58,6 +61,26 @@ public static class DependencyInjection
         services.AddScoped<DatabaseSeeder>();
         services.AddScoped<DevHistorySeeder>();
         return services;
+    }
+
+    private static void AddPush(this IServiceCollection services, IConfiguration configuration)
+    {
+        services
+            .AddOptions<VapidOptions>()
+            .Configure(options => BindVapidOptions(configuration, options));
+
+        // The real transport is a singleton (it owns one HttpClient via WebPushClient); the
+        // subscription store and the broadcaster are scoped because they use the request DbContext.
+        services.AddSingleton<IWebPushTransport, WebPushTransport>();
+        services.AddScoped<IPushSubscriptionService, PushSubscriptionService>();
+        services.AddScoped<IPushBroadcaster, PushBroadcaster>();
+    }
+
+    private static void BindVapidOptions(IConfiguration configuration, VapidOptions options)
+    {
+        options.Subject = configuration[VapidOptions.SubjectConfigKey] ?? string.Empty;
+        options.PublicKey = configuration[VapidOptions.PublicKeyConfigKey] ?? string.Empty;
+        options.PrivateKey = configuration[VapidOptions.PrivateKeyConfigKey] ?? string.Empty;
     }
 
     private static void AddOrderDays(this IServiceCollection services, IConfiguration configuration)
