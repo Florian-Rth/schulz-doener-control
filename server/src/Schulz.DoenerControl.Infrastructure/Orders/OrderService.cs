@@ -41,28 +41,15 @@ public sealed class OrderService : IOrderService
         )
             return Result<OrderDetails>.Conflict(CutoffMessage);
 
-        var menuItem = await database.MenuItems.FirstOrDefaultAsync(
-            item => item.Id == command.ProductId,
-            ct
-        );
-        if (menuItem is null)
+        var menuItems = await LoadMenuItems(command.Lines, ct);
+        if (menuItems is null)
             return Result<OrderDetails>.NotFound("Produkt nicht gefunden.");
 
-        var (meat, pizza, sauces) = NormalizeForKind(
-            menuItem.Kind,
-            command.Meat,
-            command.Pizza,
-            command.Sauces
-        );
-
         var now = clock.UtcNow();
-        var existing = await database
-            .Orders.Include(order => order.Lines)
-            .FirstOrDefaultAsync(
-                order =>
-                    order.OrderDayId == command.OrderDayId && order.UserId == command.CallerUserId,
-                ct
-            );
+        var existing = await database.Orders.FirstOrDefaultAsync(
+            order => order.OrderDayId == command.OrderDayId && order.UserId == command.CallerUserId,
+            ct
+        );
 
         if (existing is null)
         {
@@ -76,8 +63,6 @@ public sealed class OrderService : IOrderService
                 CreatedAt = now,
                 UpdatedAt = now,
             };
-            // OrderId is left to EF's relationship fixup via the navigation.
-            existing.Lines.Add(BuildLine(command, menuItem.Kind, meat, pizza, sauces));
             database.Orders.Add(existing);
         }
         else
@@ -85,23 +70,23 @@ public sealed class OrderService : IOrderService
             existing.IsPickup = command.IsPickup;
             existing.UpdatedAt = now;
 
-            // Single-item contract: the upsert REPLACES the order's single line with the submitted
-            // item. Mutating the existing line in place (rather than delete + insert) keeps its
-            // identity stable and avoids a redundant DELETE.
-            var line = existing.Lines.Single();
-            line.ProductId = command.ProductId;
-            line.Kind = menuItem.Kind;
-            line.Meat = meat;
-            line.PizzaVariant = pizza;
-            line.Sauces = sauces;
-            line.PriceCents = command.PriceCents;
-            line.Extra = command.Extra;
-            line.Quantity = 1;
+            // Multi-line contract: the upsert REPLACES the order's whole line set. Delete the old
+            // lines through the DbSet (the FK is required + cascade, so a navigation delete + re-add
+            // in one SaveChanges trips DbUpdateConcurrencyException) and persist before adding fresh.
+            var oldLines = await database
+                .OrderLines.Where(line => line.OrderId == existing.Id)
+                .ToListAsync(ct);
+            database.OrderLines.RemoveRange(oldLines);
+            await database.SaveChangesAsync(ct);
         }
 
+        var newLines = BuildLines(command.Lines, menuItems, existing.Id).ToList();
+        database.OrderLines.AddRange(newLines);
         await database.SaveChangesAsync(ct);
 
-        return Result<OrderDetails>.Success(OrderDetailsFactory.Build(existing, menuItem.Name));
+        existing.Lines = newLines;
+        var productNames = ProductNamesFrom(menuItems);
+        return Result<OrderDetails>.Success(OrderDetailsFactory.Build(existing, productNames));
     }
 
     public async Task<Result<OrderDetails?>> GetMineAsync(
@@ -119,8 +104,8 @@ public sealed class OrderService : IOrderService
         if (order is null)
             return Result<OrderDetails?>.Success(null);
 
-        var productName = await ResolveProductName(order.Lines.Single().ProductId, ct);
-        return Result<OrderDetails?>.Success(OrderDetailsFactory.Build(order, productName));
+        var productNames = await ResolveProductNames(order, ct);
+        return Result<OrderDetails?>.Success(OrderDetailsFactory.Build(order, productNames));
     }
 
     public async Task<Result> DeleteMineAsync(DeleteOrderCommand command, CancellationToken ct)
@@ -171,15 +156,12 @@ public sealed class OrderService : IOrderService
         if (day is null)
             return Result<OrderResultDetails>.NotFound("Döner-Tag nicht gefunden.");
 
-        var line = order.Lines.Single();
-        var productName = await ResolveProductName(line.ProductId, ct);
-        var label = OrderLabelBuilder.BuildProductLabel(
-            line.Kind,
-            productName,
-            line.Meat,
-            line.PizzaVariant
-        );
-        var detail = OrderLabelBuilder.BuildDescription(line.Kind, line.Sauces, line.Extra);
+        var productNames = await ResolveProductNames(order, ct);
+        var lines = order
+            .Lines.OrderBy(line => line.ProductId)
+            .ThenBy(line => line.Id)
+            .Select(line => BuildResultLine(line, productNames))
+            .ToList();
         var orderTotal = order.TotalCents;
 
         var collector = await ResolveCollector(day, ct);
@@ -197,15 +179,34 @@ public sealed class OrderService : IOrderService
 
         return Result<OrderResultDetails>.Success(
             new OrderResultDetails(
-                label,
+                lines,
                 orderTotal,
-                detail,
                 order.IsPickup,
                 abholer,
                 collectCents,
                 collectCount,
                 myPayPalUrl
             )
+        );
+    }
+
+    private static OrderResultLineDetails BuildResultLine(
+        OrderLine line,
+        IReadOnlyDictionary<string, string> productNames
+    )
+    {
+        var productName = productNames.GetValueOrDefault(line.ProductId, line.ProductId);
+        return new OrderResultLineDetails(
+            OrderLabelBuilder.BuildProductLabel(
+                line.Kind,
+                productName,
+                line.Meat,
+                line.PizzaVariant
+            ),
+            OrderLabelBuilder.BuildDescription(line.Kind, line.Sauces, line.Extra),
+            line.Quantity,
+            line.PriceCents,
+            line.Quantity * line.PriceCents
         );
     }
 
@@ -247,15 +248,45 @@ public sealed class OrderService : IOrderService
             collector.PayPalHandle
         );
 
-    private async Task<string> ResolveProductName(string productId, CancellationToken ct)
+    // Loads the menu items for every distinct product the command references; returns null when any
+    // referenced product is unknown. Keyed by id so each line resolves its own kind and name.
+    private async Task<IReadOnlyDictionary<string, MenuItem>?> LoadMenuItems(
+        IReadOnlyList<UpsertOrderLineCommand> lines,
+        CancellationToken ct
+    )
     {
-        var name = await database
-            .MenuItems.AsNoTracking()
-            .Where(item => item.Id == productId)
-            .Select(item => item.Name)
-            .FirstOrDefaultAsync(ct);
-        return name ?? productId;
+        var productIds = lines.Select(line => line.ProductId).Distinct().ToList();
+        var items = await database
+            .MenuItems.Where(item => productIds.Contains(item.Id))
+            .ToDictionaryAsync(item => item.Id, ct);
+
+        return productIds.All(items.ContainsKey) ? items : null;
     }
+
+    private async Task<IReadOnlyDictionary<string, string>> ResolveProductNames(
+        Order order,
+        CancellationToken ct
+    )
+    {
+        var productIds = order.Lines.Select(line => line.ProductId).Distinct().ToList();
+        if (productIds.Count == 0)
+            return new Dictionary<string, string>();
+
+        return await database
+            .MenuItems.AsNoTracking()
+            .Where(item => productIds.Contains(item.Id))
+            .ToDictionaryAsync(item => item.Id, item => item.Name, ct);
+    }
+
+    private static IReadOnlyDictionary<string, string> ProductNamesFrom(
+        IReadOnlyDictionary<string, MenuItem> menuItems
+    ) => menuItems.ToDictionary(pair => pair.Key, pair => pair.Value.Name);
+
+    private static IEnumerable<OrderLine> BuildLines(
+        IReadOnlyList<UpsertOrderLineCommand> lines,
+        IReadOnlyDictionary<string, MenuItem> menuItems,
+        Guid orderId
+    ) => lines.Select(line => BuildLine(line, menuItems[line.ProductId].Kind, orderId));
 
     private static (MeatType? Meat, PizzaVariant? Pizza, Sauce Sauces) NormalizeForKind(
         ProductKind kind,
@@ -265,15 +296,21 @@ public sealed class OrderService : IOrderService
     ) => kind == ProductKind.Pizza ? (null, pizza, Sauce.None) : (meat, null, sauces);
 
     private static OrderLine BuildLine(
-        UpsertOrderCommand command,
+        UpsertOrderLineCommand command,
         ProductKind kind,
-        MeatType? meat,
-        PizzaVariant? pizza,
-        Sauce sauces
-    ) =>
-        new()
+        Guid orderId
+    )
+    {
+        var (meat, pizza, sauces) = NormalizeForKind(
+            kind,
+            command.Meat,
+            command.Pizza,
+            command.Sauces
+        );
+        return new OrderLine
         {
             Id = Guid.NewGuid(),
+            OrderId = orderId,
             ProductId = command.ProductId,
             Kind = kind,
             Meat = meat,
@@ -281,6 +318,7 @@ public sealed class OrderService : IOrderService
             Sauces = sauces,
             PriceCents = command.PriceCents,
             Extra = command.Extra,
-            Quantity = 1,
+            Quantity = command.Quantity,
         };
+    }
 }

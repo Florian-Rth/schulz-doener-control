@@ -69,12 +69,19 @@ internal static class DebtTestHelpers
             $"/api/order-days/{dayId}/orders/mine",
             new
             {
-                ProductId = "doener",
-                Meat = "Kalb",
-                PizzaVariant = (string?)null,
-                Sauces = new[] { "Knoblauch" },
-                PriceCents = priceCents,
-                Extra = (string?)null,
+                Lines = new[]
+                {
+                    new
+                    {
+                        ProductId = "doener",
+                        Meat = (string?)"Kalb",
+                        PizzaVariant = (string?)null,
+                        Sauces = new[] { "Knoblauch" },
+                        PriceCents = priceCents,
+                        Extra = (string?)null,
+                        Quantity = 1,
+                    },
+                },
                 IsPickup = isPickup,
             }
         );

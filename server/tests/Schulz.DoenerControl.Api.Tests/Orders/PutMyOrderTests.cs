@@ -11,10 +11,10 @@ using Xunit;
 
 namespace Schulz.DoenerControl.Api.Tests.Orders;
 
-// The F9 first-failing test: upsert is idempotent per (day,user) and only allowed before cutoff.
-// PUT before cutoff creates (200); a second PUT edits the same row (the composite unique index
-// holds — no duplicate); PUT after cutoff is rejected (409). Then GET /orders/{id}/result returns
-// the server-driven success-screen summary.
+// The F9 first-failing test, now multi-line: upsert is idempotent per (day,user) and only allowed
+// before cutoff. PUT before cutoff creates (200); a second PUT replaces the order's whole line set on
+// the same row (the composite unique index holds — no duplicate); PUT after cutoff is rejected (409).
+// Then GET /orders/{id}/result returns the server-driven success-screen summary.
 public sealed class PutMyOrderTests : DoenerControlTestBase
 {
     private const string LoginUrl = "/api/auth/login";
@@ -42,7 +42,7 @@ public sealed class PutMyOrderTests : DoenerControlTestBase
         var auth = await OrderDayTestHelpers.LoginAsChefAsync(App, LoginUrl);
         var dayId = await OpenTodayAsync(auth);
 
-        // PUT before cutoff → 200 Created order.
+        // PUT before cutoff → 200 Created order with a single line.
         var create = await auth.PutJsonAsync(
             $"/api/order-days/{dayId}/orders/mine",
             SampleDoenerBody()
@@ -50,22 +50,42 @@ public sealed class PutMyOrderTests : DoenerControlTestBase
         Assert.Equal(HttpStatusCode.OK, create.StatusCode);
         var created = await ReadOrder(create);
         Assert.NotNull(created);
-        Assert.Equal("Döner Kalb", created!.ProductLabel);
+        var createdLine = Assert.Single(created!.Lines);
+        Assert.Equal("Döner Kalb", createdLine.ProductLabel);
+        Assert.Equal(750, createdLine.PriceCents);
+        Assert.Equal(1, createdLine.Quantity);
         Assert.Equal(750, created.PriceCents);
         Assert.False(created.IsPickup);
         var orderId = created.Id;
 
-        // Second PUT edits the same order — the unique (day,user) index holds, no duplicate row.
+        // Second PUT REPLACES the order with TWO lines — same row, the unique (day,user) index holds.
         var edit = await auth.PutJsonAsync(
             $"/api/order-days/{dayId}/orders/mine",
             new
             {
-                ProductId = "duerum",
-                Meat = "Haehnchen",
-                PizzaVariant = (string?)null,
-                Sauces = new[] { "Knoblauch", "Scharf" },
-                PriceCents = 800,
-                Extra = "ohne Zwiebeln",
+                Lines = new[]
+                {
+                    new
+                    {
+                        ProductId = "duerum",
+                        Meat = (string?)"Haehnchen",
+                        PizzaVariant = (string?)null,
+                        Sauces = new[] { "Knoblauch", "Scharf" },
+                        PriceCents = 800,
+                        Extra = (string?)"ohne Zwiebeln",
+                        Quantity = 1,
+                    },
+                    new
+                    {
+                        ProductId = "pizza",
+                        Meat = (string?)null,
+                        PizzaVariant = (string?)"Salami",
+                        Sauces = Array.Empty<string>(),
+                        PriceCents = 900,
+                        Extra = (string?)null,
+                        Quantity = 1,
+                    },
+                },
                 IsPickup = true,
             }
         );
@@ -73,8 +93,10 @@ public sealed class PutMyOrderTests : DoenerControlTestBase
         var edited = await ReadOrder(edit);
         Assert.NotNull(edited);
         Assert.Equal(orderId, edited!.Id);
-        Assert.Equal("Dürüm Hähnchen", edited.ProductLabel);
-        Assert.Equal(800, edited.PriceCents);
+        Assert.Equal(2, edited.Lines.Count);
+        Assert.Equal("Dürüm Hähnchen", edited.Lines[0].ProductLabel);
+        Assert.Equal("Pizza Salami", edited.Lines[1].ProductLabel);
+        Assert.Equal(1700, edited.PriceCents);
         Assert.True(edited.IsPickup);
 
         using (var scope = App.Services.CreateScope())
@@ -85,6 +107,11 @@ public sealed class PutMyOrderTests : DoenerControlTestBase
                 TestContext.Current.CancellationToken
             );
             Assert.Equal(1, count);
+            var lineCount = await database.OrderLines.CountAsync(
+                line => line.Order!.OrderDayId == dayId,
+                TestContext.Current.CancellationToken
+            );
+            Assert.Equal(2, lineCount);
         }
 
         // GET /orders/{id}/result returns the success-screen summary (caller is the pickup person,
@@ -95,8 +122,9 @@ public sealed class PutMyOrderTests : DoenerControlTestBase
             TestContext.Current.CancellationToken
         );
         Assert.NotNull(summary);
-        Assert.Equal("Dürüm Hähnchen", summary!.ProductLabel);
-        Assert.Equal(800, summary.PriceCents);
+        Assert.Equal(2, summary!.Lines.Count);
+        Assert.Equal("Dürüm Hähnchen", summary.Lines[0].ProductLabel);
+        Assert.Equal(1700, summary.PriceCents);
         Assert.True(summary.IsPickup);
 
         // Push the persisted cutoff into the past, then a further PUT is rejected with 409.
@@ -109,17 +137,7 @@ public sealed class PutMyOrderTests : DoenerControlTestBase
         Assert.Equal(HttpStatusCode.Conflict, afterCutoff.StatusCode);
     }
 
-    private static object SampleDoenerBody() =>
-        new
-        {
-            ProductId = "doener",
-            Meat = "Kalb",
-            PizzaVariant = (string?)null,
-            Sauces = new[] { "Knoblauch" },
-            PriceCents = 750,
-            Extra = (string?)null,
-            IsPickup = false,
-        };
+    private static object SampleDoenerBody() => OrderTestHelpers.DoenerBody();
 
     private async Task<OrderDetailsDto?> ReadOrder(HttpResponseMessage response) =>
         await response.Content.ReadFromJsonAsync<OrderDetailsDto>(

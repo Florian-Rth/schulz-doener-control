@@ -3,16 +3,22 @@ using Schulz.DoenerControl.Core.Enums;
 namespace Schulz.DoenerControl.Application.Orders;
 
 // Idempotent upsert of the caller's order for a day (add OR edit), allowed only while the day is
-// open and before its cutoff. Kind is resolved from the menu item at write time; pizza orders force
-// Meat=null/Sauces=None in the service regardless of what the request carried.
+// open and before its cutoff. The order is multi-line: UpsertMineAsync REPLACES the order's whole
+// line set with these lines. Each line's Kind is resolved from its menu item at write time; pizza
+// lines force Meat=null/Sauces=None in the service regardless of what the request carried.
 public sealed record UpsertOrderCommand(
     Guid CallerUserId,
     Guid OrderDayId,
+    IReadOnlyList<UpsertOrderLineCommand> Lines,
+    bool IsPickup
+);
+
+public sealed record UpsertOrderLineCommand(
     string ProductId,
     MeatType? Meat,
     PizzaVariant? Pizza,
     Sauce Sauces,
     int PriceCents,
     string? Extra,
-    bool IsPickup
+    int Quantity
 );

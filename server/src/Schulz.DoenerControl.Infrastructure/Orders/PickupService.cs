@@ -108,11 +108,11 @@ public sealed class PickupService : IPickupService
 
         await database.SaveChangesAsync(ct);
 
-        var productName = await ResolveProductName(order.Lines.Single().ProductId, ct);
+        var productNames = await ResolveProductNames(order, ct);
         var pickupNames = await ResolvePickupNames(orderDayId, ct);
 
         return Result<PickupResult>.Success(
-            new PickupResult(OrderDetailsFactory.Build(order, productName), pickupNames)
+            new PickupResult(OrderDetailsFactory.Build(order, productNames), pickupNames)
         );
     }
 
@@ -132,13 +132,18 @@ public sealed class PickupService : IPickupService
         return pickups.OrderBy(pickup => pickup.CreatedAt).Select(pickup => pickup.Name).ToList();
     }
 
-    private async Task<string> ResolveProductName(string productId, CancellationToken ct)
+    private async Task<IReadOnlyDictionary<string, string>> ResolveProductNames(
+        Order order,
+        CancellationToken ct
+    )
     {
-        var name = await database
+        var productIds = order.Lines.Select(line => line.ProductId).Distinct().ToList();
+        if (productIds.Count == 0)
+            return new Dictionary<string, string>();
+
+        return await database
             .MenuItems.AsNoTracking()
-            .Where(item => item.Id == productId)
-            .Select(item => item.Name)
-            .FirstOrDefaultAsync(ct);
-        return name ?? productId;
+            .Where(item => productIds.Contains(item.Id))
+            .ToDictionaryAsync(item => item.Id, item => item.Name, ct);
     }
 }

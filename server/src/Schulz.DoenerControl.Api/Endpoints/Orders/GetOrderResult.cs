@@ -18,10 +18,17 @@ public sealed record AbholerDto(
     string? PayPalHandle
 );
 
-public sealed record GetOrderResultResponse(
+public sealed record OrderResultLineDto(
     string ProductLabel,
-    int PriceCents,
     string Detail,
+    int Quantity,
+    int PriceCents,
+    int LineTotalCents
+);
+
+public sealed record GetOrderResultResponse(
+    IReadOnlyList<OrderResultLineDto> Lines,
+    int PriceCents,
     bool IsPickup,
     AbholerDto? Abholer,
     int CollectCents,
@@ -79,15 +86,17 @@ public sealed class GetOrderResult : Endpoint<GetOrderResultRequest, GetOrderRes
 
     private static GetOrderResultResponse ToResponse(OrderResultDetails details) =>
         new(
-            details.ProductLabel,
+            details.Lines.Select(ToLineDto).ToList(),
             details.PriceCents,
-            details.Detail,
             details.IsPickup,
             details.Abholer is null ? null : ToAbholerDto(details.Abholer),
             details.CollectCents,
             details.CollectCount,
             details.MyPayPalUrl
         );
+
+    private static OrderResultLineDto ToLineDto(OrderResultLineDetails line) =>
+        new(line.ProductLabel, line.Detail, line.Quantity, line.PriceCents, line.LineTotalCents);
 
     private static AbholerDto ToAbholerDto(AbholerDetails abholer) =>
         new(abholer.Name, abholer.Initials, abholer.ColorHex, abholer.PayPalHandle);

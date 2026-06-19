@@ -79,6 +79,10 @@ public sealed class GetOrderResultTests : DoenerControlTestBase
         Assert.Equal(HttpStatusCode.OK, payResponse.StatusCode);
         Assert.NotNull(pay);
         Assert.False(pay!.IsPickup);
+        var payLine = Assert.Single(pay.Lines);
+        Assert.Equal("Dürüm Hähnchen", payLine.ProductLabel);
+        Assert.Equal(800, payLine.LineTotalCents);
+        Assert.Equal(800, pay.PriceCents);
         Assert.NotNull(pay.Abholer);
         Assert.Equal("Markus Wagner", pay.Abholer!.Name);
         Assert.Equal("MarkusWagnerHB", pay.Abholer.PayPalHandle);

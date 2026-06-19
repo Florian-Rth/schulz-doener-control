@@ -67,21 +67,30 @@ internal static class OrderTestHelpers
             .SingleAsync(TestContext.Current.CancellationToken);
     }
 
+    // A single-line döner order body in the multi-line wire shape (one line, quantity 1).
     public static object DoenerBody(
         string productId = "doener",
         string meat = "Kalb",
         int priceCents = 750,
         bool isPickup = false,
-        string[]? sauces = null
+        string[]? sauces = null,
+        int quantity = 1
     ) =>
         new
         {
-            ProductId = productId,
-            Meat = meat,
-            PizzaVariant = (string?)null,
-            Sauces = sauces ?? new[] { "Knoblauch" },
-            PriceCents = priceCents,
-            Extra = (string?)null,
+            Lines = new[]
+            {
+                new
+                {
+                    ProductId = productId,
+                    Meat = (string?)meat,
+                    PizzaVariant = (string?)null,
+                    Sauces = sauces ?? new[] { "Knoblauch" },
+                    PriceCents = priceCents,
+                    Extra = (string?)null,
+                    Quantity = quantity,
+                },
+            },
             IsPickup = isPickup,
         };
 }

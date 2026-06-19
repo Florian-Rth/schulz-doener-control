@@ -280,22 +280,32 @@ public sealed class OrderDayService : IOrderDayService
     )
     {
         var displayName = order.User?.DisplayName ?? string.Empty;
-        // Single-item contract (B7): each order has exactly one line; the row mirrors it and the
-        // price is the order total (sum of Quantity * per-unit price over the lines).
-        var line = order.Lines.Single();
-        var productName = productNames.GetValueOrDefault(line.ProductId, line.ProductId);
+        // The board shows one row per participant; the order may carry several lines. Lead with the
+        // first line's label (suffixed "+N" when there are more) and join the per-line descriptions.
+        // The price is the order total (sum of Quantity * per-unit price over all lines).
+        var lines = order.Lines.OrderBy(line => line.ProductId).ThenBy(line => line.Id).ToList();
+        var lead = lines[0];
+        var leadName = productNames.GetValueOrDefault(lead.ProductId, lead.ProductId);
+        var leadLabel = OrderLabelBuilder.BuildProductLabel(
+            lead.Kind,
+            leadName,
+            lead.Meat,
+            lead.PizzaVariant
+        );
+        var productLabel = lines.Count == 1 ? leadLabel : $"{leadLabel} +{lines.Count - 1}";
+        var description = string.Join(
+            " · ",
+            lines.Select(line =>
+                OrderLabelBuilder.BuildDescription(line.Kind, line.Sauces, line.Extra)
+            )
+        );
         return new OrderRowSummary(
             order.Id,
             displayName,
             NameFormatter.InitialsOf(displayName),
             order.User?.AvatarColorHex ?? string.Empty,
-            OrderLabelBuilder.BuildProductLabel(
-                line.Kind,
-                productName,
-                line.Meat,
-                line.PizzaVariant
-            ),
-            OrderLabelBuilder.BuildDescription(line.Kind, line.Sauces, line.Extra),
+            productLabel,
+            description,
             order.TotalCents,
             MoneyFormatter.ToGermanString(order.TotalCents),
             order.UserId == callerId,

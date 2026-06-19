@@ -7,11 +7,8 @@ using Schulz.DoenerControl.Core.Enums;
 
 namespace Schulz.DoenerControl.Api.Endpoints.Orders;
 
-public sealed class PutMyOrderRequest
+public sealed class PutMyOrderLineDto
 {
-    [RouteParam]
-    public Guid DayId { get; set; }
-
     public string ProductId { get; set; } = string.Empty;
 
     public string? Meat { get; set; }
@@ -24,10 +21,20 @@ public sealed class PutMyOrderRequest
 
     public string? Extra { get; set; }
 
+    public int Quantity { get; set; }
+}
+
+public sealed class PutMyOrderRequest
+{
+    [RouteParam]
+    public Guid DayId { get; set; }
+
+    public IReadOnlyList<PutMyOrderLineDto> Lines { get; set; } = Array.Empty<PutMyOrderLineDto>();
+
     public bool IsPickup { get; set; }
 }
 
-public sealed class PutMyOrderRequestValidator : Validator<PutMyOrderRequest>
+public sealed class PutMyOrderLineValidator : Validator<PutMyOrderLineDto>
 {
     private static readonly string[] MeatNames =
     [
@@ -49,55 +56,62 @@ public sealed class PutMyOrderRequestValidator : Validator<PutMyOrderRequest>
         nameof(Core.Enums.PizzaVariant.Hawaii),
     ];
 
-    public PutMyOrderRequestValidator()
+    public PutMyOrderLineValidator()
     {
-        RuleFor(request => request.DayId).NotEmpty();
-        RuleFor(request => request.ProductId).NotEmpty().MaximumLength(32);
-        RuleFor(request => request.PriceCents).InclusiveBetween(1, 100000);
-        RuleFor(request => request.Extra).MaximumLength(300);
+        RuleFor(line => line.ProductId).NotEmpty().MaximumLength(32);
+        RuleFor(line => line.PriceCents).InclusiveBetween(1, 100000);
+        RuleFor(line => line.Quantity).InclusiveBetween(1, 20);
+        RuleFor(line => line.Extra).MaximumLength(300);
 
-        RuleFor(request => request.Meat)
+        RuleFor(line => line.Meat)
             .Must(meat => meat is null || MeatNames.Contains(meat))
             .WithMessage("Unbekannte Fleischsorte.");
 
-        RuleFor(request => request.PizzaVariant)
+        RuleFor(line => line.PizzaVariant)
             .Must(variant => variant is null || PizzaNames.Contains(variant))
             .WithMessage("Unbekannte Pizza-Sorte.");
 
-        RuleFor(request => request.Sauces)
+        RuleFor(line => line.Sauces)
             .Must(sauces => sauces is null || sauces.All(SauceNames.Contains))
             .WithMessage("Unbekannte Soße.");
 
-        RuleFor(request => request.Sauces)
+        RuleFor(line => line.Sauces)
             .Must(sauces => sauces is null || sauces.Distinct().Count() == sauces.Count)
             .WithMessage("Soßen dürfen nicht doppelt vorkommen.");
 
-        // Shape cross-checks (the service is authoritative on kind): a pizza order carries a variant
-        // and no meat/sauces; a döner order carries a meat and no variant.
+        // Shape cross-checks per line (the service is authoritative on kind): a pizza line carries a
+        // variant and no meat/sauces; a döner line carries a meat and no variant.
         When(
-            request => request.PizzaVariant is not null,
+            line => line.PizzaVariant is not null,
             () =>
             {
-                RuleFor(request => request.Meat)
-                    .Null()
-                    .WithMessage("Pizza hat keine Fleischsorte.");
-                RuleFor(request => request.Sauces)
+                RuleFor(line => line.Meat).Null().WithMessage("Pizza hat keine Fleischsorte.");
+                RuleFor(line => line.Sauces)
                     .Must(sauces => sauces is null || sauces.Count == 0)
                     .WithMessage("Pizza hat keine Soßen.");
             }
         );
 
         When(
-            request => request.PizzaVariant is null,
-            () =>
-                RuleFor(request => request.Meat).NotNull().WithMessage("Fleischsorte erforderlich.")
+            line => line.PizzaVariant is null,
+            () => RuleFor(line => line.Meat).NotNull().WithMessage("Fleischsorte erforderlich.")
         );
     }
 }
 
-// Idempotent upsert of the caller's order for a day (add OR edit, one row per user per day), only
-// while the day is open and before cutoff. Returns the bare OrderDetailsDto (PLAN #12 — no wrapper)
-// so the FE can OrderDetailsSchema.parse the body directly. Authenticated.
+public sealed class PutMyOrderRequestValidator : Validator<PutMyOrderRequest>
+{
+    public PutMyOrderRequestValidator()
+    {
+        RuleFor(request => request.DayId).NotEmpty();
+        RuleFor(request => request.Lines).NotNull().Must(lines => lines.Count is >= 1 and <= 20);
+        RuleForEach(request => request.Lines).SetValidator(new PutMyOrderLineValidator());
+    }
+}
+
+// Idempotent upsert of the caller's order for a day (add OR edit, one row per user per day, several
+// lines), only while the day is open and before cutoff. Returns the bare OrderDetailsDto (PLAN #12 —
+// no wrapper) so the FE can OrderDetailsSchema.parse the body directly. Authenticated.
 public sealed class PutMyOrder : Endpoint<PutMyOrderRequest, OrderDetailsDto>
 {
     private readonly IOrderService orderService;
@@ -125,12 +139,7 @@ public sealed class PutMyOrder : Endpoint<PutMyOrderRequest, OrderDetailsDto>
         var command = new UpsertOrderCommand(
             callerId,
             req.DayId,
-            req.ProductId,
-            OrderVocabularyParser.ParseMeat(req.Meat),
-            OrderVocabularyParser.ParsePizza(req.PizzaVariant),
-            OrderVocabularyParser.ParseSauces(req.Sauces),
-            req.PriceCents,
-            req.Extra,
+            req.Lines.Select(ToLineCommand).ToList(),
             req.IsPickup
         );
 
@@ -143,6 +152,17 @@ public sealed class PutMyOrder : Endpoint<PutMyOrderRequest, OrderDetailsDto>
 
         await Send.OkAsync(OrderDetailsMapper.ToDto(result.Value), cancellation: ct);
     }
+
+    private static UpsertOrderLineCommand ToLineCommand(PutMyOrderLineDto line) =>
+        new(
+            line.ProductId,
+            OrderVocabularyParser.ParseMeat(line.Meat),
+            OrderVocabularyParser.ParsePizza(line.PizzaVariant),
+            OrderVocabularyParser.ParseSauces(line.Sauces),
+            line.PriceCents,
+            line.Extra,
+            line.Quantity
+        );
 
     private async Task SendFailureAsync(ResultStatus status, CancellationToken ct)
     {

@@ -120,12 +120,19 @@ public sealed class CloseOrderingBlocksNewOrdersTests : DoenerControlTestBase
             $"/api/order-days/{dayId}/orders/mine",
             new
             {
-                ProductId = "doener",
-                Meat = "Kalb",
-                PizzaVariant = (string?)null,
-                Sauces = new[] { "Knoblauch" },
-                PriceCents = 750,
-                Extra = (string?)null,
+                Lines = new[]
+                {
+                    new
+                    {
+                        ProductId = "doener",
+                        Meat = (string?)"Kalb",
+                        PizzaVariant = (string?)null,
+                        Sauces = new[] { "Knoblauch" },
+                        PriceCents = 750,
+                        Extra = (string?)null,
+                        Quantity = 1,
+                    },
+                },
                 IsPickup = false,
             }
         );
