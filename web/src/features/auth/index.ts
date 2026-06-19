@@ -2,6 +2,8 @@ export {
   authKeys,
   ensureAuthStatus,
   ensureSession,
+  ensureSessionGate,
+  LOCKED_SESSION,
   resolveAuthStatus,
   useLogin,
   useLogout,

@@ -1,4 +1,18 @@
-export { profileKeys, useUpdatePayPalHandle } from "./api";
+export {
+  type ChangePasswordInput,
+  profileKeys,
+  useChangePassword,
+  useUpdatePayPalHandle,
+} from "./api";
+export { ChangePasswordForm } from "./components/ChangePasswordForm";
 export { PayPalHandleForm } from "./components/PayPalHandleForm";
-export { PayPalHandleFormSchema, PayPalHandleResponseSchema } from "./schemas";
-export type { PayPalHandleForm as PayPalHandleFormValues, PayPalHandleResponse } from "./types";
+export {
+  ChangePasswordFormSchema,
+  PayPalHandleFormSchema,
+  PayPalHandleResponseSchema,
+} from "./schemas";
+export type {
+  ChangePasswordForm as ChangePasswordFormValues,
+  PayPalHandleForm as PayPalHandleFormValues,
+  PayPalHandleResponse,
+} from "./types";

@@ -1,17 +1,28 @@
 import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
 import { createFileRoute } from "@tanstack/react-router";
+import { PageLayout } from "@/components";
+import { ChangePasswordForm } from "@/features/profile";
 
-// Placeholder shell for the forced password-change screen (reached when the
-// backend reports `mustChangePassword`); the auth-management feature fills it in.
+// The forced password-change screen (reached when the backend reports
+// `mustChangePassword`). Pure layout: composes the page shell around the
+// change-password feature form; all logic lives in the feature hook.
 const PasswortAendernRoute = () => {
   return (
-    <Stack sx={{ p: 2, gap: 1 }}>
-      <Typography variant="h2" sx={{ color: "navy.main" }}>
-        Passwort ändern
-      </Typography>
-      <Typography sx={{ color: "muted.main" }}>Bitte vergib ein neues Passwort, Chef.</Typography>
-    </Stack>
+    <PageLayout bg="login">
+      <PageLayout.Content sx={{ flex: 1, justifyContent: "center" }}>
+        <Stack
+          sx={(theme) => ({
+            width: "100%",
+            p: 2.5,
+            borderRadius: `${theme.radii.lg}px`,
+            backgroundColor: theme.palette.background.paper,
+            boxShadow: "0 8px 24px rgba(15,23,42,.08)",
+          })}
+        >
+          <ChangePasswordForm />
+        </Stack>
+      </PageLayout.Content>
+    </PageLayout>
   );
 };
 
