@@ -95,6 +95,21 @@ internal static class DebtTestHelpers
         );
     }
 
+    // Seeds OrderDay.CollectorUserId straight in the database. Used by close-day scenarios that must
+    // satisfy the collector-only close rule without going through the SetCollector flow (e.g. tests
+    // that deliberately leave no collector designated, or where the collector never picked up).
+    public static async Task SeedCollectorAsync(DoenerControlApp app, Guid dayId, Guid collectorId)
+    {
+        using var scope = app.Services.CreateScope();
+        var database = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var day = await database.OrderDays.SingleAsync(
+            d => d.Id == dayId,
+            TestContext.Current.CancellationToken
+        );
+        day.CollectorUserId = collectorId;
+        await database.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
     public static async Task<Guid> UserIdAsync(DoenerControlApp app, string username)
     {
         using var scope = app.Services.CreateScope();

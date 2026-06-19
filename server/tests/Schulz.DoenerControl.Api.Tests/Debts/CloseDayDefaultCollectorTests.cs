@@ -7,15 +7,16 @@ using Xunit;
 
 namespace Schulz.DoenerControl.Api.Tests.Debts;
 
-// Own fresh DB: when no collector is designated, close-day debt generation defaults the collector to
-// the opener if they picked up, and the non-pickup colleague's debt points to that opener.
+// Own fresh DB: the collecting chef picks up, a non-pickup colleague's debt points to that collector
+// with the correct cents. Closing the day requires a designated collector (the close-day auth rule),
+// so the chef is the designated collector here.
 public sealed class CloseDayDefaultCollectorTests : DoenerControlTestBase
 {
     public CloseDayDefaultCollectorTests(DoenerControlApp app)
         : base(app) { }
 
     [Fact]
-    public async Task Should_DefaultCollectorToOpenerPickup_When_NoneDesignated()
+    public async Task Should_PointDebtToCollector_When_DayClosed()
     {
         var chef = await DebtTestHelpers.LoginAsChefAsync(App);
         var dayId = await DebtTestHelpers.OpenTodayAsync(chef);
@@ -26,6 +27,7 @@ public sealed class CloseDayDefaultCollectorTests : DoenerControlTestBase
 
         var chefId = await DebtTestHelpers.UserIdAsync(App, "m.wagner");
         var lukasId = await DebtTestHelpers.UserIdAsync(App, "l.brandt");
+        await DebtTestHelpers.SetCollectorAsync(chef, dayId, chefId);
 
         var closeResponse = await chef.PostAsync($"/api/order-days/{dayId}/close");
         var closeBody = await closeResponse.Content.ReadFromJsonAsync<CloseDayResponse>(

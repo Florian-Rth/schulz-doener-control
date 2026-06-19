@@ -132,6 +132,13 @@ public sealed class OrderDayService : IOrderDayService
         if (day is null)
             return Result<CloseDayResult>.NotFound("Döner-Tag nicht gefunden.");
 
+        // Only the designated collector may close the day. No collector means nobody may — the same
+        // "one designated payer" rule that guards close-ordering.
+        if (day.CollectorUserId != command.CallerUserId)
+            return Result<CloseDayResult>.Forbidden(
+                "Nur der Abholer darf den Döner-Tag schließen."
+            );
+
         if (day.Status == OrderDayStatus.Closed)
             return Result<CloseDayResult>.Conflict("Der Döner-Tag ist bereits geschlossen.");
 
@@ -164,7 +171,7 @@ public sealed class OrderDayService : IOrderDayService
             return Result<OrderDayDetails>.NotFound("Döner-Tag nicht gefunden.");
 
         // Only the designated collector may lock ordering. No collector means nobody may — the
-        // "one designated payer" model. This is a deliberately stricter rule than close-day.
+        // "one designated payer" model, the same rule that guards close-day.
         if (day.CollectorUserId != command.CallerUserId)
             return Result<OrderDayDetails>.Forbidden(
                 "Nur der Abholer darf die Bestellung schließen."

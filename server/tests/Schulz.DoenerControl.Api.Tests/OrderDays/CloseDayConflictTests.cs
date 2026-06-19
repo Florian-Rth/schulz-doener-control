@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using Schulz.DoenerControl.Api.Endpoints.OrderDays;
 using Schulz.DoenerControl.Api.Tests.Auth;
+using Schulz.DoenerControl.Api.Tests.Debts;
 using Xunit;
 
 namespace Schulz.DoenerControl.Api.Tests.OrderDays;
@@ -25,6 +26,8 @@ public sealed class CloseDayConflictTests : DoenerControlTestBase
             TestContext.Current.CancellationToken
         );
         var dayId = openBody!.Day.Id;
+        var chefId = await DebtTestHelpers.UserIdAsync(App, "m.wagner");
+        await DebtTestHelpers.SeedCollectorAsync(App, dayId, chefId);
 
         var first = await auth.PostAsync($"/api/order-days/{dayId}/close");
         Assert.Equal(HttpStatusCode.OK, first.StatusCode);

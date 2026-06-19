@@ -7,22 +7,23 @@ using Xunit;
 
 namespace Schulz.DoenerControl.Api.Tests.Debts;
 
-// Own fresh DB: with no pickup at all, no collector can be resolved, so closing the day crystallizes
-// zero debts (nobody is reimbursing anyone).
+// Own fresh DB: the only non-pickup participant is the designated collector themselves, so closing
+// the day crystallizes zero debts (the collector never owes themselves). The collector is seeded
+// directly because they did not pick up, so the SetCollector flow does not apply.
 public sealed class CloseDayNoPickupTests : DoenerControlTestBase
 {
     public CloseDayNoPickupTests(DoenerControlApp app)
         : base(app) { }
 
     [Fact]
-    public async Task Should_CreateNoDebts_When_NobodyPicksUp()
+    public async Task Should_CreateNoDebts_When_OnlyCollectorOrdered()
     {
         var chef = await DebtTestHelpers.LoginAsChefAsync(App);
         var dayId = await DebtTestHelpers.OpenTodayAsync(chef);
         await DebtTestHelpers.PlaceOrderAsync(chef, dayId, priceCents: 950, isPickup: false);
 
-        var lukas = await DebtTestHelpers.LoginAsColleagueAsync(App, "l.brandt", "kollegePw11");
-        await DebtTestHelpers.PlaceOrderAsync(lukas, dayId, priceCents: 750, isPickup: false);
+        var chefId = await DebtTestHelpers.UserIdAsync(App, "m.wagner");
+        await DebtTestHelpers.SeedCollectorAsync(App, dayId, chefId);
 
         var closeResponse = await chef.PostAsync($"/api/order-days/{dayId}/close");
         var closeBody = await closeResponse.Content.ReadFromJsonAsync<CloseDayResponse>(

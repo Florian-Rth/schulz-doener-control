@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Schulz.DoenerControl.Api.Endpoints.OrderDays;
 using Schulz.DoenerControl.Api.Tests.Auth;
+using Schulz.DoenerControl.Api.Tests.Debts;
 using Schulz.DoenerControl.Core.Enums;
 using Schulz.DoenerControl.Infrastructure.Persistence;
 using Xunit;
@@ -33,6 +34,8 @@ public sealed class CloseDayTests : DoenerControlTestBase
     {
         var auth = await OrderDayTestHelpers.LoginAsChefAsync(App, LoginUrl);
         var dayId = await OpenTodayAsync(auth);
+        var chefId = await DebtTestHelpers.UserIdAsync(App, "m.wagner");
+        await DebtTestHelpers.SeedCollectorAsync(App, dayId, chefId);
 
         var response = await auth.PostAsync($"/api/order-days/{dayId}/close");
         var body = await response.Content.ReadFromJsonAsync<CloseDayResponse>(
@@ -73,5 +76,47 @@ public sealed class CloseDayTests : DoenerControlTestBase
             TestContext.Current.CancellationToken
         );
         return body!.Day.Id;
+    }
+}
+
+// FEATURE 4b authorization: only the designated collector may close the day. Each day-consuming
+// scenario gets its own class because the unique Date index fits one OrderDay per day per database.
+public sealed class CloseDayNonCollectorTests : DoenerControlTestBase
+{
+    public CloseDayNonCollectorTests(DoenerControlApp app)
+        : base(app) { }
+
+    [Fact]
+    public async Task Should_Reject_Close_Day_For_Non_Collector_403()
+    {
+        var chef = await DebtTestHelpers.LoginAsChefAsync(App);
+        var dayId = await DebtTestHelpers.OpenTodayAsync(chef);
+        var chefId = await DebtTestHelpers.UserIdAsync(App, "m.wagner");
+        await DebtTestHelpers.SeedCollectorAsync(App, dayId, chefId);
+
+        // A different colleague (not the designated collector) tries to close the day.
+        var lukas = await DebtTestHelpers.LoginAsColleagueAsync(App, "l.brandt", "kollegePw11");
+
+        var response = await lukas.PostAsync($"/api/order-days/{dayId}/close");
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+}
+
+public sealed class CloseDayNoCollectorTests : DoenerControlTestBase
+{
+    public CloseDayNoCollectorTests(DoenerControlApp app)
+        : base(app) { }
+
+    [Fact]
+    public async Task Should_Reject_Close_Day_When_No_Collector_403()
+    {
+        var chef = await DebtTestHelpers.LoginAsChefAsync(App);
+        var dayId = await DebtTestHelpers.OpenTodayAsync(chef);
+
+        // No collector designated → closing the day is forbidden for everyone, even the opener.
+        var response = await chef.PostAsync($"/api/order-days/{dayId}/close");
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 }

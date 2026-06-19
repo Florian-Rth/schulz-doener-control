@@ -23,8 +23,8 @@ public sealed class CloseDayRequestValidator : Validator<CloseDayRequest>
 }
 
 // Manually closes a Döner-Tag ("Tag schließen"): flips it to Closed and stamps ClosedAt. Returns how
-// many debts the close created (the debt-generation feature hangs off this transition).
-// Authenticated.
+// many debts the close created (the debt-generation feature hangs off this transition). Only the
+// designated collector may close the day (403 otherwise). Authenticated.
 public sealed class CloseDay : Endpoint<CloseDayRequest, CloseDayResponse>
 {
     private readonly IOrderDayService orderDayService;
@@ -72,6 +72,9 @@ public sealed class CloseDay : Endpoint<CloseDayRequest, CloseDayResponse>
         {
             case ResultStatus.NotFound:
                 await Send.NotFoundAsync(ct);
+                break;
+            case ResultStatus.Forbidden:
+                await Send.ForbiddenAsync(ct);
                 break;
             case ResultStatus.Conflict:
                 await Send.ErrorsAsync(StatusCodes.Status409Conflict, cancellation: ct);
