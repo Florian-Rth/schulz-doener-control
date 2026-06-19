@@ -16,14 +16,14 @@ internal static class DebtTestHelpers
     private const string LoginUrl = "/api/auth/login";
     private const string ChangePasswordUrl = "/api/auth/change-password";
     private const string OpenUrl = "/api/order-days/open";
-    private const string InitialPassword = "Schulz-Start!";
+    private const string InitialPassword = TestSeeding.InitialColleaguePassword;
 
     public static async Task<AuthTestClient> LoginAsChefAsync(DoenerControlApp app)
     {
         var auth = new AuthTestClient(app.CreateClient());
         await auth.PostJsonAsync(
             LoginUrl,
-            new { Username = "m.wagner", Password = "doener-dev-2026" }
+            new { Username = TestSeeding.ChefUsername, Password = TestSeeding.ChefPassword }
         );
         return auth;
     }

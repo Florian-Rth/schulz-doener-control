@@ -5,9 +5,10 @@ using Schulz.DoenerControl.Core.Enums;
 namespace Schulz.DoenerControl.Infrastructure.Persistence.Seeding;
 
 // Development-only history seed: reproduces the Chef's exact 12-order MY_HISTORY from the
-// mock so his computed Doener-Tier matches the mock (🐺 Der Knoblauch-Wolf), and gives the
-// dashboard/leaderboard realistic non-empty data. Never runs in Testing or Production —
-// tests build their own minimal fixtures.
+// mock so the seeded admin's computed Doener-Tier matches the mock (🐺 Der Knoblauch-Wolf), and
+// gives the dashboard/leaderboard realistic non-empty data. The orders are attributed to the
+// single seeded admin (the dev "Chef"). Never runs in Testing or Production — tests build their
+// own minimal fixtures.
 public sealed class DevHistorySeeder
 {
     // The Chef's last-3-months history, copied verbatim from the mock's MY_HISTORY array.
@@ -53,8 +54,8 @@ public sealed class DevHistorySeeder
             return;
         }
 
-        var chef = await database.Users.SingleOrDefaultAsync(
-            user => user.NormalizedUserName == SeedData.DevUsername,
+        var chef = await database.Users.FirstOrDefaultAsync(
+            user => user.Role == UserRole.Admin,
             ct
         );
         if (chef is null)

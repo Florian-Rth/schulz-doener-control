@@ -58,9 +58,42 @@ public static class DependencyInjection
         services.AddScoped<ILeaderboardService, LeaderboardService>();
         services.AddScoped<ITierService, TierService>();
         services.AddScoped<IDashboardService, DashboardService>();
+        services.AddAdminSeed(configuration);
         services.AddScoped<DatabaseSeeder>();
         services.AddScoped<DevHistorySeeder>();
         return services;
+    }
+
+    private static void AddAdminSeed(this IServiceCollection services, IConfiguration configuration)
+    {
+        services
+            .AddOptions<AdminSeedOptions>()
+            .Configure(options => BindAdminSeed(configuration, options));
+    }
+
+    private static void BindAdminSeed(IConfiguration configuration, AdminSeedOptions options)
+    {
+        var section = configuration.GetSection(AdminSeedOptions.ConfigSection);
+
+        var username = section["Username"];
+        if (!string.IsNullOrWhiteSpace(username))
+        {
+            options.Username = username;
+        }
+
+        options.Password = section["Password"] ?? string.Empty;
+
+        var displayName = section["DisplayName"];
+        if (!string.IsNullOrWhiteSpace(displayName))
+        {
+            options.DisplayName = displayName;
+        }
+
+        var avatarColorHex = section["AvatarColorHex"];
+        if (!string.IsNullOrWhiteSpace(avatarColorHex))
+        {
+            options.AvatarColorHex = avatarColorHex;
+        }
     }
 
     private static void AddPush(this IServiceCollection services, IConfiguration configuration)
@@ -157,6 +190,19 @@ public static class DependencyInjection
         {
             options.Iterations = iterations;
         }
+    }
+
+    // Applies the real migrations without running the user seed. The integration-test harness uses
+    // this so it can apply the schema (and the HasData menu rows) and then seed its own explicit test
+    // accounts, decoupled from the production bootstrap-admin seed.
+    public static async Task MigrateAsync(
+        this IServiceProvider services,
+        CancellationToken ct = default
+    )
+    {
+        using var scope = services.CreateScope();
+        var database = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await database.Database.MigrateAsync(ct);
     }
 
     public static async Task MigrateAndSeedAsync(

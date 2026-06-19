@@ -61,7 +61,8 @@ public sealed class PushTestApp : AppFixture<Program>
 
     protected override async ValueTask SetupAsync()
     {
-        await Services.MigrateAndSeedAsync();
+        await Services.MigrateAsync();
+        await Services.SeedStandardTestUsersAsync();
     }
 
     protected override ValueTask TearDownAsync()

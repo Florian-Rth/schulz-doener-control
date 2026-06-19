@@ -8,8 +8,9 @@ using Xunit;
 namespace Schulz.DoenerControl.Api.Tests;
 
 // Exercises the real InitialCreate migration applied to a fresh SQLite database by the
-// harness, plus the reference + user seed. Asserts the menu and users are present and that
-// the schema's unique constraints actually fire on real inserts.
+// harness, plus the menu reference seed (HasData) and the explicit test-account cast the harness
+// seeds. Asserts the menu and users are present and that the schema's unique constraints actually
+// fire on real inserts.
 public sealed class SchemaAndSeedTests : DoenerControlTestBase
 {
     public SchemaAndSeedTests(DoenerControlApp app)
@@ -42,14 +43,14 @@ public sealed class SchemaAndSeedTests : DoenerControlTestBase
     }
 
     [Fact]
-    public async Task Should_Seed_Thirteen_Active_Employees_When_Migration_Applied()
+    public async Task Should_Seed_Active_TestUsers_With_Real_Credentials()
     {
         using var scope = App.Services.CreateScope();
         var database = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         var users = await database.Users.ToListAsync(Ct);
 
-        Assert.Equal(13, users.Count);
+        Assert.NotEmpty(users);
         Assert.All(users, user => Assert.True(user.IsActive));
         Assert.All(users, user => Assert.NotEmpty(user.PasswordHash));
         Assert.All(users, user => Assert.NotEmpty(user.PasswordSalt));
@@ -57,21 +58,24 @@ public sealed class SchemaAndSeedTests : DoenerControlTestBase
             users,
             user => Assert.Equal(user.Username.ToLowerInvariant(), user.NormalizedUserName)
         );
+
+        // Exactly one admin in the test cast — the verified "Chef".
+        Assert.Single(users, user => user.Role == UserRole.Admin);
     }
 
     [Fact]
-    public async Task Should_Seed_Verified_Dev_User_When_Migration_Applied()
+    public async Task Should_Seed_Verified_Chef_When_Migration_Applied()
     {
         using var scope = App.Services.CreateScope();
         var database = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         var chef = await database.Users.SingleAsync(
-            user => user.NormalizedUserName == "m.wagner",
+            user => user.NormalizedUserName == TestSeeding.ChefUsername,
             Ct
         );
 
         Assert.False(chef.MustChangePassword);
-        Assert.Equal("Markus Wagner", chef.DisplayName);
+        Assert.Equal(TestSeeding.ChefDisplayName, chef.DisplayName);
         Assert.Equal(UserRole.Admin, chef.Role);
     }
 

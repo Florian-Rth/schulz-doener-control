@@ -69,19 +69,17 @@ public sealed class PushSubscriptionTests : TestBase<PushTestApp>
         var colleagueId = await ResolveOtherActiveUserIdAsync(chefId);
 
         // The colleague is subscribed; the opener (chef) is also subscribed but must NOT be pushed.
-        const string colleagueEndpoint = "https://push.example.com/colleague-device";
+        // Endpoints are unique to this test so they never collide with the other tests in this class
+        // that subscribe the chef against the shared per-class database (Endpoint is uniquely indexed).
+        const string colleagueEndpoint = "https://push.example.com/synonym-colleague-device";
+        const string chefEndpoint = "https://push.example.com/synonym-chef-device";
         await InsertSubscriptionAsync(
             colleagueId,
             colleagueEndpoint,
             "colleague-p256",
             "colleague-auth"
         );
-        await InsertSubscriptionAsync(
-            chefId,
-            "https://push.example.com/chef-device",
-            "chef-p256",
-            "chef-auth"
-        );
+        await InsertSubscriptionAsync(chefId, chefEndpoint, "chef-p256", "chef-auth");
 
         var auth = await LoginAsChefAsync();
         var response = await auth.PostAsync(OpenUrl);
@@ -100,10 +98,7 @@ public sealed class PushSubscriptionTests : TestBase<PushTestApp>
 
         var expectedBody = PushTextBuilder.BuildOpenDayBody(body!.Day.Synonym);
         Assert.Equal(expectedBody, sent.Payload.Body);
-        Assert.DoesNotContain(
-            sends,
-            s => s.Target.Endpoint == "https://push.example.com/chef-device"
-        );
+        Assert.DoesNotContain(sends, s => s.Target.Endpoint == chefEndpoint);
     }
 
     [Fact]

@@ -9,7 +9,7 @@ internal static class OrderDayTestHelpers
         var auth = new AuthTestClient(app.CreateClient());
         await auth.PostJsonAsync(
             loginUrl,
-            new { Username = "m.wagner", Password = "doener-dev-2026" }
+            new { Username = TestSeeding.ChefUsername, Password = TestSeeding.ChefPassword }
         );
         return auth;
     }

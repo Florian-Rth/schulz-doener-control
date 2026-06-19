@@ -65,8 +65,10 @@ public sealed class DoenerControlApp : AppFixture<Program>
         // The harness is the single owner of migration + seeding under the Testing environment
         // (Program skips its startup migrate there to avoid racing this). Applies the REAL
         // migrations — never EnsureCreated — so the migration itself is exercised by every test,
-        // then runs the runtime user seed so authenticated tests have real accounts.
-        await Services.MigrateAndSeedAsync();
+        // then seeds the explicit test cast (not the production bootstrap admin) so authenticated
+        // tests have the named accounts their scenarios act on.
+        await Services.MigrateAsync();
+        await Services.SeedStandardTestUsersAsync();
     }
 
     protected override ValueTask TearDownAsync()

@@ -1,80 +1,74 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
+using Schulz.DoenerControl.Application.Security;
 using Schulz.DoenerControl.Core.Entities;
+using Schulz.DoenerControl.Core.Enums;
 
 namespace Schulz.DoenerControl.Infrastructure.Persistence.Seeding;
 
-// Idempotent runtime seed for the 13 employee accounts. Runs at startup after migrations.
-// User passwords cannot use EF HasData (they need runtime Argon2id hashing with a per-user
-// salt and the configured pepper), so they are seeded here rather than in the migration.
-// The 6 MenuItem reference rows are seeded via HasData in the migration itself.
+// Idempotent runtime seed for the single bootstrap administrator. Runs at startup after migrations.
+// The password cannot use EF HasData (it needs runtime Argon2id hashing with a per-user salt and the
+// configured pepper), so it is seeded here rather than in the migration. The 6 MenuItem reference
+// rows are seeded via HasData in the migration itself.
+//
+// Exactly one admin is created: if any user with Role==Admin already exists, this is a no-op. The
+// admin is provisioned with MustChangePassword=true so the throwaway bootstrap password must be
+// changed on first login. Every other account is created later by the admin via the API.
 public sealed class DatabaseSeeder
 {
-    private const int DefaultMemorySize = 19456;
-    private const int DefaultIterations = 2;
-
     private readonly AppDbContext database;
-    private readonly IConfiguration configuration;
+    private readonly IPasswordHasher passwordHasher;
+    private readonly AdminSeedOptions options;
     private readonly TimeProvider timeProvider;
 
     public DatabaseSeeder(
         AppDbContext database,
-        IConfiguration configuration,
+        IPasswordHasher passwordHasher,
+        IOptions<AdminSeedOptions> options,
         TimeProvider timeProvider
     )
     {
         this.database = database;
-        this.configuration = configuration;
+        this.passwordHasher = passwordHasher;
+        this.options = options.Value;
         this.timeProvider = timeProvider;
     }
 
     public async Task SeedAsync(CancellationToken ct)
     {
-        var existing = await database.Users.Select(user => user.NormalizedUserName).ToListAsync(ct);
-        var existingNames = existing.ToHashSet();
-
-        if (existingNames.Count == SeedData.Users.Count)
+        if (await database.Users.AnyAsync(user => user.Role == UserRole.Admin, ct))
         {
             return;
         }
 
-        var pepper = ResolvePepper();
-        var memorySize = ReadInt("PasswordHashing:MemorySize", DefaultMemorySize);
-        var iterations = ReadInt("PasswordHashing:Iterations", DefaultIterations);
-        var now = timeProvider.GetUtcNow();
-
-        foreach (var seed in SeedData.Users)
+        if (string.IsNullOrWhiteSpace(options.Password))
         {
-            var normalized = seed.Username.ToLowerInvariant();
-            if (existingNames.Contains(normalized))
-            {
-                continue;
-            }
-
-            var password = seed.MustChangePassword
-                ? SeedData.InitialPassword
-                : SeedData.DevPassword;
-            var (hash, salt) = SeedPassword.Create(password, pepper, memorySize, iterations);
-
-            database.Users.Add(
-                new User
-                {
-                    Id = Guid.NewGuid(),
-                    Username = seed.Username,
-                    NormalizedUserName = normalized,
-                    DisplayName = seed.DisplayName,
-                    PayPalHandle = seed.PayPalHandle,
-                    PasswordHash = hash,
-                    PasswordSalt = salt,
-                    Role = seed.Role,
-                    IsActive = true,
-                    MustChangePassword = seed.MustChangePassword,
-                    AvatarColorHex = seed.AvatarColorHex,
-                    CreatedAt = now,
-                }
+            throw new InvalidOperationException(
+                $"'{AdminSeedOptions.ConfigSection}:Password' is not configured; the seeder cannot "
+                    + "provision the bootstrap administrator without it."
             );
         }
+
+        var hashed = passwordHasher.Hash(options.Password);
+
+        database.Users.Add(
+            new User
+            {
+                Id = Guid.NewGuid(),
+                Username = options.Username,
+                NormalizedUserName = options.Username.ToLowerInvariant(),
+                DisplayName = options.DisplayName,
+                PayPalHandle = null,
+                PasswordHash = hashed.Hash,
+                PasswordSalt = hashed.Salt,
+                Role = UserRole.Admin,
+                IsActive = true,
+                MustChangePassword = true,
+                AvatarColorHex = options.AvatarColorHex,
+                CreatedAt = timeProvider.GetUtcNow(),
+            }
+        );
 
         try
         {
@@ -82,28 +76,12 @@ public sealed class DatabaseSeeder
         }
         catch (DbUpdateException ex) when (IsUniqueViolation(ex))
         {
-            // A concurrently-started host (the integration-test harness boots several at once)
-            // already seeded these accounts. Discard our pending inserts and treat as done.
+            // A concurrently-started host already seeded the admin. Discard our pending insert and
+            // treat as done.
             database.ChangeTracker.Clear();
         }
     }
 
     private static bool IsUniqueViolation(DbUpdateException ex) =>
         ex.InnerException is SqliteException { SqliteErrorCode: 19 };
-
-    private byte[] ResolvePepper()
-    {
-        var configured = configuration["Auth:Pepper"];
-        if (string.IsNullOrWhiteSpace(configured))
-        {
-            throw new InvalidOperationException(
-                "Auth:Pepper is not configured; the seeder cannot hash passwords without it."
-            );
-        }
-
-        return Convert.FromBase64String(configured);
-    }
-
-    private int ReadInt(string key, int fallback) =>
-        int.TryParse(configuration[key], out var value) ? value : fallback;
 }

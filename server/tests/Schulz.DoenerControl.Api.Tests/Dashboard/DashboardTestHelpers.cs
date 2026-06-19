@@ -2,8 +2,8 @@ using Schulz.DoenerControl.Api.Tests.Auth;
 
 namespace Schulz.DoenerControl.Api.Tests.Dashboard;
 
-// Login helper for the dashboard integration tests. The chef (m.wagner) is the verified seed
-// account with MustChangePassword=false, so it can hit protected endpoints without the gate.
+// Login helper for the dashboard integration tests. The chef is the verified test-seeded admin with
+// MustChangePassword=false, so it can hit protected endpoints without the gate.
 internal static class DashboardTestHelpers
 {
     private const string LoginUrl = "/api/auth/login";
@@ -13,7 +13,7 @@ internal static class DashboardTestHelpers
         var auth = new AuthTestClient(app.CreateClient());
         await auth.PostJsonAsync(
             LoginUrl,
-            new { Username = "m.wagner", Password = "doener-dev-2026" }
+            new { Username = TestSeeding.ChefUsername, Password = TestSeeding.ChefPassword }
         );
         return auth;
     }
