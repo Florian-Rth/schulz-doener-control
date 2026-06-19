@@ -11,8 +11,8 @@ using Xunit;
 
 namespace Schulz.DoenerControl.Api.Tests.Tiers;
 
-// The two tier endpoints (PLAN slices F13): GET /api/tier/mine derives the caller's Döner-Tier from
-// their last-90-days order history, GET /api/tier/catalog lists all 15 Tiere with the caller's own
+// The two tier endpoints (PLAN slices F13): GET /api/tiere/mine derives the caller's Döner-Tier from
+// their last-90-days order history, GET /api/tiere lists all 15 Tiere with the caller's own
 // one flagged. Seeds the Chef's canonical 12-order MY_HISTORY (all recent so they fall inside the
 // window) directly into the real SQLite DB and asserts both endpoints against that fixture.
 public sealed class GetTierTests : DoenerControlTestBase
@@ -43,7 +43,7 @@ public sealed class GetTierTests : DoenerControlTestBase
     {
         var auth = new AuthTestClient(App.CreateClient());
 
-        var response = await auth.GetAsync("/api/tier/mine");
+        var response = await auth.GetAsync("/api/tiere/mine");
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -53,7 +53,7 @@ public sealed class GetTierTests : DoenerControlTestBase
     {
         var auth = new AuthTestClient(App.CreateClient());
 
-        var response = await auth.GetAsync("/api/tier/catalog");
+        var response = await auth.GetAsync("/api/tiere");
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -65,7 +65,7 @@ public sealed class GetTierTests : DoenerControlTestBase
         await SeedMarkusHistoryAsync(chefId, dayBase: 0);
 
         var chef = await LoginAsChefAsync();
-        var response = await chef.GetAsync("/api/tier/mine");
+        var response = await chef.GetAsync("/api/tiere/mine");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadFromJsonAsync<GetMyTierResponse>(
@@ -90,21 +90,22 @@ public sealed class GetTierTests : DoenerControlTestBase
         await SeedMarkusHistoryAsync(chefId, dayBase: 100);
 
         var chef = await LoginAsChefAsync();
-        var response = await chef.GetAsync("/api/tier/catalog");
+        var response = await chef.GetAsync("/api/tiere");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var body = await response.Content.ReadFromJsonAsync<GetTierCatalogResponse>(
+        // PLAN #24: the catalogue is a bare array (FE TierCatalogSchema = z.array), no wrapper.
+        var body = await response.Content.ReadFromJsonAsync<List<TierCatalogEntrySummaryDto>>(
             TestContext.Current.CancellationToken
         );
         Assert.NotNull(body);
 
         // All 15 Tiere in priority order, first = Bürowaffe, last = solider Döner-Bürger.
-        Assert.Equal(15, body!.Tiers.Count);
-        Assert.Equal("Die Bürowaffe", body.Tiers[0].Name);
-        Assert.Equal("Der solide Döner-Bürger", body.Tiers[14].Name);
+        Assert.Equal(15, body!.Count);
+        Assert.Equal("Die Bürowaffe", body[0].Name);
+        Assert.Equal("Der solide Döner-Bürger", body[14].Name);
 
         // Exactly one entry flagged IsMine, and it is the caller's computed tier.
-        var mine = Assert.Single(body.Tiers, tier => tier.IsMine);
+        var mine = Assert.Single(body, tier => tier.IsMine);
         Assert.Equal("Der Knoblauch-Wolf", mine.Name);
         Assert.Equal("🐺", mine.Emoji);
     }

@@ -45,12 +45,10 @@ public sealed class GetOrderResultTests : DoenerControlTestBase
             OrderTestHelpers.DoenerBody(priceCents: 950, isPickup: true)
         );
         var chefOrderId = (
-            await chefOrder.Content.ReadFromJsonAsync<PutMyOrderResponse>(
+            await chefOrder.Content.ReadFromJsonAsync<OrderDetailsDto>(
                 TestContext.Current.CancellationToken
             )
-        )!
-            .Order
-            .Id;
+        )!.Id;
         var chefId = await OrderTestHelpers.UserIdByUsernameAsync(App, "m.wagner");
         await chef.PostJsonAsync(
             $"/api/order-days/{dayId}/collector",
@@ -68,12 +66,10 @@ public sealed class GetOrderResultTests : DoenerControlTestBase
             OrderTestHelpers.DoenerBody(productId: "duerum", meat: "Haehnchen", priceCents: 800)
         );
         var colleagueOrderId = (
-            await colleagueOrder.Content.ReadFromJsonAsync<PutMyOrderResponse>(
+            await colleagueOrder.Content.ReadFromJsonAsync<OrderDetailsDto>(
                 TestContext.Current.CancellationToken
             )
-        )!
-            .Order
-            .Id;
+        )!.Id;
 
         // PAY branch: the colleague owes the chef (Abholer) their own 8,00 € → PayPal deep-link.
         var payResponse = await colleague.GetAsync($"/api/orders/{colleagueOrderId}/result");

@@ -72,6 +72,7 @@ public static class DependencyInjection
         // The real transport is a singleton (it owns one HttpClient via WebPushClient); the
         // subscription store and the broadcaster are scoped because they use the request DbContext.
         services.AddSingleton<IWebPushTransport, WebPushTransport>();
+        services.AddSingleton<IPushKeyService, PushKeyService>();
         services.AddScoped<IPushSubscriptionService, PushSubscriptionService>();
         services.AddScoped<IPushBroadcaster, PushBroadcaster>();
     }

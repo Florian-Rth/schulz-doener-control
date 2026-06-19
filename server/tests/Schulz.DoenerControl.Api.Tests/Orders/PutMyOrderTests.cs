@@ -50,10 +50,10 @@ public sealed class PutMyOrderTests : DoenerControlTestBase
         Assert.Equal(HttpStatusCode.OK, create.StatusCode);
         var created = await ReadOrder(create);
         Assert.NotNull(created);
-        Assert.Equal("Döner Kalb", created!.Order.ProductLabel);
-        Assert.Equal(750, created.Order.PriceCents);
-        Assert.False(created.Order.IsPickup);
-        var orderId = created.Order.Id;
+        Assert.Equal("Döner Kalb", created!.ProductLabel);
+        Assert.Equal(750, created.PriceCents);
+        Assert.False(created.IsPickup);
+        var orderId = created.Id;
 
         // Second PUT edits the same order — the unique (day,user) index holds, no duplicate row.
         var edit = await auth.PutJsonAsync(
@@ -72,10 +72,10 @@ public sealed class PutMyOrderTests : DoenerControlTestBase
         Assert.Equal(HttpStatusCode.OK, edit.StatusCode);
         var edited = await ReadOrder(edit);
         Assert.NotNull(edited);
-        Assert.Equal(orderId, edited!.Order.Id);
-        Assert.Equal("Dürüm Hähnchen", edited.Order.ProductLabel);
-        Assert.Equal(800, edited.Order.PriceCents);
-        Assert.True(edited.Order.IsPickup);
+        Assert.Equal(orderId, edited!.Id);
+        Assert.Equal("Dürüm Hähnchen", edited.ProductLabel);
+        Assert.Equal(800, edited.PriceCents);
+        Assert.True(edited.IsPickup);
 
         using (var scope = App.Services.CreateScope())
         {
@@ -121,8 +121,8 @@ public sealed class PutMyOrderTests : DoenerControlTestBase
             IsPickup = false,
         };
 
-    private async Task<PutMyOrderResponse?> ReadOrder(HttpResponseMessage response) =>
-        await response.Content.ReadFromJsonAsync<PutMyOrderResponse>(
+    private async Task<OrderDetailsDto?> ReadOrder(HttpResponseMessage response) =>
+        await response.Content.ReadFromJsonAsync<OrderDetailsDto>(
             TestContext.Current.CancellationToken
         );
 

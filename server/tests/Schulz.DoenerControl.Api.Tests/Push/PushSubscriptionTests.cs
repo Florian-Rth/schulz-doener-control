@@ -32,17 +32,23 @@ public sealed class PushSubscriptionTests : TestBase<PushTestApp>
     {
         var auth = await LoginAsChefAsync();
 
+        // The W3C PushSubscription.toJSON() wire shape: keys nested under `keys`.
         var response = await auth.PostJsonAsync(
             SubscriptionsUrl,
             new
             {
                 Endpoint = "https://push.example.com/chef-device",
-                P256dh = "chef-p256dh-key",
-                Auth = "chef-auth-secret",
+                ExpirationTime = (long?)null,
+                Keys = new { P256dh = "chef-p256dh-key", Auth = "chef-auth-secret" },
             }
         );
 
-        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var echoed = await response.Content.ReadFromJsonAsync<PostSubscriptionResponseBody>(
+            TestContext.Current.CancellationToken
+        );
+        Assert.NotNull(echoed);
+        Assert.Equal("https://push.example.com/chef-device", echoed!.Endpoint);
 
         var chefId = await ResolveUserIdAsync("m.wagner");
         using var scope = app.Services.CreateScope();
@@ -110,12 +116,15 @@ public sealed class PushSubscriptionTests : TestBase<PushTestApp>
             new
             {
                 Endpoint = endpoint,
-                P256dh = "chef-p256dh-key",
-                Auth = "chef-auth-secret",
+                ExpirationTime = (long?)null,
+                Keys = new { P256dh = "chef-p256dh-key", Auth = "chef-auth-secret" },
             }
         );
 
-        var response = await auth.DeleteJsonAsync(SubscriptionsUrl, new { Endpoint = endpoint });
+        // The FE sends the endpoint as a ?endpoint=... query param (bound via [QueryParam]).
+        var response = await auth.DeleteAsync(
+            $"{SubscriptionsUrl}?endpoint={Uri.EscapeDataString(endpoint)}"
+        );
 
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
 
@@ -185,4 +194,6 @@ public sealed class PushSubscriptionTests : TestBase<PushTestApp>
     private sealed record OpenDayResponseBody(OpenDayDayBody Day, int NotifiedColleagueCount);
 
     private sealed record OpenDayDayBody(string Synonym);
+
+    private sealed record PostSubscriptionResponseBody(string Endpoint);
 }

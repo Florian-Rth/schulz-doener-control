@@ -47,12 +47,19 @@ export const MyOrderSchema = z.object({
   order: OrderDetailsSchema.nullable(),
 });
 
-// GET /api/order-days/today — the order screen only needs the open-day id and
-// whether the caller can still order; the dashboard owns the rich shape.
+// GET /api/order-days/today — the backend returns { isOpen, day: OrderDayDetailsDto | null }
+// (PLAN #8 — the day is nested, null when no day is open). The order screen only needs the
+// open-day id and whether the caller can still order, so we model just those off the nested
+// `day`; the dashboard owns the rich shape. Extra OrderDayDetailsDto fields on the wire are
+// ignored by this object schema.
+export const TodayOrderDayDetailsSchema = z.object({
+  id: z.string(),
+  iCanStillOrder: z.boolean(),
+});
+
 export const TodayOrderDaySchema = z.object({
   isOpen: z.boolean(),
-  id: z.string().nullable(),
-  iCanStillOrder: z.boolean(),
+  day: TodayOrderDayDetailsSchema.nullable(),
 });
 
 // --- Form schema (RHF + zodResolver) ---

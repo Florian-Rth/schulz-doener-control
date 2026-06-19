@@ -28,7 +28,7 @@ public sealed class GetMyTier : EndpointWithoutRequest<GetMyTierResponse>
 
     public override void Configure()
     {
-        Get("/api/tier/mine");
+        Get("/api/tiere/mine");
     }
 
     public override async Task HandleAsync(CancellationToken ct)

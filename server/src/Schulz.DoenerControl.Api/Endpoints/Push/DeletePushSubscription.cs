@@ -7,6 +7,9 @@ namespace Schulz.DoenerControl.Api.Endpoints.Push;
 
 public sealed class DeletePushSubscriptionRequest
 {
+    // The FE sends the endpoint as ?endpoint=... ; FastEndpoints binds DELETE query params when the
+    // property is annotated, so the NotEmpty validator below sees the real value.
+    [QueryParam]
     public string Endpoint { get; set; } = string.Empty;
 }
 

@@ -89,13 +89,14 @@ export const OrderFormProvider: FC = () => {
   }
 
   const today = todayQuery.data;
-  if (today === undefined || !today.isOpen || today.id === null) {
+  const day = today?.day ?? null;
+  if (today === undefined || !today.isOpen || day === null) {
     return <OrderMessage message={orderCopy.noOpenDay} showBack />;
   }
 
-  if (!today.iCanStillOrder) {
+  if (!day.iCanStillOrder) {
     return <OrderMessage message={orderCopy.cutoffPassed} showBack />;
   }
 
-  return <OrderFormReady dayId={today.id} menu={menuQuery.data} />;
+  return <OrderFormReady dayId={day.id} menu={menuQuery.data} />;
 };

@@ -76,15 +76,15 @@ public sealed class PutMyOrderValidationTests : DoenerControlTestBase
                 IsPickup = false,
             }
         );
-        var body = await response.Content.ReadFromJsonAsync<PutMyOrderResponse>(
+        var body = await response.Content.ReadFromJsonAsync<OrderDetailsDto>(
             TestContext.Current.CancellationToken
         );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.NotNull(body);
-        Assert.Equal("pizza", body!.Order.Kind);
-        Assert.Equal("Pizza Salami", body.Order.ProductLabel);
-        Assert.Null(body.Order.Meat);
-        Assert.Empty(body.Order.Sauces);
+        Assert.Equal("pizza", body!.Kind);
+        Assert.Equal("Pizza Salami", body.ProductLabel);
+        Assert.Null(body.Meat);
+        Assert.Empty(body.Sauces);
     }
 }

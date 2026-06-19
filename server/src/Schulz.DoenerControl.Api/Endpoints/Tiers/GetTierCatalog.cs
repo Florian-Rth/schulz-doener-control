@@ -12,11 +12,12 @@ public sealed record TierCatalogEntrySummaryDto(
     bool IsMine
 );
 
-public sealed record GetTierCatalogResponse(IReadOnlyList<TierCatalogEntrySummaryDto> Tiers);
-
 // The full 15-Tier catalogue in priority order (PLAN F13), with the caller's own derived tier
-// flagged via IsMine so the catalogue screen can badge it. Authenticated.
-public sealed class GetTierCatalog : EndpointWithoutRequest<GetTierCatalogResponse>
+// flagged via IsMine so the catalogue screen can badge it. Returned as a bare array (PLAN #24 — the
+// FE TierCatalogSchema is a z.array), so the response IS the list, with no wrapper object.
+// Authenticated.
+public sealed class GetTierCatalog
+    : EndpointWithoutRequest<IReadOnlyList<TierCatalogEntrySummaryDto>>
 {
     private readonly ITierService tierService;
     private readonly ICurrentUser currentUser;
@@ -29,7 +30,7 @@ public sealed class GetTierCatalog : EndpointWithoutRequest<GetTierCatalogRespon
 
     public override void Configure()
     {
-        Get("/api/tier/catalog");
+        Get("/api/tiere");
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -50,8 +51,9 @@ public sealed class GetTierCatalog : EndpointWithoutRequest<GetTierCatalogRespon
         await Send.OkAsync(MapToResponse(result.Value), cancellation: ct);
     }
 
-    private static GetTierCatalogResponse MapToResponse(TierCatalogDetails details) =>
-        new(details.Entries.Select(MapEntry).ToList());
+    private static IReadOnlyList<TierCatalogEntrySummaryDto> MapToResponse(
+        TierCatalogDetails details
+    ) => details.Entries.Select(MapEntry).ToList();
 
     private static TierCatalogEntrySummaryDto MapEntry(TierCatalogEntryDetails entry) =>
         new(entry.Tier.Emoji, entry.Tier.Name, entry.Tier.Tagline, entry.Tier.Tags, entry.IsMine);

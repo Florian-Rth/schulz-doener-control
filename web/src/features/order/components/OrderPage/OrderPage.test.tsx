@@ -70,7 +70,7 @@ const useOrderHandlers = ({ onSubmit }: OrderHandlerOptions = {}): void => {
     http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
     http.get("*/api/menu", () => HttpResponse.json(menuResponse)),
     http.get("*/api/order-days/today", () =>
-      HttpResponse.json({ isOpen: true, id: DAY_ID, iCanStillOrder: true }),
+      HttpResponse.json({ isOpen: true, day: { id: DAY_ID, iCanStillOrder: true } }),
     ),
     http.get("*/api/order-days/:dayId/orders/mine", () =>
       HttpResponse.json({ hasOrder: false, order: null }),

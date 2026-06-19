@@ -27,8 +27,6 @@ public sealed class PutMyOrderRequest
     public bool IsPickup { get; set; }
 }
 
-public sealed record PutMyOrderResponse(OrderDetailsDto Order);
-
 public sealed class PutMyOrderRequestValidator : Validator<PutMyOrderRequest>
 {
     private static readonly string[] MeatNames =
@@ -98,8 +96,9 @@ public sealed class PutMyOrderRequestValidator : Validator<PutMyOrderRequest>
 }
 
 // Idempotent upsert of the caller's order for a day (add OR edit, one row per user per day), only
-// while the day is open and before cutoff. Authenticated.
-public sealed class PutMyOrder : Endpoint<PutMyOrderRequest, PutMyOrderResponse>
+// while the day is open and before cutoff. Returns the bare OrderDetailsDto (PLAN #12 — no wrapper)
+// so the FE can OrderDetailsSchema.parse the body directly. Authenticated.
+public sealed class PutMyOrder : Endpoint<PutMyOrderRequest, OrderDetailsDto>
 {
     private readonly IOrderService orderService;
     private readonly ICurrentUser currentUser;
@@ -142,10 +141,7 @@ public sealed class PutMyOrder : Endpoint<PutMyOrderRequest, PutMyOrderResponse>
             return;
         }
 
-        await Send.OkAsync(
-            new PutMyOrderResponse(OrderDetailsMapper.ToDto(result.Value)),
-            cancellation: ct
-        );
+        await Send.OkAsync(OrderDetailsMapper.ToDto(result.Value), cancellation: ct);
     }
 
     private async Task SendFailureAsync(ResultStatus status, CancellationToken ct)
