@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AdminPlaceholderPage } from "@/features/admin";
+import { AdminUsersPage } from "@/features/admin";
 
-// STUB child route — the real user-administration screen ships in C2. Present
-// now only so the hub link is live and the route tree is typed.
+// The user-administration screen at /admin/benutzer. Role gating (Admin only) is
+// handled by the parent `_auth/admin` layout route.
 export const Route = createFileRoute("/_auth/admin/benutzer")({
-  component: () => <AdminPlaceholderPage title="Benutzer" />,
+  component: AdminUsersPage,
 });
