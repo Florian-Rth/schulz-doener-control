@@ -4,6 +4,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Schulz.DoenerControl.Api.Endpoints.Debts;
 using Schulz.DoenerControl.Api.Endpoints.OrderDays;
 using Schulz.DoenerControl.Api.Tests.Auth;
+using Schulz.DoenerControl.Core.Entities;
+using Schulz.DoenerControl.Core.Enums;
 using Schulz.DoenerControl.Infrastructure.Persistence;
 using Xunit;
 
@@ -46,6 +48,19 @@ internal static class DebtTestHelpers
 
         var auth = new AuthTestClient(app.CreateClient());
         await auth.PostJsonAsync(LoginUrl, new { Username = username, Password = newPassword });
+        return auth;
+    }
+
+    // Logs in a user that was seeded with a known password and MustChangePassword=false (via
+    // SeedUserAsync), straight through the production login path — no forced-change dance.
+    public static async Task<AuthTestClient> LoginAsync(
+        DoenerControlApp app,
+        string username,
+        string password
+    )
+    {
+        var auth = new AuthTestClient(app.CreateClient());
+        await auth.PostJsonAsync(LoginUrl, new { Username = username, Password = password });
         return auth;
     }
 
@@ -118,6 +133,39 @@ internal static class DebtTestHelpers
             .Users.Where(user => user.NormalizedUserName == username)
             .Select(user => user.Id)
             .SingleAsync(TestContext.Current.CancellationToken);
+    }
+
+    // Writes one ad-hoc debt straight to the database with full control over the parties, status and
+    // settled instant. Lets the history tests stage several settled payments with distinct SettledAt
+    // values without burning the single OrderDay the unique Date index allows per fixture.
+    public static async Task<Guid> SeedDebtAsync(
+        DoenerControlApp app,
+        Guid debtorUserId,
+        Guid creditorUserId,
+        int amountCents,
+        string reason,
+        PaymentStatus status,
+        DateTimeOffset? settledAt
+    )
+    {
+        using var scope = app.Services.CreateScope();
+        var database = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var debt = new Debt
+        {
+            Id = Guid.NewGuid(),
+            DebtorUserId = debtorUserId,
+            CreditorUserId = creditorUserId,
+            OrderId = null,
+            OrderDayId = null,
+            AmountCents = amountCents,
+            Reason = reason,
+            Status = status,
+            CreatedAt = DateTimeOffset.UnixEpoch,
+            SettledAt = settledAt,
+        };
+        database.Debts.Add(debt);
+        await database.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return debt.Id;
     }
 
     // Opens today's day, has the chef pick up (collector) and Lukas order as a non-pickup payer,

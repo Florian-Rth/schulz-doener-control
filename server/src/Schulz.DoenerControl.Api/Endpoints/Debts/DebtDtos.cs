@@ -26,6 +26,19 @@ public sealed record DebtDetailsDto(
     string Reason
 );
 
+// Endpoint-layer projection of one settled payment in the caller's history. PersonName/Initials/
+// AvatarColorHex describe the creditor (the colleague the caller paid). Mapped from the Application
+// DebtHistorySummary so the service type never leaks.
+public sealed record DebtHistoryDto(
+    string PersonName,
+    string Initials,
+    string AvatarColorHex,
+    int AmountCents,
+    string AmountLabel,
+    DateTimeOffset SettledAt,
+    string Reason
+);
+
 public static class DebtMapper
 {
     public static DebtSummaryDto ToRowDto(DebtSummary summary) =>
@@ -44,4 +57,15 @@ public static class DebtMapper
 
     public static DebtDetailsDto ToDetailsDto(DebtDetails details) =>
         new(details.Id, details.Status, details.SettledAt, details.AmountCents, details.Reason);
+
+    public static DebtHistoryDto ToHistoryDto(DebtHistorySummary summary) =>
+        new(
+            summary.PersonName,
+            summary.Initials,
+            summary.AvatarColorHex,
+            summary.AmountCents,
+            summary.AmountLabel,
+            summary.SettledAt,
+            summary.Reason
+        );
 }

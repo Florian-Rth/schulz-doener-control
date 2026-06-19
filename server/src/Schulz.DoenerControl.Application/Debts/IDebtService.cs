@@ -10,6 +10,14 @@ public interface IDebtService
     // What is owed to the caller (caller = creditor). Only Status=Open. Rows describe the debtor.
     Task<Result<DebtLedgerDetails>> GetForCreditorAsync(Guid callerId, CancellationToken ct);
 
+    // The caller's recent payments (caller = debtor). Only Status=Settled, newest-settled first,
+    // capped at the last `take`. Rows describe the creditor (the colleague the caller paid).
+    Task<Result<IReadOnlyList<DebtHistorySummary>>> GetSettledForDebtorAsync(
+        Guid callerId,
+        int take,
+        CancellationToken ct
+    );
+
     Task<Result<DebtDetails>> SettleAsync(SettleDebtCommand command, CancellationToken ct);
 
     Task<Result<DebtDetails>> CreateAdHocAsync(

@@ -42,6 +42,30 @@ public sealed class DebtService : IDebtService
         return Result<DebtLedgerDetails>.Success(BuildLedger(rows));
     }
 
+    public async Task<Result<IReadOnlyList<DebtHistorySummary>>> GetSettledForDebtorAsync(
+        Guid callerId,
+        int take,
+        CancellationToken ct
+    )
+    {
+        // SQLite cannot ORDER BY a DateTimeOffset, so load the caller's settled debts then order and
+        // cap in memory (newest-settled first). Rows describe the creditor — the colleague paid.
+        var settled = await database
+            .Debts.AsNoTracking()
+            .Include(debt => debt.CreditorUser)
+            .Where(debt => debt.Status == PaymentStatus.Settled)
+            .Where(debt => debt.DebtorUserId == callerId)
+            .ToListAsync(ct);
+
+        var rows = settled
+            .OrderByDescending(debt => debt.SettledAt)
+            .Take(take)
+            .Select(debt => MapHistoryRow(debt, debt.CreditorUser))
+            .ToList();
+
+        return Result<IReadOnlyList<DebtHistorySummary>>.Success(rows);
+    }
+
     public async Task<Result<DebtDetails>> SettleAsync(
         SettleDebtCommand command,
         CancellationToken ct
@@ -139,6 +163,21 @@ public sealed class DebtService : IDebtService
             MoneyFormatter.ToGermanString(debt.AmountCents),
             PayPalLinkBuilder.BuildLink(handle, debt.AmountCents),
             debt.CreatedAt
+        );
+    }
+
+    private static DebtHistorySummary MapHistoryRow(Debt debt, User? creditor)
+    {
+        var name = creditor?.DisplayName ?? string.Empty;
+
+        return new DebtHistorySummary(
+            name,
+            NameFormatter.InitialsOf(name),
+            creditor?.AvatarColorHex ?? string.Empty,
+            debt.AmountCents,
+            MoneyFormatter.ToGermanString(debt.AmountCents),
+            debt.SettledAt ?? debt.CreatedAt,
+            debt.Reason
         );
     }
 
