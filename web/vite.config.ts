@@ -30,6 +30,21 @@ export default defineConfig({
       "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
   },
+  optimizeDeps: {
+    // Pre-bundle these at startup so the dep optimizer does not discover them
+    // mid-session and re-optimize — which changes the hashed chunk filenames
+    // out from under an in-flight page load and throws
+    // "file does not exist in optimize deps directory".
+    // react/compiler-runtime is injected by the React Compiler Babel plugin,
+    // so Vite only sees it after transforming the first component.
+    include: [
+      "react/compiler-runtime",
+      "@emotion/react",
+      "@emotion/styled",
+      "@mui/material",
+      "@mui/material/styles",
+    ],
+  },
   test: {
     environment: "jsdom",
     globals: true,
