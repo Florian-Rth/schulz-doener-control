@@ -24,14 +24,16 @@ const OrderFormReady: FC<ReadyProps> = ({ dayId, menu }) => {
   const value: OrderFormContextValue = {
     form: form.form,
     menu,
-    kind: form.kind,
-    meatVisible: form.meatVisible,
-    pizzaVisible: form.pizzaVisible,
+    fields: form.fields,
+    addLine: form.addLine,
+    removeLine: form.removeLine,
+    canAddLine: form.canAddLine,
+    selectProduct: form.selectProduct,
+    orderTotalCents: form.orderTotalCents,
     submitDisabled: form.submitDisabled,
     isSubmitting: form.isSubmitting,
     serverError: form.serverError,
     onSubmit: form.onSubmit,
-    selectProduct: form.selectProduct,
   };
 
   return (

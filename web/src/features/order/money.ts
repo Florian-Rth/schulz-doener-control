@@ -7,6 +7,12 @@ export const centsToInput = (cents: number): string => {
   return euros.toFixed(2).replace(".", ",");
 };
 
+// Cents (e.g. 1500) -> a German display label with the euro sign ("15,00 €").
+export const centsToLabel = (cents: number): string => {
+  const euros = cents / 100;
+  return `${euros.toFixed(2).replace(".", ",")} €`;
+};
+
 // A user-typed price string ("8,50" / "8.5" / "9") -> integer cents. Returns
 // null when the input cannot be parsed as a non-negative number.
 export const inputToCents = (raw: string): number | null => {

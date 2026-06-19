@@ -51,12 +51,15 @@ interface SubmitOrderArgs {
 
 const submitOrder = async ({ dayId, values }: SubmitOrderArgs): Promise<OrderDetails> => {
   const body = {
-    productId: values.productId,
-    meat: values.meat,
-    pizzaVariant: values.pizzaVariant,
-    sauces: values.sauces,
-    priceCents: values.priceCents,
-    extra: values.extra ?? null,
+    lines: values.lines.map((line) => ({
+      productId: line.productId,
+      meat: line.meat,
+      pizzaVariant: line.pizzaVariant,
+      sauces: line.sauces,
+      priceCents: line.priceCents,
+      extra: line.extra ?? null,
+      quantity: line.quantity,
+    })),
     isPickup: values.isPickup,
   };
   const data = await apiClient.put(`/api/order-days/${dayId}/orders/mine`, body);

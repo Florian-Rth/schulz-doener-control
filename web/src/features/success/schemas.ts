@@ -8,13 +8,23 @@ const AbholerSchema = z.object({
   payPalHandle: z.string().nullable(),
 });
 
-// GET /api/orders/{id}/result — the server-driven success view. Money is in
-// integer cents; `myPayPalUrl` is the prefilled paypal.me link (null when the
-// abholer has no handle → the button renders disabled).
-export const OrderResultSchema = z.object({
+// One line of the ordered result. priceCents is per unit; lineTotalCents is the
+// per-line total. The labels already include the euro sign — render as-is.
+const OrderResultLineSchema = z.object({
   productLabel: z.string(),
-  priceCents: z.number().int(),
   detail: z.string(),
+  quantity: z.number().int(),
+  priceCents: z.number().int(),
+  lineTotalCents: z.number().int(),
+});
+
+// GET /api/orders/{id}/result — the server-driven success view. Money is in
+// integer cents; `priceCents` is the ORDER TOTAL across all lines. `myPayPalUrl`
+// is the prefilled paypal.me link (null when the abholer has no handle → the
+// button renders disabled).
+export const OrderResultSchema = z.object({
+  lines: z.array(OrderResultLineSchema),
+  priceCents: z.number().int(),
   isPickup: z.boolean(),
   abholer: AbholerSchema.nullable(),
   collectCents: z.number().int(),

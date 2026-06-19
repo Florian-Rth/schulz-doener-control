@@ -3,18 +3,20 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { type FC, useState } from "react";
+import { useWatch } from "react-hook-form";
 import { orderCopy } from "../../../copy";
 import { centsToInput, inputToCents } from "../../../money";
-import { useOrderFormContext } from "../../../order-context";
+import { useOrderFormContext, useOrderLineContext } from "../../../order-context";
 import { SectionLabel } from "./SectionLabel";
 
-// Money input that displays a German "8,50" string while writing parsed integer
-// cents into the RHF `priceCents` field. When the cents value changes from the
-// outside (e.g. picking a product seeds its default price) the display string
+// Per-line money input that displays a German "8,50" string while writing parsed
+// integer cents into this line's `priceCents`. When the cents value changes from
+// the outside (picking a product seeds its default price) the display string
 // resyncs via a render-phase update — no useEffect, no commit-phase flicker.
 export const PriceField: FC = () => {
   const { form } = useOrderFormContext();
-  const cents = form.watch("priceCents");
+  const { index } = useOrderLineContext();
+  const cents = useWatch({ control: form.control, name: `lines.${index}.priceCents` });
 
   const [display, setDisplay] = useState<string>(() => centsToInput(cents));
   const [lastCents, setLastCents] = useState<number>(cents);
@@ -35,7 +37,7 @@ export const PriceField: FC = () => {
           setDisplay(raw);
           const parsed = inputToCents(raw);
           if (parsed !== null) {
-            form.setValue("priceCents", parsed, { shouldValidate: true });
+            form.setValue(`lines.${index}.priceCents`, parsed, { shouldValidate: true });
           }
         }}
         slotProps={{

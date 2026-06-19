@@ -1,13 +1,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { ApiError } from "@/lib/api";
 import { useSubmitOrder } from "../api";
 import { orderCopy } from "../copy";
+import { blankLine } from "../order-context";
 import { OrderFormSchema } from "../schemas";
-import type { Menu, MyOrder, OrderForm, ProductKind } from "../types";
-import { useOrderConfig } from "./use-order-config";
+import type { Menu, MyOrder, OrderForm, OrderLineForm } from "../types";
 
 interface UseOrderFormArgs {
   dayId: string;
@@ -17,45 +17,42 @@ interface UseOrderFormArgs {
 
 interface UseOrderFormResult {
   form: ReturnType<typeof useForm<OrderForm>>;
-  kind: ProductKind | null;
-  meatVisible: boolean;
-  pizzaVisible: boolean;
+  fields: ReturnType<typeof useFieldArray<OrderForm, "lines", "key">>["fields"];
+  addLine: () => void;
+  removeLine: (index: number) => void;
+  canAddLine: boolean;
+  selectProduct: (index: number, productId: string) => void;
+  orderTotalCents: number;
   submitDisabled: boolean;
   isSubmitting: boolean;
   serverError: string | null;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
-  selectProduct: (productId: string) => void;
 }
+
+const MAX_LINES = 20;
 
 const buildDefaults = (existing: MyOrder | undefined): OrderForm => {
   const order = existing?.order ?? null;
-  if (order === null) {
-    return {
-      productId: "",
-      kind: "doener",
-      meat: null,
-      pizzaVariant: null,
-      sauces: [],
-      extra: "",
-      priceCents: 1,
-      isPickup: false,
-    };
+  if (order === null || order.lines.length === 0) {
+    return { lines: [blankLine()], isPickup: order?.isPickup ?? false };
   }
-  return {
-    productId: order.productId,
-    kind: order.kind,
-    meat: order.meat,
-    pizzaVariant: order.pizzaVariant,
-    sauces: order.sauces,
-    extra: order.extra ?? "",
-    priceCents: order.priceCents,
-    isPickup: order.isPickup,
-  };
+  const lines: OrderLineForm[] = order.lines.map((line) => ({
+    productId: line.productId,
+    kind: line.kind,
+    meat: line.meat,
+    pizzaVariant: line.pizzaVariant,
+    sauces: line.sauces,
+    extra: line.extra ?? "",
+    priceCents: line.priceCents,
+    quantity: line.quantity,
+  }));
+  return { lines, isPickup: order.isPickup };
 };
 
-// Logic layer for the order screen: RHF + Zod resolver, defaults seeded from the
-// menu + any existing order, the kind-derived conditional visibility, and the
-// upsert submit that routes to the success screen on the returned order id.
+// Logic layer for the order screen: RHF + Zod resolver over a LIST of lines
+// (useFieldArray), defaults seeded from any existing order, per-line product
+// auto-fill, a running order total, and the upsert submit that routes to the
+// success screen on the returned order id.
 export const useOrderForm = ({ dayId, menu, existing }: UseOrderFormArgs): UseOrderFormResult => {
   const navigate = useNavigate();
   const submitMutation = useSubmitOrder();
@@ -66,25 +63,51 @@ export const useOrderForm = ({ dayId, menu, existing }: UseOrderFormArgs): UseOr
     defaultValues: buildDefaults(existing),
   });
 
-  const productId = form.watch("productId");
-  const kind = form.watch("kind");
-  const config = useOrderConfig(productId === "" ? null : kind);
+  const fieldArray = useFieldArray<OrderForm, "lines", "key">({
+    control: form.control,
+    name: "lines",
+    keyName: "key",
+  });
 
-  const selectProduct = (nextProductId: string): void => {
+  // useWatch (not form.watch) so the running total + submit-gate recompute under
+  // the React Compiler, which would otherwise not re-render on form.watch().
+  const lines = useWatch({ control: form.control, name: "lines" });
+
+  const selectProduct = (index: number, nextProductId: string): void => {
     const item = menu.items.find((entry) => entry.id === nextProductId);
     if (item === undefined) {
       return;
     }
-    form.setValue("productId", item.id, { shouldValidate: true });
-    form.setValue("kind", item.kind, { shouldValidate: true });
-    form.setValue("priceCents", item.defaultPriceCents, { shouldValidate: true });
+    form.setValue(`lines.${index}.productId`, item.id, { shouldValidate: true });
+    form.setValue(`lines.${index}.kind`, item.kind, { shouldValidate: true });
+    form.setValue(`lines.${index}.priceCents`, item.defaultPriceCents, { shouldValidate: true });
     if (item.kind === "pizza") {
-      form.setValue("meat", null, { shouldValidate: true });
-      form.setValue("sauces", [], { shouldValidate: true });
+      form.setValue(`lines.${index}.meat`, null, { shouldValidate: true });
+      form.setValue(`lines.${index}.sauces`, [], { shouldValidate: true });
     } else {
-      form.setValue("pizzaVariant", null, { shouldValidate: true });
+      form.setValue(`lines.${index}.pizzaVariant`, null, { shouldValidate: true });
     }
   };
+
+  const addLine = (): void => {
+    if (fieldArray.fields.length >= MAX_LINES) {
+      return;
+    }
+    fieldArray.append(blankLine());
+  };
+
+  const removeLine = (index: number): void => {
+    if (fieldArray.fields.length <= 1) {
+      return;
+    }
+    fieldArray.remove(index);
+  };
+
+  const orderTotalCents = lines.reduce(
+    (sum, line) => sum + (line.priceCents ?? 0) * (line.quantity ?? 0),
+    0,
+  );
+  const submitDisabled = lines.some((line) => line.productId === "");
 
   const onSubmit = form.handleSubmit(async (values) => {
     setServerError(null);
@@ -102,13 +125,15 @@ export const useOrderForm = ({ dayId, menu, existing }: UseOrderFormArgs): UseOr
 
   return {
     form,
-    kind: config.kind,
-    meatVisible: config.meatVisible,
-    pizzaVisible: config.pizzaVisible,
-    submitDisabled: productId === "",
+    fields: fieldArray.fields,
+    addLine,
+    removeLine,
+    canAddLine: fieldArray.fields.length < MAX_LINES,
+    selectProduct,
+    orderTotalCents,
+    submitDisabled,
     isSubmitting: submitMutation.isPending,
     serverError,
     onSubmit,
-    selectProduct,
   };
 };

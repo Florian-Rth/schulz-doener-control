@@ -19,9 +19,23 @@ const authenticatedSession = {
 const ORDER_ID = "99999999-9999-9999-9999-999999999999";
 
 const owesResult: OrderResult = {
-  productLabel: "Dürüm Kalb",
-  priceCents: 800,
-  detail: "Scharf, ohne Zwiebeln",
+  lines: [
+    {
+      productLabel: "Dürüm Kalb",
+      detail: "Scharf, ohne Zwiebeln",
+      quantity: 1,
+      priceCents: 800,
+      lineTotalCents: 800,
+    },
+    {
+      productLabel: "Pizza Margherita",
+      detail: "",
+      quantity: 2,
+      priceCents: 900,
+      lineTotalCents: 1800,
+    },
+  ],
+  priceCents: 2600,
   isPickup: false,
   abholer: {
     name: "Lukas Brandt",
@@ -31,13 +45,20 @@ const owesResult: OrderResult = {
   },
   collectCents: 0,
   collectCount: 0,
-  myPayPalUrl: "https://paypal.me/LukasBrandtHB/8.00EUR",
+  myPayPalUrl: "https://paypal.me/LukasBrandtHB/26.00EUR",
 };
 
 const pickupResult: OrderResult = {
-  productLabel: "Döner Hähnchen",
+  lines: [
+    {
+      productLabel: "Döner Hähnchen",
+      detail: "Mit allem",
+      quantity: 1,
+      priceCents: 750,
+      lineTotalCents: 750,
+    },
+  ],
   priceCents: 750,
-  detail: "Mit allem",
   isPickup: true,
   abholer: null,
   collectCents: 1550,
@@ -60,10 +81,12 @@ describe("SuccessPage", () => {
     });
 
     expect(await findByText("Erledigt, Chef")).toBeInTheDocument();
+    // Both ordered lines render, the second prefixed with its quantity.
     expect(await findByText("Dürüm Kalb")).toBeInTheDocument();
+    expect(await findByText("2× Pizza Margherita")).toBeInTheDocument();
 
     const payLink = await findByRole("link", { name: /per PayPal senden/ });
-    expect(payLink).toHaveAttribute("href", "https://paypal.me/LukasBrandtHB/8.00EUR");
+    expect(payLink).toHaveAttribute("href", "https://paypal.me/LukasBrandtHB/26.00EUR");
     expect(payLink).toHaveAttribute("target", "_blank");
     expect(await findByText("Lukas Brandt")).toBeInTheDocument();
   });

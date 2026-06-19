@@ -81,17 +81,26 @@ const useOrderHandlers = ({ onSubmit }: OrderHandlerOptions = {}): void => {
       return HttpResponse.json({
         id: "99999999-9999-9999-9999-999999999999",
         orderDayId: DAY_ID,
-        productId: "doener",
-        productLabel: "Döner Kalb",
-        kind: "doener",
-        meat: "Kalb",
-        pizzaVariant: null,
-        sauces: ["Knoblauch", "Scharf"],
+        lines: [
+          {
+            productId: "doener",
+            productLabel: "Döner Kalb",
+            kind: "doener",
+            meat: "Kalb",
+            pizzaVariant: null,
+            sauces: ["Knoblauch", "Scharf"],
+            priceCents: 750,
+            priceLabel: "7,50 €",
+            extra: null,
+            quantity: 1,
+            lineTotalCents: 750,
+            lineTotalLabel: "7,50 €",
+            detail: "Knoblauch, Scharf",
+          },
+        ],
         priceCents: 750,
         priceLabel: "7,50 €",
-        extra: null,
         isPickup: false,
-        detail: "Knoblauch, Scharf",
       });
     }),
   );
@@ -145,7 +154,80 @@ describe("OrderPage", () => {
     expect(queryByRole("button", { name: "Hähnchen" })).not.toBeInTheDocument();
   });
 
-  it("sendet die Soßen-Mehrfachauswahl im PUT-Payload und navigiert zur Erfolgsseite", async () => {
+  it("füllt beim Produktwählen den Zeilenpreis automatisch und aktualisiert den Gesamtbetrag", async () => {
+    useOrderHandlers();
+    const user = userEvent.setup();
+    const { findByRole, findByLabelText, findAllByText } = renderApp({ initialPath: "/order" });
+
+    // Picking the Pizza (9,00 €) seeds that line's price field from the default.
+    await user.click(await findByRole("button", { name: /^Pizza/ }));
+    const price = await findByLabelText("Preis");
+    expect(price).toHaveValue("9,00");
+    // Line total + order total both reflect the auto-filled price.
+    expect((await findAllByText("9,00 €")).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("erhöht mit dem Mengen-Stepper Zeilen- und Gesamtbetrag", async () => {
+    useOrderHandlers();
+    const user = userEvent.setup();
+    const { findByRole, findByLabelText, findAllByText } = renderApp({ initialPath: "/order" });
+
+    await user.click(await findByRole("button", { name: /^Pizza/ }));
+    expect(await findByLabelText("Menge")).toHaveTextContent("1");
+
+    await user.click(await findByRole("button", { name: "Menge erhöhen" }));
+    expect(await findByLabelText("Menge")).toHaveTextContent("2");
+    // 2 × 9,00 € → 18,00 € shown for the line total and the order total.
+    expect((await findAllByText("18,00 €")).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("fügt eine weitere Position hinzu und entfernt sie wieder", async () => {
+    useOrderHandlers();
+    const user = userEvent.setup();
+    const { findByRole, findByText, findAllByText, queryByText, queryAllByText } = renderApp({
+      initialPath: "/order",
+    });
+
+    expect(await findByText("Position 1")).toBeInTheDocument();
+    expect(queryByText("Position 2")).not.toBeInTheDocument();
+
+    await user.click(await findByRole("button", { name: /weitere Position/ }));
+    expect(await findByText("Position 2")).toBeInTheDocument();
+
+    // Each of the two lines now carries its own remove control; remove the second.
+    const removeButtons = await findAllByText("Position entfernen");
+    expect(removeButtons).toHaveLength(2);
+    await user.click(removeButtons[1]);
+    await waitFor(() => {
+      expect(queryByText("Position 2")).not.toBeInTheDocument();
+    });
+    // Back to a single line → the lone line's remove control disappears.
+    expect(queryAllByText("Position entfernen")).toHaveLength(0);
+  });
+
+  it("blockiert den Submit, wenn bei Pizza keine Sorte gewählt ist", async () => {
+    seedXsrfCookie();
+    let captured: unknown = null;
+    useOrderHandlers({
+      onSubmit: (body) => {
+        captured = body;
+      },
+    });
+    const user = userEvent.setup();
+    const { findByRole, router } = renderApp({ initialPath: "/order" });
+
+    // Pizza picked but no variant chosen → per-line superRefine blocks submit.
+    await user.click(await findByRole("button", { name: /^Pizza/ }));
+    await user.click(await findByRole("button", { name: /Bestellung abgeben/ }));
+
+    // The per-line pizza validation prevents the PUT and any navigation.
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/order");
+    });
+    expect(captured).toBeNull();
+  });
+
+  it("sendet lines[] mit Menge im PUT-Payload und navigiert zur Erfolgsseite", async () => {
     seedXsrfCookie();
     let captured: unknown = null;
     useOrderHandlers({
@@ -160,6 +242,7 @@ describe("OrderPage", () => {
     await user.click(await findByRole("button", { name: "Kalb" }));
     await user.click(await findByRole("button", { name: /Knoblauch/ }));
     await user.click(await findByRole("button", { name: /Scharf/ }));
+    await user.click(await findByRole("button", { name: "Menge erhöhen" }));
     await user.click(await findByRole("button", { name: /Bestellung abgeben/ }));
 
     await waitFor(() => {
@@ -169,9 +252,14 @@ describe("OrderPage", () => {
       orderId: "99999999-9999-9999-9999-999999999999",
     });
 
-    const body = captured as { sauces: string[]; meat: string; priceCents: number };
-    expect(body.sauces).toEqual(["Knoblauch", "Scharf"]);
-    expect(body.meat).toBe("Kalb");
-    expect(body.priceCents).toBe(750);
+    const body = captured as {
+      isPickup: boolean;
+      lines: { sauces: string[]; meat: string; priceCents: number; quantity: number }[];
+    };
+    expect(body.lines).toHaveLength(1);
+    expect(body.lines[0].sauces).toEqual(["Knoblauch", "Scharf"]);
+    expect(body.lines[0].meat).toBe("Kalb");
+    expect(body.lines[0].priceCents).toBe(750);
+    expect(body.lines[0].quantity).toBe(2);
   });
 });

@@ -2,6 +2,7 @@
 export const successCopy = {
   title: "Erledigt, Chef",
   subline: "Bestellung in der Werks-Telemetrie verbucht ✓",
+  total: "Gesamt",
   owesEyebrow: "Bezahlung an Abholer",
   payButtonPrefix: "Jetzt",
   payButtonSuffix: "per PayPal senden",

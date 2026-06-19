@@ -24,10 +24,9 @@ export const MenuSchema = z.object({
   meatOptions: z.array(z.enum(["Kalb", "Haehnchen"])),
 });
 
-// The shared order DTO returned by the order/pickup endpoints.
-export const OrderDetailsSchema = z.object({
-  id: z.string(),
-  orderDayId: z.string(),
+// One line of an order in the shared order DTO. priceCents/priceLabel are PER
+// UNIT; lineTotalCents/lineTotalLabel are priceCents * quantity.
+export const OrderLineSchema = z.object({
   productId: z.string(),
   productLabel: z.string(),
   kind: z.enum(["doener", "pizza"]),
@@ -37,8 +36,21 @@ export const OrderDetailsSchema = z.object({
   priceCents: z.number().int(),
   priceLabel: z.string(),
   extra: z.string().nullable(),
-  isPickup: z.boolean(),
+  quantity: z.number().int(),
+  lineTotalCents: z.number().int(),
+  lineTotalLabel: z.string(),
   detail: z.string(),
+});
+
+// The shared order DTO returned by the order/pickup endpoints. priceCents /
+// priceLabel are the ORDER TOTAL across all lines.
+export const OrderDetailsSchema = z.object({
+  id: z.string(),
+  orderDayId: z.string(),
+  lines: z.array(OrderLineSchema),
+  priceCents: z.number().int(),
+  priceLabel: z.string(),
+  isPickup: z.boolean(),
 });
 
 // GET /api/order-days/{dayId}/orders/mine — prefills the form when editing.
@@ -67,7 +79,9 @@ export const TodayOrderDaySchema = z.object({
 const SAUCE_VALUES = ["Kraeuter", "Knoblauch", "Scharf"] as const;
 const PIZZA_VALUES = ["Salami", "Margherita", "Funghi", "Tonno", "Hawaii"] as const;
 
-export const OrderFormSchema = z
+// One editable line in the order form. The per-line pizza/döner consistency is
+// enforced in a superRefine so the issue paths point at the exact line field.
+export const OrderLineFormSchema = z
   .object({
     productId: z.string().min(1, "Wähl erst ein Produkt, Chef."),
     kind: z.enum(["doener", "pizza"]),
@@ -76,7 +90,7 @@ export const OrderFormSchema = z
     sauces: z.array(z.enum(SAUCE_VALUES)),
     extra: z.string().max(300).optional(),
     priceCents: z.number().int().positive(),
-    isPickup: z.boolean(),
+    quantity: z.number().int().min(1, "Mindestens 1, Chef.").max(20, "Höchstens 20, Chef."),
   })
   .superRefine((value, ctx) => {
     if (value.kind === "doener") {
@@ -103,3 +117,8 @@ export const OrderFormSchema = z
       }
     }
   });
+
+export const OrderFormSchema = z.object({
+  lines: z.array(OrderLineFormSchema).min(1).max(20),
+  isPickup: z.boolean(),
+});

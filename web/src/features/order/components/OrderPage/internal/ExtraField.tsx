@@ -3,19 +3,21 @@ import TextField from "@mui/material/TextField";
 import type { FC } from "react";
 import { Controller } from "react-hook-form";
 import { orderCopy } from "../../../copy";
-import { useOrderFormContext } from "../../../order-context";
+import { useOrderFormContext, useOrderLineContext } from "../../../order-context";
 import { SectionLabel } from "./SectionLabel";
 
-// Free-text Extrawünsche field. Multiline. Binds to the RHF `extra` field.
+// Free-text Extrawünsche field for one line. Multiline. Binds to this line's
+// `extra` field.
 export const ExtraField: FC = () => {
   const { form } = useOrderFormContext();
+  const { index } = useOrderLineContext();
 
   return (
     <Stack sx={{ gap: 1 }}>
       <SectionLabel label={orderCopy.extraSection} />
       <Controller
         control={form.control}
-        name="extra"
+        name={`lines.${index}.extra`}
         render={({ field }) => (
           <TextField
             value={field.value ?? ""}

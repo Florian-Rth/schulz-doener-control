@@ -1,14 +1,16 @@
 import Box from "@mui/material/Box";
 import type { FC } from "react";
+import { useWatch } from "react-hook-form";
 import { ProductCard } from "@/components";
-import { useOrderFormContext } from "../../../order-context";
+import { useOrderFormContext, useOrderLineContext } from "../../../order-context";
 
-// The 2-column product grid. Reads the menu + selected product from context and
-// drives selection through the context's selectProduct (which also resets the
-// kind-specific fields). Layout + thin selection binding.
+// The 2-column product grid for one line. Reads the menu + this line's selected
+// product from context and drives selection through selectProduct (which also
+// resets the kind-specific fields). Layout + thin selection binding.
 export const ProductGridField: FC = () => {
   const { menu, form, selectProduct } = useOrderFormContext();
-  const selectedId = form.watch("productId");
+  const { index } = useOrderLineContext();
+  const selectedId = useWatch({ control: form.control, name: `lines.${index}.productId` });
 
   return (
     <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1.5 }}>
@@ -21,7 +23,7 @@ export const ProductGridField: FC = () => {
           insider={item.isInsider}
           selected={selectedId === item.id}
           onSelect={() => {
-            selectProduct(item.id);
+            selectProduct(index, item.id);
           }}
         />
       ))}

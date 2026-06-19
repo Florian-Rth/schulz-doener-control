@@ -18,6 +18,7 @@ import NoMealsOutlined from "@mui/icons-material/NoMealsOutlined";
 import NotificationsActiveOutlined from "@mui/icons-material/NotificationsActiveOutlined";
 import PaymentsOutlined from "@mui/icons-material/PaymentsOutlined";
 import PrintOutlined from "@mui/icons-material/PrintOutlined";
+import RemoveOutlined from "@mui/icons-material/RemoveOutlined";
 import RestaurantOutlined from "@mui/icons-material/RestaurantOutlined";
 import SetMealOutlined from "@mui/icons-material/SetMealOutlined";
 import TakeoutDiningOutlined from "@mui/icons-material/TakeoutDiningOutlined";
@@ -48,6 +49,7 @@ export const ICON_MAP = {
   notifications_active: NotificationsActiveOutlined,
   payments: PaymentsOutlined,
   print: PrintOutlined,
+  remove: RemoveOutlined,
   restaurant: RestaurantOutlined,
   set_meal: SetMealOutlined,
   takeout_dining: TakeoutDiningOutlined,

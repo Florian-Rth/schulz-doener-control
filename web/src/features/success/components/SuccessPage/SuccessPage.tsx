@@ -36,9 +36,8 @@ export const SuccessPage: FC<SuccessPageProps> = ({ orderId }) => {
         {resultQuery.data !== undefined ? (
           <>
             <OrderSummaryCard
-              productLabel={resultQuery.data.productLabel}
+              lines={resultQuery.data.lines}
               priceCents={resultQuery.data.priceCents}
-              detail={resultQuery.data.detail}
             />
             <PaymentSection result={resultQuery.data} />
           </>

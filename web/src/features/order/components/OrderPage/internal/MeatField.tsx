@@ -3,14 +3,15 @@ import type { FC } from "react";
 import { Controller } from "react-hook-form";
 import { SegmentedControl } from "@/components";
 import { MEAT_LABELS, orderCopy } from "../../../copy";
-import { useOrderFormContext } from "../../../order-context";
+import { useOrderFormContext, useOrderLineContext } from "../../../order-context";
 import type { MeatType } from "../../../types";
 import { SectionLabel } from "./SectionLabel";
 
-// Meat segmented control (Kalb | Hähnchen). Rendered only when meatVisible.
-// Enum values stay ASCII; labels are the accented German display strings.
+// Meat segmented control (Kalb | Hähnchen) for one line. Rendered only when
+// meatVisible. Enum values stay ASCII; labels are the accented German strings.
 export const MeatField: FC = () => {
   const { form, menu } = useOrderFormContext();
+  const { index } = useOrderLineContext();
   const options = menu.meatOptions.map((meat) => ({ value: meat, label: MEAT_LABELS[meat] }));
 
   return (
@@ -18,7 +19,7 @@ export const MeatField: FC = () => {
       <SectionLabel label={orderCopy.meatSection} />
       <Controller
         control={form.control}
-        name="meat"
+        name={`lines.${index}.meat`}
         render={({ field }) => (
           <SegmentedControl
             options={options}
