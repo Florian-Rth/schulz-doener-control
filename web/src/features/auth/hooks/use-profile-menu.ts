@@ -2,6 +2,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useLogout } from "../api";
 import { useAuth } from "../auth-context";
+import { authCopy } from "../copy";
 
 interface UseProfileMenuResult {
   /** Element the Menu anchors to; `null` while the menu is closed. */
@@ -16,9 +17,14 @@ interface UseProfileMenuResult {
    * Logs out, then — on success only — clears the cached session and routes to
    * /login. Clearing only in `onSuccess` avoids the logout race: wiping the
    * session before the `POST /api/auth/logout` resolves would let the guard
-   * re-resolve mid-flight against an inconsistent state.
+   * re-resolve mid-flight against an inconsistent state. A failure surfaces a
+   * German toast (`logoutError`) instead of silently doing nothing.
    */
   logout: () => void;
+  /** German message when logout fails; `null` while there is none to show. */
+  logoutError: string | null;
+  /** Dismisses the logout-error toast. */
+  dismissLogoutError: () => void;
 }
 
 // Logic layer for the profile menu: owns the anchor state and the two actions.
@@ -28,6 +34,7 @@ export const useProfileMenu = (): UseProfileMenuResult => {
   const { clear } = useAuth();
   const logoutMutation = useLogout();
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const [logoutError, setLogoutError] = useState<string | null>(null);
 
   const close = (): void => {
     setAnchorEl(null);
@@ -40,10 +47,14 @@ export const useProfileMenu = (): UseProfileMenuResult => {
 
   const logout = (): void => {
     close();
+    setLogoutError(null);
     logoutMutation.mutate(undefined, {
       onSuccess: () => {
         clear();
         void navigate({ to: "/login" });
+      },
+      onError: () => {
+        setLogoutError(authCopy.logoutFailed);
       },
     });
   };
@@ -56,5 +67,9 @@ export const useProfileMenu = (): UseProfileMenuResult => {
     close,
     goToChangePassword,
     logout,
+    logoutError,
+    dismissLogoutError: () => {
+      setLogoutError(null);
+    },
   };
 };

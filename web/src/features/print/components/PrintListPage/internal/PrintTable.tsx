@@ -6,7 +6,6 @@ import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import type { FC } from "react";
 import { printCopy } from "../../../copy";
-import { formatEur } from "../../../money";
 import { usePrintListContext } from "../../../print-context";
 
 // Shared cell sx: tight padding, navy text, thin underline between rows so the
@@ -77,7 +76,7 @@ export const PrintTable: FC = () => {
             <TableCell
               sx={{ ...cellSx, textAlign: "right", fontWeight: 700, whiteSpace: "nowrap" }}
             >
-              {formatEur(order.priceCents)}
+              {order.priceLabel} €
             </TableCell>
           </TableRow>
         ))}

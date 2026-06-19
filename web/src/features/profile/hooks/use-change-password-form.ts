@@ -23,9 +23,10 @@ interface UseChangePasswordFormOptions {
 
 // Logic layer for the change-password screen: RHF + Zod resolver (length, charset
 // and match rules mirroring the backend validator) wired to the change-password
-// mutation. On success the session query is invalidated by the mutation so the
-// guard stops forcing this page, then we route home. A 401 surfaces as the
-// "wrong current password" message; anything else as a generic failure.
+// mutation. On success we await a fresh `/me` so the cleared `mustChangePassword`
+// is in the cache, then route home — the guard then no longer forces this page.
+// A 401 surfaces as the "wrong current password" message; anything else as a
+// generic failure.
 export const useChangePasswordForm = ({
   redirectTo = "/",
 }: UseChangePasswordFormOptions = {}): UseChangePasswordFormResult => {

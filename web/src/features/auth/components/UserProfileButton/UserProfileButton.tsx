@@ -3,7 +3,7 @@ import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import type { SxProps, Theme } from "@mui/material/styles";
 import type { FC } from "react";
-import { Avatar } from "@/components";
+import { Avatar, PushToast } from "@/components";
 import { useAuth } from "../../auth-context";
 import { authCopy } from "../../copy";
 import { useProfileMenu } from "../../hooks/use-profile-menu";
@@ -21,8 +21,17 @@ interface UserProfileButtonProps {
 // authenticated header — sets no positioning margin of its own.
 export const UserProfileButton: FC<UserProfileButtonProps> = ({ size = 38, sx }) => {
   const { user } = useAuth();
-  const { anchorEl, isOpen, isLoggingOut, open, close, goToChangePassword, logout } =
-    useProfileMenu();
+  const {
+    anchorEl,
+    isOpen,
+    isLoggingOut,
+    open,
+    close,
+    goToChangePassword,
+    logout,
+    logoutError,
+    dismissLogoutError,
+  } = useProfileMenu();
 
   if (user === null) {
     return null;
@@ -72,6 +81,21 @@ export const UserProfileButton: FC<UserProfileButtonProps> = ({ size = 38, sx })
           {authCopy.logout}
         </MenuItem>
       </Menu>
+      {logoutError !== null ? (
+        <PushToast
+          message={logoutError}
+          onDismiss={dismissLogoutError}
+          // Float over the header from a fixed anchor: this button sits inside a
+          // header row, so a sticky toast would be clipped — pin it to the top of
+          // the viewport, inside the safe-area inset.
+          sx={{
+            position: "fixed",
+            top: "calc(env(safe-area-inset-top, 0px) + 8px)",
+            left: 8,
+            right: 8,
+          }}
+        />
+      ) : null}
     </>
   );
 };

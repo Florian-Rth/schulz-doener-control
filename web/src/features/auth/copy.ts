@@ -15,4 +15,5 @@ export const authCopy = {
   profileMenuLabel: "Profilmenü öffnen",
   changePassword: "Passwort ändern",
   logout: "Abmelden",
+  logoutFailed: "Abmelden fehlgeschlagen, Chef. Bitte gleich nochmal versuchen.",
 } as const;

@@ -115,6 +115,23 @@ describe("UserProfileButton", () => {
     });
   });
 
+  it("zeigt einen Hinweis und bleibt angemeldet, wenn das Abmelden fehlschlägt", async () => {
+    seedXsrfCookie();
+    mswServer.use(
+      http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
+      http.get("*/api/dashboard", () => HttpResponse.json(closedDashboard)),
+      http.post("*/api/auth/logout", () => new HttpResponse(null, { status: 500 })),
+    );
+    const user = userEvent.setup();
+    const { findByRole, findByText, router } = renderApp({ initialPath: "/" });
+
+    await user.click(await findByRole("button", { name: "Profilmenü öffnen" }));
+    await user.click(await findByRole("menuitem", { name: "Abmelden" }));
+
+    expect(await findByText(/Abmelden fehlgeschlagen/)).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe("/");
+  });
+
   it("navigiert über 'Passwort ändern' nach /passwort-aendern", async () => {
     useAuthenticatedHandlers();
     const user = userEvent.setup();

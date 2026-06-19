@@ -41,14 +41,10 @@ const changePassword = async (input: ChangePasswordInput): Promise<void> => {
 
 // Self-sets a new password (the only endpoint reachable while the forced-change
 // gate is active). On success the backend clears the flag and revokes refresh
-// tokens; we invalidate the auth session so the SPA re-reads `/me` and the guard
-// stops forcing the password-change page.
-export const useChangePassword = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
+// tokens. The session is not invalidated here: the form hook awaits a fresh `/me`
+// (via `refresh()`) before navigating so the guard reads the cleared flag — a
+// mutation-level invalidation on top of that only doubles the `GET /api/auth/me`.
+export const useChangePassword = () =>
+  useMutation({
     mutationFn: changePassword,
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: authKeys.session });
-    },
   });
-};
