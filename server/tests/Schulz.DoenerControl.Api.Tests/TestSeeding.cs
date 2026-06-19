@@ -3,6 +3,7 @@ using Schulz.DoenerControl.Application.Security;
 using Schulz.DoenerControl.Core.Entities;
 using Schulz.DoenerControl.Core.Enums;
 using Schulz.DoenerControl.Infrastructure.Persistence;
+using Schulz.DoenerControl.Infrastructure.Persistence.Seeding;
 
 namespace Schulz.DoenerControl.Api.Tests;
 
@@ -42,6 +43,20 @@ internal static class TestSeeding
         new TestUser("e.wolf", "Erik Wolf", "#455A64", null),
         new TestUser("h.neumann", "Hanna Neumann", "#8E24AA", null),
     };
+
+    // The menu used to ride in on the migration via HasData; it is now planted at runtime by
+    // MenuSeeder. The harness applies only the migration (MigrateAsync, no production seed), so it
+    // seeds the canonical menu itself — exactly as production does through DatabaseSeeder.
+    public static async Task SeedMenuAsync(
+        this IServiceProvider services,
+        CancellationToken ct = default
+    )
+    {
+        using var scope = services.CreateScope();
+        var database = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var menuSeeder = new MenuSeeder(database);
+        await menuSeeder.SeedAsync(ct);
+    }
 
     public static async Task SeedStandardTestUsersAsync(
         this IServiceProvider services,

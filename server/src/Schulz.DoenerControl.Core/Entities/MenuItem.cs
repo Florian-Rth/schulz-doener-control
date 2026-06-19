@@ -21,4 +21,8 @@ public sealed class MenuItem
     public bool IsInsider { get; set; }
 
     public int SortOrder { get; set; }
+
+    // Retired items stay as rows (so past orders' FKs and history survive) but drop off the public
+    // order form. Admins toggle this; the public GET /api/menu returns only available items.
+    public bool IsAvailable { get; set; } = true;
 }

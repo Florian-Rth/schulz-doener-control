@@ -7,10 +7,10 @@ using Xunit;
 
 namespace Schulz.DoenerControl.Api.Tests;
 
-// Exercises the real InitialCreate migration applied to a fresh SQLite database by the
-// harness, plus the menu reference seed (HasData) and the explicit test-account cast the harness
-// seeds. Asserts the menu and users are present and that the schema's unique constraints actually
-// fire on real inserts.
+// Exercises the real migrations applied to a fresh SQLite database by the harness, plus the menu
+// reference seed (now planted at runtime by MenuSeeder, not HasData) and the explicit test-account
+// cast the harness seeds. Asserts the menu and users are present and that the schema's unique
+// constraints actually fire on real inserts.
 public sealed class SchemaAndSeedTests : DoenerControlTestBase
 {
     public SchemaAndSeedTests(DoenerControlApp app)
@@ -40,6 +40,9 @@ public sealed class SchemaAndSeedTests : DoenerControlTestBase
         var pizza = menu.Single(item => item.Id == "pizza");
         Assert.Equal(ProductKind.Pizza, pizza.Kind);
         Assert.Equal(900, pizza.DefaultPriceCents);
+
+        // The canonical seed is all available; the public order form shows the full six.
+        Assert.All(menu, item => Assert.True(item.IsAvailable));
     }
 
     [Fact]

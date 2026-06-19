@@ -117,7 +117,8 @@ public sealed class DatabaseSeederTests
                 Database,
                 Hasher,
                 Options.Create(options),
-                TimeProvider.System
+                TimeProvider.System,
+                new MenuSeeder(Database)
             );
             await seeder.SeedAsync(Ct);
             Database.ChangeTracker.Clear();

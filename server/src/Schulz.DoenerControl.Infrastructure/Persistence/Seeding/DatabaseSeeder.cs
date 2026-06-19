@@ -7,13 +7,13 @@ using Schulz.DoenerControl.Core.Enums;
 
 namespace Schulz.DoenerControl.Infrastructure.Persistence.Seeding;
 
-// Idempotent runtime seed for the single bootstrap administrator. Runs at startup after migrations.
-// The password cannot use EF HasData (it needs runtime Argon2id hashing with a per-user salt and the
-// configured pepper), so it is seeded here rather than in the migration. The 6 MenuItem reference
-// rows are seeded via HasData in the migration itself.
+// Idempotent runtime seed for the single bootstrap administrator and the menu reference rows. Runs
+// at startup after migrations. The admin password cannot use EF HasData (it needs runtime Argon2id
+// hashing with a per-user salt and the configured pepper); the menu is seeded at runtime so its rows
+// are ordinary editable data rather than migration-managed. Both seeds are idempotent.
 //
-// Exactly one admin is created: if any user with Role==Admin already exists, this is a no-op. The
-// admin is provisioned with MustChangePassword=true so the throwaway bootstrap password must be
+// Exactly one admin is created: if any user with Role==Admin already exists, that part is a no-op.
+// The admin is provisioned with MustChangePassword=true so the throwaway bootstrap password must be
 // changed on first login. Every other account is created later by the admin via the API.
 public sealed class DatabaseSeeder
 {
@@ -21,22 +21,27 @@ public sealed class DatabaseSeeder
     private readonly IPasswordHasher passwordHasher;
     private readonly AdminSeedOptions options;
     private readonly TimeProvider timeProvider;
+    private readonly MenuSeeder menuSeeder;
 
     public DatabaseSeeder(
         AppDbContext database,
         IPasswordHasher passwordHasher,
         IOptions<AdminSeedOptions> options,
-        TimeProvider timeProvider
+        TimeProvider timeProvider,
+        MenuSeeder menuSeeder
     )
     {
         this.database = database;
         this.passwordHasher = passwordHasher;
         this.options = options.Value;
         this.timeProvider = timeProvider;
+        this.menuSeeder = menuSeeder;
     }
 
     public async Task SeedAsync(CancellationToken ct)
     {
+        await menuSeeder.SeedAsync(ct);
+
         if (await database.Users.AnyAsync(user => user.Role == UserRole.Admin, ct))
         {
             return;

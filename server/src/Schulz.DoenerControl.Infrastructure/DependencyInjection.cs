@@ -59,6 +59,7 @@ public static class DependencyInjection
         services.AddScoped<ITierService, TierService>();
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddAdminSeed(configuration);
+        services.AddScoped<MenuSeeder>();
         services.AddScoped<DatabaseSeeder>();
         services.AddScoped<DevHistorySeeder>();
         return services;
