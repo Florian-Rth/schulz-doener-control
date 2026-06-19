@@ -33,10 +33,10 @@ nach dem Zettel und die Frage aller Fragen — *„Wie war nochmal dein PayPal-L
 4. **PayPal-Abrechnung** — alle bekommen einen vorbefüllten **PayPal.Me**-Link mit ihrem
    Betrag. Offene Zahlungen werden mitgeführt, bis Ruhe im Karton ist.
 
-Internes, mit Absicht albernes Werkzeug — gebaut auf dem todernsten Schulz
-**Machine-Eye**-Designsystem. Alles auf **Deutsch**, alles spricht dich mit **„Chef"** an.
+Internes Büro-Werkzeug mit einem Augenzwinkern. Alles auf **Deutsch**, alles spricht dich
+mit **„Chef"** an.
 
-> 📖 Die volle Produkt- & Designspezifikation (Menü, Döner-Tiere, Farbwerte, Flow) steht
+> 📖 Die volle Produktspezifikation (Menü, Döner-Tiere, Flow) steht
 > in **[CONTEXT.md](CONTEXT.md)**.
 
 ---
@@ -81,7 +81,6 @@ Dein Tier wird aus deinem Bestellverhalten errechnet — das erste passende gewi
 |---|---|
 | **Backend** (`server/`) | C# / **.NET 9**, Clean Architecture, **FastEndpoints**, EF Core + **SQLite**, JWT im httpOnly-Cookie + CSRF, Argon2id. Tests: xUnit v3 (echte SQLite-DB). |
 | **Frontend** (`web/`) | **React 19** + TypeScript, **MUI v9**, **TanStack** Router & Query, Zod, React Hook Form, Vite, Biome, Vitest + MSW. Paketmanager: **pnpm**. |
-| **Design** | Schulz **Machine-Eye** — Open Sans, Schulz-Rot `#C90023`, Navy `#002230`, die diagonale *Schräge*. Keine KI-Schlonz-Verläufe. |
 
 ---
 
@@ -144,7 +143,7 @@ schulz-doener-control/
 │     ├─ features/   # auth · home · order · profile · admin · print · tiere · push · success
 │     ├─ routes/     # dateibasiertes TanStack-Router-Verzeichnis
 │     ├─ lib/        # apiClient & geteilte Bausteine
-│     └─ styles/     # Machine-Eye-Theme
+│     └─ styles/     # Theme & globale Styles
 ├─ mocks/            # HTML-Designmock — die visuelle Quelle der Wahrheit
 ├─ CONTEXT.md        # Produkt- & Designspezifikation (das Warum & Was)
 ├─ CLAUDE.md         # Minimale Grundregeln für die Mitarbeit
