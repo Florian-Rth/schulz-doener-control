@@ -5,6 +5,7 @@ import { DashboardHeader } from "./internal/DashboardHeader";
 import { DoenerTagSection } from "./internal/DoenerTagSection";
 import { GreetingBar } from "./internal/GreetingBar";
 import { LeaderboardCard } from "./internal/LeaderboardCard";
+import { MyRecentPaymentsCard } from "./internal/MyRecentPaymentsCard";
 import { OpenPaymentsCard } from "./internal/OpenPaymentsCard";
 import { StatsGrid } from "./internal/StatsGrid";
 import { TierSection } from "./internal/TierSection";
@@ -25,6 +26,7 @@ export const DashboardPage: FC = () => {
         <DoenerTagSection />
         <LeaderboardCard />
         <OpenPaymentsCard />
+        <MyRecentPaymentsCard />
       </PageLayout.Content>
     </PageLayout>
   );

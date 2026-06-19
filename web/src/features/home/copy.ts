@@ -38,6 +38,8 @@ export const homeCopy = {
   // Open payments
   paymentsTitle: "Offene Zahlungen",
   pay: "PayPal",
+  // Read-only settled-payment history (FEATURE 4 / B12).
+  paymentHistoryTitle: "Meine letzten Zahlungen",
   // Per-debt "ich hab bezahlt" confirmation (FEATURE 4 settle). One-way: a
   // settled debt verschwindet aus der Liste und kann nicht zurückgeholt werden.
   settle: "Erledigt",
@@ -68,3 +70,12 @@ export const untilNextSentence = (toNext: number, nextRank: number): string =>
 // "Aus N Bestellungen der letzten 3 Monate" — the tier order-count line.
 export const tierOrderCountSentence = (count: number): string =>
   `Aus ${count} Bestellungen der letzten 3 Monate`;
+
+// "18. Juni 2026" — short German date for a settled-payment history row, parsed
+// from the row's ISO-8601 `settledAt` timestamp.
+export const formatSettledDate = (settledAt: string): string =>
+  new Date(settledAt).toLocaleDateString("de-DE", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });

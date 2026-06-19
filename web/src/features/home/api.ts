@@ -1,11 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError, apiClient } from "@/lib/api";
 import { homeCopy } from "./copy";
-import { DashboardSchema } from "./schemas";
-import type { Dashboard } from "./types";
+import { DashboardSchema, PaymentHistorySchema } from "./schemas";
+import type { Dashboard, PaymentHistory } from "./types";
 
 export const dashboardKeys = {
   all: ["dashboard"] as const,
+};
+
+export const paymentHistoryKeys = {
+  all: ["payment-history"] as const,
 };
 
 const fetchDashboard = async (signal: AbortSignal): Promise<Dashboard> => {
@@ -17,6 +21,20 @@ export const useDashboard = () =>
   useQuery({
     queryKey: dashboardKeys.all,
     queryFn: ({ signal }) => fetchDashboard(signal),
+  });
+
+// GET /api/debts/history — the caller's own settled payments (newest first,
+// capped at 10). A standalone read-only query, deliberately NOT folded into the
+// dashboard aggregate, so the history card can fetch independently.
+const fetchPaymentHistory = async (signal: AbortSignal): Promise<PaymentHistory> => {
+  const data = await apiClient.get("/api/debts/history", signal);
+  return PaymentHistorySchema.parse(data);
+};
+
+export const useMyPaymentHistory = () =>
+  useQuery({
+    queryKey: paymentHistoryKeys.all,
+    queryFn: ({ signal }) => fetchPaymentHistory(signal),
   });
 
 // POST /api/order-days/open — "Ich will heute Döner!". The server resolves

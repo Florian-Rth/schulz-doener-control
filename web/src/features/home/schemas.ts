@@ -109,6 +109,25 @@ const DashboardDebtsSchema = z.object({
   rows: z.array(DebtRowSchema),
 });
 
+// GET /api/debts/history (FEATURE 4 / B12) — the caller's own settled payments,
+// newest-settled first, capped at 10. A standalone read-only payload (NOT part
+// of the dashboard aggregate). `amountLabel` already includes the trailing
+// " €" — unlike the older dashboard debt rows — so it is rendered as-is.
+// `settledAt` is an ISO-8601 timestamp the card formats into a short German date.
+const PaymentHistoryRowSchema = z.object({
+  personName: z.string(),
+  initials: z.string(),
+  avatarColorHex: z.string(),
+  amountCents: z.number().int(),
+  amountLabel: z.string(),
+  settledAt: z.string(),
+  reason: z.string(),
+});
+
+export const PaymentHistorySchema = z.object({
+  payments: z.array(PaymentHistoryRowSchema),
+});
+
 export const DashboardSchema = z.object({
   firstName: z.string(),
   displayName: z.string(),

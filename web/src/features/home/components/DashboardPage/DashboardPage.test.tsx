@@ -177,6 +177,31 @@ const closedDay = {
   orders: [],
 };
 
+// Read-only settled-payment history (GET /api/debts/history). Newest-settled
+// first; `amountLabel` already carries " €" (new-endpoint convention).
+const paymentHistory = {
+  payments: [
+    {
+      personName: "Lukas Brandt",
+      initials: "LB",
+      avatarColorHex: "#00728E",
+      amountCents: 760,
+      amountLabel: "7,60 €",
+      settledAt: "2026-06-12T10:15:00Z",
+      reason: "Dürüm-Schulden",
+    },
+    {
+      personName: "Sara Yılmaz",
+      initials: "SY",
+      avatarColorHex: "#ED701C",
+      amountCents: 420,
+      amountLabel: "4,20 €",
+      settledAt: "2026-06-05T09:40:00Z",
+      reason: "Pommes-Schulden",
+    },
+  ],
+};
+
 const buildDashboard = (overrides: Partial<Dashboard> = {}): Dashboard => ({
   firstName: "Markus",
   displayName: "Markus Wagner",
@@ -194,6 +219,9 @@ const useDashboardHandlers = (dashboard: Dashboard): void => {
   mswServer.use(
     http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
     http.get("*/api/dashboard", () => HttpResponse.json(dashboard)),
+    // The "Meine letzten Zahlungen" card fetches this independently of the
+    // dashboard aggregate; default to empty so it renders nothing.
+    http.get("*/api/debts/history", () => HttpResponse.json({ payments: [] })),
   );
 };
 
@@ -311,6 +339,7 @@ describe("DashboardPage", () => {
     let dashboardFetches = 0;
     mswServer.use(
       http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
+      http.get("*/api/debts/history", () => HttpResponse.json({ payments: [] })),
       http.get("*/api/dashboard", () => {
         dashboardFetches += 1;
         return HttpResponse.json(
@@ -350,6 +379,7 @@ describe("DashboardPage", () => {
     let dashboardFetches = 0;
     mswServer.use(
       http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
+      http.get("*/api/debts/history", () => HttpResponse.json({ payments: [] })),
       http.get("*/api/dashboard", () => {
         dashboardFetches += 1;
         return HttpResponse.json(
@@ -381,6 +411,7 @@ describe("DashboardPage", () => {
   it("zeigt eine deutsche Fehlermeldung, wenn das Schließen mit 409 fehlschlägt", async () => {
     mswServer.use(
       http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
+      http.get("*/api/debts/history", () => HttpResponse.json({ payments: [] })),
       http.get("*/api/dashboard", () =>
         HttpResponse.json(
           buildDashboard({ day: { ...openDay, amICollector: true, isOrderingClosed: false } }),
@@ -404,6 +435,7 @@ describe("DashboardPage", () => {
   it("zeigt eine deutsche Fehlermeldung, wenn der Tag-Schluss mit 403 fehlschlägt", async () => {
     mswServer.use(
       http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
+      http.get("*/api/debts/history", () => HttpResponse.json({ payments: [] })),
       http.get("*/api/dashboard", () =>
         HttpResponse.json(
           buildDashboard({ day: { ...openDay, amICollector: true, isOrderingClosed: true } }),
@@ -429,6 +461,7 @@ describe("DashboardPage", () => {
     let dashboardFetches = 0;
     mswServer.use(
       http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
+      http.get("*/api/debts/history", () => HttpResponse.json({ payments: [] })),
       http.get("*/api/dashboard", () => {
         dashboardFetches += 1;
         return HttpResponse.json(buildDashboard());
@@ -465,6 +498,7 @@ describe("DashboardPage", () => {
     let releaseSettle: () => void = () => {};
     mswServer.use(
       http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
+      http.get("*/api/debts/history", () => HttpResponse.json({ payments: [] })),
       http.get("*/api/dashboard", () => HttpResponse.json(buildDashboard())),
       http.post("*/api/debts/:debtId/settle", async () => {
         await new Promise<void>((resolve) => {
@@ -510,5 +544,49 @@ describe("DashboardPage", () => {
     const payButton = await findByRole("button", { name: "PayPal" });
     expect(payButton).toBeDisabled();
     expect(payButton).not.toHaveAttribute("href");
+  });
+
+  it("zeigt die letzten Zahlungen mit Name, Betrag und Datum, neueste zuerst", async () => {
+    mswServer.use(
+      http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
+      http.get("*/api/dashboard", () => HttpResponse.json(buildDashboard())),
+      http.get("*/api/debts/history", () => HttpResponse.json(paymentHistory)),
+    );
+    const { findByText, getByText } = renderApp({ initialPath: "/" });
+
+    // header + both creditor rows
+    expect(await findByText("Meine letzten Zahlungen")).toBeInTheDocument();
+    expect(getByText("Dürüm-Schulden")).toBeInTheDocument();
+    expect(getByText("Pommes-Schulden")).toBeInTheDocument();
+
+    // amountLabel rendered AS-IS (already carries " €" — not appended twice)
+    const amount = getByText("7,60 €");
+    expect(amount).toBeInTheDocument();
+    expect(amount.textContent).not.toContain("€ €");
+
+    // short German settle date derived from the ISO timestamp
+    expect(getByText("12. Juni 2026")).toBeInTheDocument();
+    expect(getByText("5. Juni 2026")).toBeInTheDocument();
+
+    // newest-settled first: the 7,60 € row precedes the 4,20 € row in the DOM
+    const newest = getByText("7,60 €");
+    const oldest = getByText("4,20 €");
+    expect(newest.compareDocumentPosition(oldest) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    // read-only history → no PayPal/settle controls inside the card
+    expect(amount.closest("div")?.querySelector("a")).toBeNull();
+  });
+
+  it("zeigt die Zahlungs-Historie-Karte nicht, wenn es keine Zahlungen gibt", async () => {
+    mswServer.use(
+      http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
+      http.get("*/api/dashboard", () => HttpResponse.json(buildDashboard())),
+      http.get("*/api/debts/history", () => HttpResponse.json({ payments: [] })),
+    );
+    const { findByText, queryByText } = renderApp({ initialPath: "/" });
+
+    // wait for the page to settle, then assert the card is absent
+    expect(await findByText("Offene Zahlungen")).toBeInTheDocument();
+    expect(queryByText("Meine letzten Zahlungen")).not.toBeInTheDocument();
   });
 });
