@@ -10,6 +10,13 @@ const XSRF_HEADER = "X-XSRF-TOKEN";
 // failed login/refresh would recurse). A 401 from these is returned to the caller.
 const NO_REFRESH_PATHS = ["/api/auth/login", "/api/auth/refresh"];
 
+// The session probe: a 401 here is the normal "not logged in" signal, already
+// handled by the auth layer (fetchSession maps it to null and the route guard
+// redirects to /login). It must NOT fire the navigating hard-logout, which would
+// preempt the in-flight route navigation and surface a CancelledError. It may
+// still attempt a refresh (a valid refresh token re-authenticates the probe).
+const NO_HARD_LOGOUT_PATHS = ["/api/auth/me"];
+
 type Json = Record<string, unknown> | unknown[] | null;
 
 export interface RequestOptions {
@@ -67,7 +74,9 @@ const request = async (path: string, options: RequestOptions): Promise<Response>
       response = await sendRequest(path, options);
     }
     if (response.status === 401) {
-      triggerHardLogout();
+      if (!NO_HARD_LOGOUT_PATHS.includes(path)) {
+        triggerHardLogout();
+      }
       throw await parseProblem(response);
     }
   }
