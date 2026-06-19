@@ -76,10 +76,15 @@ export const ChangePasswordFormSchema = z
 
 // Forced variant (forced first-login change, `mustChangePassword=true`). The
 // backend detects "forced" server-side from the signed must_change claim and does
-// NOT need the current password, so this schema omits the currentPassword field
-// entirely — and with it the new!=current rule, which does not apply when forced.
+// NOT need the current password — so this schema validates neither it nor the
+// new!=current rule (which does not apply when forced). It keeps `currentPassword`
+// in the object shape (unconstrained) so both variants infer the same
+// `ChangePasswordForm` type and their resolvers unify cleanly; the forced flow
+// still hides the field and omits it from the payload (driven by the hook, not
+// the schema), so its value is never read here.
 export const ChangePasswordForcedFormSchema = z
   .object({
+    currentPassword: z.string(),
     newPassword: z.string(),
     confirmNewPassword: z.string().min(1, "Pflichtfeld"),
   })
