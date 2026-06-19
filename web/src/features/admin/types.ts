@@ -1,6 +1,8 @@
 import type { z } from "zod";
 import type {
   AdminMenuItemSchema,
+  AdminTiereResponseSchema,
+  AdminTierSchema,
   AdminUserSchema,
   CreateUserFormSchema,
   CreateUserResponseSchema,
@@ -18,6 +20,9 @@ export type EditUserForm = z.infer<typeof EditUserFormSchema>;
 
 export type AdminMenuItem = z.infer<typeof AdminMenuItemSchema>;
 export type MenuItemForm = z.infer<typeof MenuItemFormSchema>;
+
+export type AdminTier = z.infer<typeof AdminTierSchema>;
+export type AdminTiere = z.infer<typeof AdminTiereResponseSchema>;
 
 // The wire value of `kind` on menu requests/responses.
 export type MenuKind = "doener" | "pizza";

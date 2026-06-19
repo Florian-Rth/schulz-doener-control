@@ -144,3 +144,21 @@ export const MenuItemFormSchema = z.object({
   sortOrder: sortOrderField,
   isAvailable: z.boolean(),
 });
+
+// --- Döner-Tiere (C4, read-only) ---
+
+// One row of GET /api/admin/tiere. The backend returns the 15 tiers in priority
+// order; `tags` is the 3-tag descriptor list and `condition` is the German
+// trigger rule. Nothing here is editable, so there is no matching form schema.
+export const AdminTierSchema = z.object({
+  emoji: z.string(),
+  name: z.string(),
+  tagline: z.string(),
+  tags: z.array(z.string()),
+  condition: z.string(),
+});
+
+export const AdminTiereResponseSchema = z.object({
+  windowDays: z.number().int(),
+  tiers: z.array(AdminTierSchema),
+});

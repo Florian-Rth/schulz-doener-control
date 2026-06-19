@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AdminPlaceholderPage } from "@/features/admin";
+import { AdminTierePage } from "@/features/admin";
 
-// STUB child route — the real Döner-Tiere admin screen ships in C4. Present now
-// only so the hub link is live and the route tree is typed.
+// The read-only Döner-Tiere screen at /admin/tiere. Role gating (Admin only) is
+// handled by the parent `_auth/admin` layout route.
 export const Route = createFileRoute("/_auth/admin/tiere")({
-  component: () => <AdminPlaceholderPage title="Döner-Tiere" />,
+  component: AdminTierePage,
 });

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
 import {
   AdminMenuResponseSchema,
+  AdminTiereResponseSchema,
   AdminUsersResponseSchema,
   CreateUserResponseSchema,
   MenuItemResponseSchema,
@@ -10,6 +11,7 @@ import {
 } from "./schemas";
 import type {
   AdminMenuItem,
+  AdminTiere,
   AdminUser,
   CreateUserResponse,
   MenuKind,
@@ -20,6 +22,7 @@ import type {
 export const adminKeys = {
   users: ["admin", "users"] as const,
   menu: ["admin", "menu"] as const,
+  tiere: ["admin", "tiere"] as const,
 };
 
 // Maps the form's PascalCase role to the numeric wire value the backend expects
@@ -201,3 +204,20 @@ export const useDeleteMenuItem = () => {
     },
   });
 };
+
+// --- Döner-Tiere (C4, read-only) ---
+
+const fetchTiere = async (signal: AbortSignal): Promise<AdminTiere> => {
+  const data = await apiClient.get("/api/admin/tiere", signal);
+  return AdminTiereResponseSchema.parse(data);
+};
+
+// The 15 tier definitions and their German trigger conditions, plus the
+// `windowDays` basis. Read-only; the tiers are computed and seeded server-side,
+// so there is nothing to mutate here.
+export const useAdminTiere = () =>
+  useQuery({
+    queryKey: adminKeys.tiere,
+    queryFn: ({ signal }) => fetchTiere(signal),
+    staleTime: 5 * 60 * 1000,
+  });

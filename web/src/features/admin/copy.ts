@@ -146,3 +146,19 @@ export const menuCopy = {
   errorValidation: "Die Eingaben passen nicht, Chef. Prüf die Felder.",
   errorGeneric: "Hat nicht geklappt, Chef. Versuch es nochmal.",
 } as const;
+
+// German UI strings for the read-only Döner-Tiere screen (/admin/tiere). The
+// tier names, taglines, tags and trigger conditions all come from the backend;
+// only the screen chrome lives here.
+export const tiereCopy = {
+  title: "Döner-Tiere",
+  subtitle: "Die 15 erfassten Exemplare",
+  intro:
+    "Hier siehst du, wie jedes Döner-Tier vergeben wird, Chef. Nur zum Nachschlagen – hier gibt's nichts zu schrauben.",
+  windowBasis: (windowDays: number): string =>
+    `Berechnet über die letzten ${windowDays} Tage, Chef.`,
+  conditionLabel: "Bedingung",
+  loading: "Tiere werden geladen …",
+  loadError: "Die Döner-Tiere konnten nicht geladen werden, Chef. Versuch es nochmal.",
+  empty: "Noch keine Döner-Tiere erfasst, Chef.",
+} as const;
