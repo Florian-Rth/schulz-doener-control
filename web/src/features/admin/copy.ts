@@ -90,3 +90,59 @@ export const usersCopy = {
   errorValidation: "Die Eingaben passen nicht, Chef. Prüf die Felder.",
   errorGeneric: "Hat nicht geklappt, Chef. Versuch es nochmal.",
 } as const;
+
+// German UI strings for the menu-administration screen (/admin/menue).
+export const menuCopy = {
+  title: "Menü",
+  subtitle: "Karte pflegen",
+  intro: "Hier pflegst du die Karte, Chef: Döner, Pizza und Insider-Spezialitäten.",
+  loading: "Karte wird geladen …",
+  loadError: "Die Karte konnte nicht geladen werden, Chef. Versuch es nochmal.",
+  empty: "Noch nichts auf der Karte, Chef. Leg das erste Gericht an.",
+  addButton: "Gericht anlegen",
+  // Kinds
+  kindDoener: "Döner",
+  kindPizza: "Pizza",
+  // Status badges
+  available: "Verfügbar",
+  retired: "Nicht verfügbar",
+  insider: "Insider",
+  sortLabel: (order: number): string => `Reihenfolge ${order}`,
+  // Per-row actions
+  actionEdit: "Bearbeiten",
+  actionDelete: "Entfernen",
+  // Field labels (shared create/edit)
+  idLabel: "ID (optional)",
+  idPlaceholder: "leer lassen für automatisch",
+  idHint: "Leer lassen, dann leiten wir sie aus dem Namen ab, Chef.",
+  nameLabel: "Name",
+  namePlaceholder: "z. B. Dürüm Kalb",
+  priceLabel: "Preis (€)",
+  pricePlaceholder: "z. B. 8,50",
+  kindLabel: "Art",
+  iconLabel: "Symbol",
+  noteLabel: "Notiz (optional)",
+  notePlaceholder: "z. B. nur freitags",
+  insiderLabel: "Insider-Spezialität",
+  availableLabel: "Verfügbar",
+  sortOrderLabel: "Reihenfolge",
+  // Create dialog
+  createTitle: "Neues Gericht anlegen",
+  createSubmit: "Anlegen",
+  createSubmitting: "Wird angelegt …",
+  // Edit dialog
+  editTitle: "Gericht bearbeiten",
+  editSubmit: "Speichern",
+  editSubmitting: "Speichern …",
+  // Delete confirmation
+  deleteTitle: "Gericht entfernen?",
+  deleteBody: (name: string): string =>
+    `Soll ${name} wirklich von der Karte, Chef? Gerichte, die in früheren Bestellungen vorkommen, werden nur ausgeblendet (stillgelegt) statt gelöscht – die alten Bestellungen bleiben heil.`,
+  deleteConfirm: "Ja, entfernen",
+  deleting: "Wird entfernt …",
+  cancel: "Abbrechen",
+  // Server-error mappings
+  errorDuplicate: "Diese ID gibt es schon, Chef. Wähl eine andere.",
+  errorValidation: "Die Eingaben passen nicht, Chef. Prüf die Felder.",
+  errorGeneric: "Hat nicht geklappt, Chef. Versuch es nochmal.",
+} as const;

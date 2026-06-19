@@ -74,3 +74,73 @@ export const EditUserFormSchema = z.object({
   role: roleField,
   isActive: z.boolean(),
 });
+
+// --- Menu administration (C3) ---
+
+// One row of GET /api/admin/menu. Includes retired (soft-deleted) items, so the
+// list can mark them. `note` is null when none is set. `kind` is the lower-case
+// wire value ("doener" | "pizza"). `defaultPriceCents` is the integer source of
+// truth; `defaultPriceLabel` is the server-formatted German display string.
+export const AdminMenuItemSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  defaultPriceCents: z.number().int(),
+  defaultPriceLabel: z.string(),
+  kind: z.enum(["doener", "pizza"]),
+  materialIcon: z.string(),
+  note: z.string().nullable(),
+  isInsider: z.boolean(),
+  sortOrder: z.number().int(),
+  isAvailable: z.boolean(),
+});
+
+export const AdminMenuResponseSchema = z.object({
+  items: z.array(AdminMenuItemSchema),
+});
+
+// POST / PUT both return the single affected item under `item`.
+export const MenuItemResponseSchema = z.object({
+  item: AdminMenuItemSchema,
+});
+
+// --- Menu form schema ---
+
+// The price is entered in euros in the UI (German comma allowed) and converted
+// to integer cents at submit time, so the form carries the cents value directly
+// once parsed. `id` is only present in the create form (optional; slugified from
+// name server-side when omitted). The kind / icon are constrained selects.
+const menuNameField = z.string().trim().min(1, "Pflichtfeld").max(64, "Höchstens 64 Zeichen.");
+
+const menuIdField = z
+  .string()
+  .trim()
+  .max(32, "Höchstens 32 Zeichen.")
+  .regex(/^[A-Za-z0-9._-]*$/, "Nur Buchstaben, Zahlen, Punkt, Bindestrich und Unterstrich.");
+
+const menuNoteField = z.string().trim().max(128, "Höchstens 128 Zeichen.");
+
+const menuKindField = z.enum(["doener", "pizza"]);
+
+const menuIconField = z.string().trim().min(1, "Pflichtfeld").max(64, "Höchstens 64 Zeichen.");
+
+const priceCentsField = z
+  .number({ error: "Gib einen gültigen Preis ein, Chef." })
+  .int()
+  .min(0, "Der Preis darf nicht negativ sein.");
+
+const sortOrderField = z
+  .number({ error: "Gib eine gültige Reihenfolge ein, Chef." })
+  .int()
+  .min(0, "Darf nicht negativ sein.");
+
+export const MenuItemFormSchema = z.object({
+  id: menuIdField,
+  name: menuNameField,
+  priceCents: priceCentsField,
+  kind: menuKindField,
+  materialIcon: menuIconField,
+  note: menuNoteField,
+  isInsider: z.boolean(),
+  sortOrder: sortOrderField,
+  isAvailable: z.boolean(),
+});

@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AdminPlaceholderPage } from "@/features/admin";
+import { AdminMenuPage } from "@/features/admin";
 
-// STUB child route — the real menu-administration screen ships in C3. Present
-// now only so the hub link is live and the route tree is typed.
+// The menu-administration screen at /admin/menue. Role gating (Admin only) is
+// handled by the parent `_auth/admin` layout route.
 export const Route = createFileRoute("/_auth/admin/menue")({
-  component: () => <AdminPlaceholderPage title="Menü" />,
+  component: AdminMenuPage,
 });

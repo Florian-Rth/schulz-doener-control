@@ -1,9 +1,11 @@
 import type { z } from "zod";
 import type {
+  AdminMenuItemSchema,
   AdminUserSchema,
   CreateUserFormSchema,
   CreateUserResponseSchema,
   EditUserFormSchema,
+  MenuItemFormSchema,
   ResetPasswordResponseSchema,
 } from "./schemas";
 
@@ -13,6 +15,12 @@ export type ResetPasswordResponse = z.infer<typeof ResetPasswordResponseSchema>;
 
 export type CreateUserForm = z.infer<typeof CreateUserFormSchema>;
 export type EditUserForm = z.infer<typeof EditUserFormSchema>;
+
+export type AdminMenuItem = z.infer<typeof AdminMenuItemSchema>;
+export type MenuItemForm = z.infer<typeof MenuItemFormSchema>;
+
+// The wire value of `kind` on menu requests/responses.
+export type MenuKind = "doener" | "pizza";
 
 // The wire value of `role` on create/update requests: 1 = Employee, 2 = Admin.
 export type RoleNumber = 1 | 2;

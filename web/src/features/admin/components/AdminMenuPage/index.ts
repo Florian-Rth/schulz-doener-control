@@ -1,0 +1,1 @@
+export { AdminMenuPage } from "./AdminMenuPage";

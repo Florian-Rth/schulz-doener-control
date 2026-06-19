@@ -1,15 +1,25 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
 import {
+  AdminMenuResponseSchema,
   AdminUsersResponseSchema,
   CreateUserResponseSchema,
+  MenuItemResponseSchema,
   ResetPasswordResponseSchema,
   UpdateUserResponseSchema,
 } from "./schemas";
-import type { AdminUser, CreateUserResponse, ResetPasswordResponse, RoleNumber } from "./types";
+import type {
+  AdminMenuItem,
+  AdminUser,
+  CreateUserResponse,
+  MenuKind,
+  ResetPasswordResponse,
+  RoleNumber,
+} from "./types";
 
 export const adminKeys = {
   users: ["admin", "users"] as const,
+  menu: ["admin", "menu"] as const,
 };
 
 // Maps the form's PascalCase role to the numeric wire value the backend expects
@@ -105,6 +115,89 @@ export const useResetPassword = () => {
     mutationFn: resetPassword,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: adminKeys.users });
+    },
+  });
+};
+
+// --- Menu administration (C3) ---
+
+const fetchMenu = async (signal: AbortSignal): Promise<AdminMenuItem[]> => {
+  const data = await apiClient.get("/api/admin/menu", signal);
+  return AdminMenuResponseSchema.parse(data).items;
+};
+
+// Lists all menu items including retired (soft-deleted) ones so the admin can
+// see and re-enable them.
+export const useAdminMenu = () =>
+  useQuery({
+    queryKey: adminKeys.menu,
+    queryFn: ({ signal }) => fetchMenu(signal),
+    staleTime: 30 * 1000,
+  });
+
+// The mutation payload. `id` is optional on create (slugified server-side when
+// omitted) and carried separately on update (in the path, not the body).
+export interface MenuItemBody {
+  name: string;
+  defaultPriceCents: number;
+  kind: MenuKind;
+  materialIcon: string;
+  note?: string;
+  isInsider: boolean;
+  sortOrder: number;
+  isAvailable: boolean;
+}
+
+export interface CreateMenuItemInput extends MenuItemBody {
+  id?: string;
+}
+
+const createMenuItem = async (input: CreateMenuItemInput): Promise<AdminMenuItem> => {
+  const data = await apiClient.post("/api/admin/menu", { ...input });
+  return MenuItemResponseSchema.parse(data).item;
+};
+
+export const useCreateMenuItem = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createMenuItem,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: adminKeys.menu });
+    },
+  });
+};
+
+export interface UpdateMenuItemInput extends MenuItemBody {
+  id: string;
+}
+
+const updateMenuItem = async ({ id, ...body }: UpdateMenuItemInput): Promise<AdminMenuItem> => {
+  const data = await apiClient.put(`/api/admin/menu/${id}`, { ...body });
+  return MenuItemResponseSchema.parse(data).item;
+};
+
+export const useUpdateMenuItem = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: updateMenuItem,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: adminKeys.menu });
+    },
+  });
+};
+
+// DELETE: the backend hard-deletes an unreferenced item, else soft-retires it
+// (so past orders keep their reference). Either way the list is invalidated.
+const deleteMenuItem = async (id: string): Promise<void> => {
+  await apiClient.delete(`/api/admin/menu/${id}`);
+};
+
+export const useDeleteMenuItem = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteMenuItem,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: adminKeys.menu });
     },
   });
 };
