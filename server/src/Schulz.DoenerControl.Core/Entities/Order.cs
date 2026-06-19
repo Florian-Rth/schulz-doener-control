@@ -1,10 +1,10 @@
-using Schulz.DoenerControl.Core.Enums;
-
 namespace Schulz.DoenerControl.Core.Entities;
 
-// The atomic, source-of-truth record: one row per user per day. Every input the tier math
-// and dashboard need is captured here, with Kind/PriceCents frozen at order time so history
-// is immune to later menu/price edits.
+// The order HEADER: one row per user per day. The per-item facts live on its OrderLines; the header
+// only carries the participant, the day, the pickup flag and the business timestamps. OccurredOn
+// drives the 90-day tier window, monthly spend and streak, distinct from CreatedAt (row-insert
+// instant). The lines' PriceCents are frozen at order time so history is immune to later menu/price
+// edits.
 public sealed class Order
 {
     public Guid Id { get; set; }
@@ -12,22 +12,6 @@ public sealed class Order
     public Guid OrderDayId { get; set; }
 
     public Guid UserId { get; set; }
-
-    public required string ProductId { get; set; }
-
-    public ProductKind Kind { get; set; }
-
-    // Null for pizza orders.
-    public MeatType? Meat { get; set; }
-
-    // Null for doener-kind orders.
-    public PizzaVariant? PizzaVariant { get; set; }
-
-    public Sauce Sauces { get; set; }
-
-    public int PriceCents { get; set; }
-
-    public string? Extra { get; set; }
 
     public bool IsPickup { get; set; }
 
@@ -42,4 +26,10 @@ public sealed class Order
     public OrderDay? OrderDay { get; set; }
 
     public User? User { get; set; }
+
+    public ICollection<OrderLine> Lines { get; set; } = new List<OrderLine>();
+
+    // The order total: sum over the lines of (Quantity * per-unit PriceCents). Not stored — always
+    // derived from the lines so it can never drift from them.
+    public int TotalCents => Lines.Sum(line => line.Quantity * line.PriceCents);
 }

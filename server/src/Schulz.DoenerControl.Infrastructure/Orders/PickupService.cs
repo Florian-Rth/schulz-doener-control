@@ -86,10 +86,9 @@ public sealed class PickupService : IPickupService
         if (!OrderWindow.CanOrder(day.Status, day.OrderCutoffAt, clock.UtcNow()))
             return Result<PickupResult>.Conflict(CutoffMessage);
 
-        var order = await database.Orders.FirstOrDefaultAsync(
-            o => o.OrderDayId == orderDayId && o.UserId == callerUserId,
-            ct
-        );
+        var order = await database
+            .Orders.Include(o => o.Lines)
+            .FirstOrDefaultAsync(o => o.OrderDayId == orderDayId && o.UserId == callerUserId, ct);
         if (order is null)
             return Result<PickupResult>.Validation("Erst bestellen, dann abholen.");
 
@@ -102,7 +101,7 @@ public sealed class PickupService : IPickupService
 
         await database.SaveChangesAsync(ct);
 
-        var productName = await ResolveProductName(order.ProductId, ct);
+        var productName = await ResolveProductName(order.Lines.Single().ProductId, ct);
         var pickupNames = await ResolvePickupNames(orderDayId, ct);
 
         return Result<PickupResult>.Success(

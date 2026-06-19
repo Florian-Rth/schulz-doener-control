@@ -54,37 +54,44 @@ public sealed class TierService : ITierService
 
     private async Task<DoenerTier> ComputeTierAsync(Guid callerId, CancellationToken ct)
     {
-        var orders = await database
-            .Orders.AsNoTracking()
-            .Where(order => order.UserId == callerId)
-            .Select(order => new WindowOrder(
-                order.OccurredOn,
-                order.ProductId,
-                order.Kind,
-                order.Meat,
-                order.Sauces
+        // Query the lines directly (joined to their header) rather than SelectMany over the Lines
+        // navigation, which SQLite rejects as a LATERAL/APPLY join.
+        var lines = await database
+            .OrderLines.AsNoTracking()
+            .Where(line => line.Order!.UserId == callerId)
+            .Select(line => new WindowLine(
+                line.Order!.OccurredOn,
+                line.ProductId,
+                line.Kind,
+                line.Meat,
+                line.Sauces,
+                line.Quantity
             ))
             .ToListAsync(ct);
 
         var windowStart = clock.Today().AddDays(-(TierWindowDays - 1));
-        var history = orders
-            .Where(order => DateOnly.FromDateTime(order.OccurredOn.UtcDateTime) >= windowStart)
-            .Select(order => new TierOrderInput(
-                order.ProductId,
-                order.Kind,
-                order.Meat,
-                order.Sauces
-            ))
+
+        // A line with Quantity N counts as N of that product (e.g. 2x Pizza = 2 toward Pizza-Verräter),
+        // so each in-window line is expanded into Quantity TierOrderInput entries.
+        var history = lines
+            .Where(line => DateOnly.FromDateTime(line.OccurredOn.UtcDateTime) >= windowStart)
+            .SelectMany(line =>
+                Enumerable.Repeat(
+                    new TierOrderInput(line.ProductId, line.Kind, line.Meat, line.Sauces),
+                    line.Quantity
+                )
+            )
             .ToList();
 
         return TierCalculator.ComputeTier(history);
     }
 
-    private sealed record WindowOrder(
+    private sealed record WindowLine(
         DateTimeOffset OccurredOn,
         string ProductId,
         ProductKind Kind,
         MeatType? Meat,
-        Sauce Sauces
+        Sauce Sauces,
+        int Quantity
     );
 }

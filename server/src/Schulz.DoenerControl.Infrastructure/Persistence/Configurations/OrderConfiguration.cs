@@ -11,15 +11,8 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.ToTable("Orders");
         builder.HasKey(order => order.Id);
 
-        builder.Property(order => order.ProductId).HasMaxLength(32).IsRequired();
-        builder.Property(order => order.Kind).HasConversion<int>();
-        builder.Property(order => order.Meat).HasConversion<int>();
-        builder.Property(order => order.PizzaVariant).HasConversion<int>();
-
-        // Sauce is a [Flags] enum stored as a bit-flags int.
-        builder.Property(order => order.Sauces).HasConversion<int>();
-
-        builder.Property(order => order.Extra).HasMaxLength(256);
+        // The order total is derived from the lines, never stored.
+        builder.Ignore(order => order.TotalCents);
 
         // One order per user per day; supports upsert until cutoff.
         builder.HasIndex(order => new { order.OrderDayId, order.UserId }).IsUnique();
@@ -37,9 +30,9 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
             .OnDelete(DeleteBehavior.Restrict);
 
         builder
-            .HasOne<MenuItem>()
-            .WithMany()
-            .HasForeignKey(order => order.ProductId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .HasMany(order => order.Lines)
+            .WithOne(line => line.Order)
+            .HasForeignKey(line => line.OrderId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

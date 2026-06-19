@@ -158,34 +158,49 @@ public sealed class SchemaAndSeedTests : DoenerControlTestBase
         database.OrderDays.Add(day);
 
         var order = BuildOrder(day.Id, user.Id, now);
-        order.Sauces = Sauce.Knoblauch | Sauce.Scharf;
+        order.Lines.Single().Sauces = Sauce.Knoblauch | Sauce.Scharf;
         database.Orders.Add(order);
         await database.SaveChangesAsync(Ct);
         database.ChangeTracker.Clear();
 
-        var stored = await database.Orders.SingleAsync(o => o.Id == order.Id, Ct);
+        var stored = await database
+            .Orders.Include(o => o.Lines)
+            .SingleAsync(o => o.Id == order.Id, Ct);
+        var storedSauces = stored.Lines.Single().Sauces;
 
-        Assert.True((stored.Sauces & Sauce.Knoblauch) != 0);
-        Assert.True((stored.Sauces & Sauce.Scharf) != 0);
-        Assert.True((stored.Sauces & Sauce.Kraeuter) == 0);
+        Assert.True((storedSauces & Sauce.Knoblauch) != 0);
+        Assert.True((storedSauces & Sauce.Scharf) != 0);
+        Assert.True((storedSauces & Sauce.Kraeuter) == 0);
     }
 
-    private static Order BuildOrder(Guid orderDayId, Guid userId, DateTimeOffset now) =>
-        new()
+    private static Order BuildOrder(Guid orderDayId, Guid userId, DateTimeOffset now)
+    {
+        var orderId = Guid.NewGuid();
+        return new Order
         {
-            Id = Guid.NewGuid(),
+            Id = orderId,
             OrderDayId = orderDayId,
             UserId = userId,
-            ProductId = "doener",
-            Kind = ProductKind.Doener,
-            Meat = MeatType.Kalb,
-            PizzaVariant = null,
-            Sauces = Sauce.Knoblauch,
-            PriceCents = 750,
-            Extra = null,
             IsPickup = false,
             OccurredOn = now,
             CreatedAt = now,
             UpdatedAt = now,
+            Lines = new List<OrderLine>
+            {
+                new()
+                {
+                    Id = Guid.NewGuid(),
+                    OrderId = orderId,
+                    ProductId = "doener",
+                    Kind = ProductKind.Doener,
+                    Meat = MeatType.Kalb,
+                    PizzaVariant = null,
+                    Sauces = Sauce.Knoblauch,
+                    PriceCents = 750,
+                    Extra = null,
+                    Quantity = 1,
+                },
+            },
         };
+    }
 }

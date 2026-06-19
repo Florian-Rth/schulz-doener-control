@@ -137,23 +137,34 @@ public sealed class GetTierTests : DoenerControlTestBase
                     ClosedAt = occurredOn,
                 };
                 database.OrderDays.Add(day);
+                var orderId = Guid.NewGuid();
                 database.Orders.Add(
                     new Order
                     {
-                        Id = Guid.NewGuid(),
+                        Id = orderId,
                         OrderDayId = day.Id,
                         UserId = chefId,
-                        ProductId = productId,
-                        Kind = productId == "pizza" ? ProductKind.Pizza : ProductKind.Doener,
-                        Meat = meat,
-                        PizzaVariant = null,
-                        Sauces = sauces,
-                        PriceCents = 800,
-                        Extra = null,
                         IsPickup = false,
                         OccurredOn = occurredOn,
                         CreatedAt = occurredOn,
                         UpdatedAt = occurredOn,
+                        Lines = new List<OrderLine>
+                        {
+                            new()
+                            {
+                                Id = Guid.NewGuid(),
+                                OrderId = orderId,
+                                ProductId = productId,
+                                Kind =
+                                    productId == "pizza" ? ProductKind.Pizza : ProductKind.Doener,
+                                Meat = meat,
+                                PizzaVariant = null,
+                                Sauces = sauces,
+                                PriceCents = 800,
+                                Extra = null,
+                                Quantity = 1,
+                            },
+                        },
                     }
                 );
                 dayOffset++;

@@ -28,7 +28,8 @@ public sealed class CloseDayDebtGenerator
     )
     {
         var orders = await database
-            .Orders.Where(order => order.OrderDayId == day.Id)
+            .Orders.Include(order => order.Lines)
+            .Where(order => order.OrderDayId == day.Id)
             .ToListAsync(ct);
 
         var collectorId = ResolveCollector(day, orders);
@@ -49,7 +50,7 @@ public sealed class CloseDayDebtGenerator
                     CreditorUserId = collectorId.Value,
                     OrderId = debtor.Id,
                     OrderDayId = day.Id,
-                    AmountCents = debtor.PriceCents,
+                    AmountCents = debtor.TotalCents,
                     Reason = Reason,
                     Status = PaymentStatus.Open,
                     CreatedAt = now,

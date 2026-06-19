@@ -127,7 +127,7 @@ public sealed class MenuService : IMenuService
 
         // A referenced item is frozen into past orders' FKs; hard-deleting it would orphan them, so
         // it is soft-retired instead. Only an unreferenced item is actually removed.
-        var isReferenced = await database.Orders.AnyAsync(order => order.ProductId == id, ct);
+        var isReferenced = await database.OrderLines.AnyAsync(line => line.ProductId == id, ct);
         if (isReferenced)
         {
             item.IsAvailable = false;

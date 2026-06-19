@@ -54,22 +54,32 @@ internal static class AdminMenuTestHelpers
         };
         database.OrderDays.Add(day);
 
+        var orderId = Guid.NewGuid();
         var order = new Order
         {
-            Id = Guid.NewGuid(),
+            Id = orderId,
             OrderDayId = day.Id,
             UserId = user.Id,
-            ProductId = productId,
-            Kind = ProductKind.Doener,
-            Meat = MeatType.Kalb,
-            PizzaVariant = null,
-            Sauces = Sauce.Knoblauch,
-            PriceCents = 750,
-            Extra = null,
             IsPickup = false,
             OccurredOn = now,
             CreatedAt = now,
             UpdatedAt = now,
+            Lines = new List<OrderLine>
+            {
+                new()
+                {
+                    Id = Guid.NewGuid(),
+                    OrderId = orderId,
+                    ProductId = productId,
+                    Kind = ProductKind.Doener,
+                    Meat = MeatType.Kalb,
+                    PizzaVariant = null,
+                    Sauces = Sauce.Knoblauch,
+                    PriceCents = 750,
+                    Extra = null,
+                    Quantity = 1,
+                },
+            },
         };
         database.Orders.Add(order);
         await database.SaveChangesAsync(Ct);

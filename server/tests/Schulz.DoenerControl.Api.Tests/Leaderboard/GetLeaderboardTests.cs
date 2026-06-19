@@ -201,23 +201,33 @@ public sealed class GetLeaderboardTests : DoenerControlTestBase
                 ClosedAt = occurredOn,
             };
             database.OrderDays.Add(day);
+            var orderId = Guid.NewGuid();
             database.Orders.Add(
                 new Order
                 {
-                    Id = Guid.NewGuid(),
+                    Id = orderId,
                     OrderDayId = day.Id,
                     UserId = userId,
-                    ProductId = "doener",
-                    Kind = ProductKind.Doener,
-                    Meat = MeatType.Kalb,
-                    PizzaVariant = null,
-                    Sauces = Sauce.Knoblauch,
-                    PriceCents = 750,
-                    Extra = null,
                     IsPickup = false,
                     OccurredOn = occurredOn,
                     CreatedAt = occurredOn,
                     UpdatedAt = occurredOn,
+                    Lines = new List<OrderLine>
+                    {
+                        new()
+                        {
+                            Id = Guid.NewGuid(),
+                            OrderId = orderId,
+                            ProductId = "doener",
+                            Kind = ProductKind.Doener,
+                            Meat = MeatType.Kalb,
+                            PizzaVariant = null,
+                            Sauces = Sauce.Knoblauch,
+                            PriceCents = 750,
+                            Extra = null,
+                            Quantity = 1,
+                        },
+                    },
                 }
             );
         }

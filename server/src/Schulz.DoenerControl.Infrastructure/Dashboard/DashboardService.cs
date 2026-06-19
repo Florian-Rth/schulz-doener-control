@@ -99,7 +99,10 @@ public sealed class DashboardService : IDashboardService
         var callerOrders = await database
             .Orders.AsNoTracking()
             .Where(order => order.UserId == callerId)
-            .Select(order => new CallerOrder(order.OccurredOn, order.PriceCents))
+            .Select(order => new CallerOrder(
+                order.OccurredOn,
+                order.Lines.Sum(line => line.Quantity * line.PriceCents)
+            ))
             .ToListAsync(ct);
 
         var lifetimeCount = callerOrders.Count;

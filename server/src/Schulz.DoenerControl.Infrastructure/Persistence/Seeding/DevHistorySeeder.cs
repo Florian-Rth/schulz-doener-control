@@ -90,23 +90,33 @@ public sealed class DevHistorySeeder
             };
             database.OrderDays.Add(day);
 
+            var orderId = Guid.NewGuid();
             database.Orders.Add(
                 new Order
                 {
-                    Id = Guid.NewGuid(),
+                    Id = orderId,
                     OrderDayId = day.Id,
                     UserId = chef.Id,
-                    ProductId = productId,
-                    Kind = kind,
-                    Meat = meat,
-                    PizzaVariant = null,
-                    Sauces = sauces,
-                    PriceCents = priceByProduct.GetValueOrDefault(productId, 0),
-                    Extra = null,
                     IsPickup = false,
                     OccurredOn = occurredOn,
                     CreatedAt = occurredOn,
                     UpdatedAt = occurredOn,
+                    Lines = new List<OrderLine>
+                    {
+                        new()
+                        {
+                            Id = Guid.NewGuid(),
+                            OrderId = orderId,
+                            ProductId = productId,
+                            Kind = kind,
+                            Meat = meat,
+                            PizzaVariant = null,
+                            Sauces = sauces,
+                            PriceCents = priceByProduct.GetValueOrDefault(productId, 0),
+                            Extra = null,
+                            Quantity = 1,
+                        },
+                    },
                 }
             );
         }

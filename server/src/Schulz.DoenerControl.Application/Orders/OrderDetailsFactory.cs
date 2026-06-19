@@ -4,33 +4,38 @@ using Schulz.DoenerControl.Core.Enums;
 
 namespace Schulz.DoenerControl.Application.Orders;
 
-// Builds the OrderDetails projection from an Order entity plus the resolved product name. Kind is
+// Builds the OrderDetails projection from an Order header plus the resolved product name. While the
+// external single-item contract holds (B7), the projection mirrors the order's SINGLE line: Kind is
 // the lower-case vocabulary token the SPA expects ("doener"/"pizza"); Meat/PizzaVariant are the enum
-// names; Sauces is rendered in the canonical vocabulary order. Keeping this in one place means the
-// upsert, get and pickup responses all project identically.
+// names; Sauces is rendered in the canonical vocabulary order; PriceCents is the order TOTAL (sum of
+// Quantity * per-unit price over the lines). Keeping this in one place means the upsert, get and
+// pickup responses all project identically.
 public static class OrderDetailsFactory
 {
-    public static OrderDetails Build(Order order, string productName) =>
-        new(
+    public static OrderDetails Build(Order order, string productName)
+    {
+        var line = order.Lines.Single();
+        return new OrderDetails(
             order.Id,
             order.OrderDayId,
-            order.ProductId,
+            line.ProductId,
             OrderLabelBuilder.BuildProductLabel(
-                order.Kind,
+                line.Kind,
                 productName,
-                order.Meat,
-                order.PizzaVariant
+                line.Meat,
+                line.PizzaVariant
             ),
-            KindToken(order.Kind),
-            order.Meat?.ToString(),
-            order.PizzaVariant?.ToString(),
-            SauceTokens(order.Sauces),
-            order.PriceCents,
-            MoneyFormatter.ToGermanString(order.PriceCents),
-            order.Extra,
+            KindToken(line.Kind),
+            line.Meat?.ToString(),
+            line.PizzaVariant?.ToString(),
+            SauceTokens(line.Sauces),
+            order.TotalCents,
+            MoneyFormatter.ToGermanString(order.TotalCents),
+            line.Extra,
             order.IsPickup,
-            OrderLabelBuilder.BuildDescription(order.Kind, order.Sauces, order.Extra)
+            OrderLabelBuilder.BuildDescription(line.Kind, line.Sauces, line.Extra)
         );
+    }
 
     private static string KindToken(ProductKind kind) =>
         kind == ProductKind.Pizza ? "pizza" : "doener";

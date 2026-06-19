@@ -49,10 +49,13 @@ public sealed class OrderService : IOrderService
         );
 
         var now = clock.UtcNow();
-        var existing = await database.Orders.FirstOrDefaultAsync(
-            order => order.OrderDayId == command.OrderDayId && order.UserId == command.CallerUserId,
-            ct
-        );
+        var existing = await database
+            .Orders.Include(order => order.Lines)
+            .FirstOrDefaultAsync(
+                order =>
+                    order.OrderDayId == command.OrderDayId && order.UserId == command.CallerUserId,
+                ct
+            );
 
         if (existing is null)
         {
@@ -61,31 +64,32 @@ public sealed class OrderService : IOrderService
                 Id = Guid.NewGuid(),
                 OrderDayId = command.OrderDayId,
                 UserId = command.CallerUserId,
-                ProductId = command.ProductId,
-                Kind = menuItem.Kind,
-                Meat = meat,
-                PizzaVariant = pizza,
-                Sauces = sauces,
-                PriceCents = command.PriceCents,
-                Extra = command.Extra,
                 IsPickup = command.IsPickup,
                 OccurredOn = day.OpenedAt,
                 CreatedAt = now,
                 UpdatedAt = now,
             };
+            // OrderId is left to EF's relationship fixup via the navigation.
+            existing.Lines.Add(BuildLine(command, menuItem.Kind, meat, pizza, sauces));
             database.Orders.Add(existing);
         }
         else
         {
-            existing.ProductId = command.ProductId;
-            existing.Kind = menuItem.Kind;
-            existing.Meat = meat;
-            existing.PizzaVariant = pizza;
-            existing.Sauces = sauces;
-            existing.PriceCents = command.PriceCents;
-            existing.Extra = command.Extra;
             existing.IsPickup = command.IsPickup;
             existing.UpdatedAt = now;
+
+            // Single-item contract: the upsert REPLACES the order's single line with the submitted
+            // item. Mutating the existing line in place (rather than delete + insert) keeps its
+            // identity stable and avoids a redundant DELETE.
+            var line = existing.Lines.Single();
+            line.ProductId = command.ProductId;
+            line.Kind = menuItem.Kind;
+            line.Meat = meat;
+            line.PizzaVariant = pizza;
+            line.Sauces = sauces;
+            line.PriceCents = command.PriceCents;
+            line.Extra = command.Extra;
+            line.Quantity = 1;
         }
 
         await database.SaveChangesAsync(ct);
@@ -100,6 +104,7 @@ public sealed class OrderService : IOrderService
     {
         var order = await database
             .Orders.AsNoTracking()
+            .Include(o => o.Lines)
             .FirstOrDefaultAsync(
                 o => o.OrderDayId == query.OrderDayId && o.UserId == query.CallerUserId,
                 ct
@@ -107,7 +112,7 @@ public sealed class OrderService : IOrderService
         if (order is null)
             return Result<OrderDetails?>.Success(null);
 
-        var productName = await ResolveProductName(order.ProductId, ct);
+        var productName = await ResolveProductName(order.Lines.Single().ProductId, ct);
         return Result<OrderDetails?>.Success(OrderDetailsFactory.Build(order, productName));
     }
 
@@ -139,6 +144,7 @@ public sealed class OrderService : IOrderService
     {
         var order = await database
             .Orders.AsNoTracking()
+            .Include(o => o.Lines)
             .FirstOrDefaultAsync(o => o.Id == query.OrderId, ct);
 
         // Don't leak other people's orders: an order that isn't the caller's reads as NotFound.
@@ -151,24 +157,26 @@ public sealed class OrderService : IOrderService
         if (day is null)
             return Result<OrderResultDetails>.NotFound("Döner-Tag nicht gefunden.");
 
-        var productName = await ResolveProductName(order.ProductId, ct);
+        var line = order.Lines.Single();
+        var productName = await ResolveProductName(line.ProductId, ct);
         var label = OrderLabelBuilder.BuildProductLabel(
-            order.Kind,
+            line.Kind,
             productName,
-            order.Meat,
-            order.PizzaVariant
+            line.Meat,
+            line.PizzaVariant
         );
-        var detail = OrderLabelBuilder.BuildDescription(order.Kind, order.Sauces, order.Extra);
+        var detail = OrderLabelBuilder.BuildDescription(line.Kind, line.Sauces, line.Extra);
+        var orderTotal = order.TotalCents;
 
         var collector = await ResolveCollector(day, ct);
         var abholer = collector is null ? null : BuildAbholer(collector);
 
-        // The caller's PayPal deep-link to the collector for their own order price — only when the
+        // The caller's PayPal deep-link to the collector for their own order total — only when the
         // caller is a non-pickup payer and there is a collector with a handle.
         var myPayPalUrl =
             order.IsPickup || collector is null
                 ? null
-                : PayPalLinkBuilder.BuildLink(collector.PayPalHandle, order.PriceCents);
+                : PayPalLinkBuilder.BuildLink(collector.PayPalHandle, orderTotal);
 
         // When the caller is the designated collector, sum what the non-pickup colleagues owe them.
         var (collectCents, collectCount) = await ResolveCollectTotals(day, order, collector, ct);
@@ -176,7 +184,7 @@ public sealed class OrderService : IOrderService
         return Result<OrderResultDetails>.Success(
             new OrderResultDetails(
                 label,
-                order.PriceCents,
+                orderTotal,
                 detail,
                 order.IsPickup,
                 abholer,
@@ -197,10 +205,11 @@ public sealed class OrderService : IOrderService
         if (collector is null || collector.Id != order.UserId)
             return (0, 0);
 
+        // Each non-pickup order owes its own total (sum of its lines' Quantity * per-unit price).
         var owed = await database
             .Orders.AsNoTracking()
             .Where(o => o.OrderDayId == day.Id && !o.IsPickup)
-            .Select(o => o.PriceCents)
+            .Select(o => o.Lines.Sum(line => line.Quantity * line.PriceCents))
             .ToListAsync(ct);
 
         return (owed.Sum(), owed.Count);
@@ -240,4 +249,24 @@ public sealed class OrderService : IOrderService
         PizzaVariant? pizza,
         Sauce sauces
     ) => kind == ProductKind.Pizza ? (null, pizza, Sauce.None) : (meat, null, sauces);
+
+    private static OrderLine BuildLine(
+        UpsertOrderCommand command,
+        ProductKind kind,
+        MeatType? meat,
+        PizzaVariant? pizza,
+        Sauce sauces
+    ) =>
+        new()
+        {
+            Id = Guid.NewGuid(),
+            ProductId = command.ProductId,
+            Kind = kind,
+            Meat = meat,
+            PizzaVariant = pizza,
+            Sauces = sauces,
+            PriceCents = command.PriceCents,
+            Extra = command.Extra,
+            Quantity = 1,
+        };
 }

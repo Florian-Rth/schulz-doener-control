@@ -16,6 +16,8 @@ public sealed class AppDbContext : DbContext
 
     public DbSet<Order> Orders => Set<Order>();
 
+    public DbSet<OrderLine> OrderLines => Set<OrderLine>();
+
     public DbSet<Debt> Debts => Set<Debt>();
 
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();

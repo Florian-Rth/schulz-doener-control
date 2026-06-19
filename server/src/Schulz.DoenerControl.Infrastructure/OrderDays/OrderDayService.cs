@@ -174,6 +174,8 @@ public sealed class OrderDayService : IOrderDayService
             .OrderDays.AsNoTracking()
             .Include(d => d.Orders!)
                 .ThenInclude(order => order.User)
+            .Include(d => d.Orders!)
+                .ThenInclude(order => order.Lines)
             .FirstOrDefaultAsync(predicate, ct);
 
     private async Task<OrderDayDetails> ProjectAsync(
@@ -223,7 +225,11 @@ public sealed class OrderDayService : IOrderDayService
         if (orders.Count == 0)
             return new Dictionary<string, string>();
 
-        var productIds = orders.Select(order => order.ProductId).Distinct().ToList();
+        var productIds = orders
+            .SelectMany(order => order.Lines)
+            .Select(line => line.ProductId)
+            .Distinct()
+            .ToList();
         return await database
             .MenuItems.AsNoTracking()
             .Where(item => productIds.Contains(item.Id))
@@ -237,21 +243,24 @@ public sealed class OrderDayService : IOrderDayService
     )
     {
         var displayName = order.User?.DisplayName ?? string.Empty;
-        var productName = productNames.GetValueOrDefault(order.ProductId, order.ProductId);
+        // Single-item contract (B7): each order has exactly one line; the row mirrors it and the
+        // price is the order total (sum of Quantity * per-unit price over the lines).
+        var line = order.Lines.Single();
+        var productName = productNames.GetValueOrDefault(line.ProductId, line.ProductId);
         return new OrderRowSummary(
             order.Id,
             displayName,
             NameFormatter.InitialsOf(displayName),
             order.User?.AvatarColorHex ?? string.Empty,
             OrderLabelBuilder.BuildProductLabel(
-                order.Kind,
+                line.Kind,
                 productName,
-                order.Meat,
-                order.PizzaVariant
+                line.Meat,
+                line.PizzaVariant
             ),
-            OrderLabelBuilder.BuildDescription(order.Kind, order.Sauces, order.Extra),
-            order.PriceCents,
-            MoneyFormatter.ToGermanString(order.PriceCents),
+            OrderLabelBuilder.BuildDescription(line.Kind, line.Sauces, line.Extra),
+            order.TotalCents,
+            MoneyFormatter.ToGermanString(order.TotalCents),
             order.UserId == callerId,
             order.IsPickup
         );
