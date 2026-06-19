@@ -12,6 +12,7 @@ export {
 export { useAuth } from "./auth-context";
 export { AuthProvider } from "./components/AuthProvider";
 export { LoginPage } from "./components/LoginPage";
+export { UserProfileButton } from "./components/UserProfileButton";
 export {
   LoginFormSchema,
   LoginResponseSchema,

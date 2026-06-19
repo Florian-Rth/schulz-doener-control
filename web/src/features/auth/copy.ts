@@ -12,4 +12,7 @@ export const authCopy = {
   serverStatus: "Döner-Server erreichbar · Werk HB-01 · v3.0",
   loginFailed: "Anmeldung fehlgeschlagen. Benutzername oder Passwort prüfen, Chef.",
   brandAlt: "Schulz Döner Control",
+  profileMenuLabel: "Profilmenü öffnen",
+  changePassword: "Passwort ändern",
+  logout: "Abmelden",
 } as const;
