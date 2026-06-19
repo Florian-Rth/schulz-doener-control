@@ -119,7 +119,7 @@ public sealed class AuthService : IAuthService
         return Result.Success();
     }
 
-    public async Task<Result> ChangePasswordAsync(
+    public async Task<Result<AuthenticatedUserDetails>> ChangePasswordAsync(
         ChangePasswordCommand command,
         CancellationToken ct
     )
@@ -130,7 +130,7 @@ public sealed class AuthService : IAuthService
         );
 
         if (user is null)
-            return Result.Validation(GenericFailure);
+            return Result<AuthenticatedUserDetails>.Validation(GenericFailure);
 
         // Forced first-login change: the caller authenticated seconds ago at login, so the old
         // password is not re-asked or verified. The authority is the DB flag, never a client value.
@@ -144,7 +144,7 @@ public sealed class AuthService : IAuthService
                     user.PasswordSalt
                 )
             )
-                return Result.Validation(GenericFailure);
+                return Result<AuthenticatedUserDetails>.Validation(GenericFailure);
         }
 
         var rehashed = passwordHasher.Hash(command.NewPassword);
@@ -152,12 +152,15 @@ public sealed class AuthService : IAuthService
         user.PasswordSalt = rehashed.Salt;
         user.MustChangePassword = false;
 
-        // Force re-login everywhere: there is no token_version column to invalidate outstanding
-        // access JWTs early, so they live out their short lifetime; refresh tokens are killed now.
+        // Invalidate every other device: there is no token_version column to expire outstanding
+        // access JWTs early (they live out their short lifetime), but all existing refresh tokens are
+        // revoked now. The replacement below is minted AFTER the revoke so it survives, keeping the
+        // caller signed in with a fresh session whose new access token carries must_change=false.
         var now = timeProvider.GetUtcNow();
         await RevokeAllForUserAsync(user.Id, now, ct);
-        await database.SaveChangesAsync(ct);
-        return Result.Success();
+        var rawRefreshToken = await IssueRefreshTokenAsync(user.Id, ct);
+
+        return Result<AuthenticatedUserDetails>.Success(MapAuthenticated(user, rawRefreshToken));
     }
 
     private void VerifyDummy(string password) =>

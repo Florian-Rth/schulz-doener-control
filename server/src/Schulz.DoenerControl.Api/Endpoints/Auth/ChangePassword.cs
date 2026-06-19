@@ -51,9 +51,10 @@ public sealed class ChangePasswordRequestValidator : Validator<ChangePasswordReq
 // Self-sets a new password. The only authenticated endpoint reachable while MustChangePassword is
 // set. On the self-service path it verifies the current password (wrong -> 401); on the forced
 // first-login path (MustChangePassword set) the current password is neither required nor verified,
-// since the caller just authenticated at login. It clears the flag and revokes the caller's refresh
-// tokens so other sessions must re-login. Cookies are cleared so the client re-authenticates with
-// the new password (the access token still carries the now-stale must_change claim).
+// since the caller just authenticated at login. It clears the flag and revokes every OTHER refresh
+// token so other sessions must re-login, but keeps THIS caller signed in: the service returns a
+// fresh refresh token and updated details, and we re-issue all three auth cookies. The new access
+// token carries must_change=false, so the immutable old JWT's stale claim no longer matters.
 public sealed class ChangePassword : Endpoint<ChangePasswordRequest>
 {
     private readonly IAuthService authService;
@@ -93,7 +94,7 @@ public sealed class ChangePassword : Endpoint<ChangePasswordRequest>
             return;
         }
 
-        sessionWriter.ClearSession(HttpContext.Response);
+        sessionWriter.WriteSession(HttpContext.Response, result.Value);
         await Send.NoContentAsync(ct);
     }
 }
