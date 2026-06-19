@@ -26,6 +26,8 @@ export interface DashboardContextValue {
   goOrder: () => void;
   /** Navigates to the Döner-Tiere catalog. */
   goTiere: () => void;
+  /** Navigates to the printable Abholer order list. */
+  goPrint: () => void;
 }
 
 // One context for the dashboard compound group. Children read it instead of

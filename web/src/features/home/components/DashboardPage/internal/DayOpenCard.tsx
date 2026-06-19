@@ -2,7 +2,7 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { FC } from "react";
-import { LiveDot, MaterialIcon, PrimaryButton, RedChromeSurface } from "@/components";
+import { GhostButton, LiveDot, MaterialIcon, PrimaryButton, RedChromeSurface } from "@/components";
 import { cutoffSentence, homeCopy, participantPill } from "../../../copy";
 import { useDashboardContext } from "../../../dashboard-context";
 import type { DashboardDay } from "../../../types";
@@ -16,7 +16,7 @@ interface DayOpenCardProps {
 // "{n} dabei"), notification preview, the abholer line, the order rows, and the
 // "Meine Bestellung abgeben" CTA.
 export const DayOpenCard: FC<DayOpenCardProps> = ({ day }) => {
-  const { goOrder } = useDashboardContext();
+  const { goOrder, goPrint } = useDashboardContext();
   const cutoff = day.cutoffLabel ?? "";
 
   return (
@@ -111,6 +111,11 @@ export const DayOpenCard: FC<DayOpenCardProps> = ({ day }) => {
         <PrimaryButton onClick={goOrder} startIcon="add" sx={{ mt: 2 }}>
           {homeCopy.goOrder}
         </PrimaryButton>
+        {day.orders.length > 0 ? (
+          <GhostButton onClick={goPrint} sx={{ mt: 1 }}>
+            {homeCopy.printList}
+          </GhostButton>
+        ) : null}
       </Stack>
     </Paper>
   );

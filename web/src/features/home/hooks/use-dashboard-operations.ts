@@ -9,6 +9,7 @@ export interface DashboardOperations {
   isOpeningDay: boolean;
   goOrder: () => void;
   goTiere: () => void;
+  goPrint: () => void;
 }
 
 interface UseDashboardOperationsArgs {
@@ -48,6 +49,9 @@ export const useDashboardOperations = ({
     },
     goTiere: () => {
       void navigate({ to: "/tiere" });
+    },
+    goPrint: () => {
+      void navigate({ to: "/druck" });
     },
   };
 };

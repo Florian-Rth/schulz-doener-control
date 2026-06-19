@@ -26,6 +26,7 @@ export const homeCopy = {
   notifEyebrow: "Gesendete Benachrichtigung",
   abholerLabel: "Abholer heute:",
   goOrder: "Meine Bestellung abgeben",
+  printList: "Bestellliste drucken",
   // Leaderboard
   leaderboardTitle: "Döner-Bestenliste",
   // Open payments

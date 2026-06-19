@@ -16,6 +16,7 @@ import { Route as AuthTiereRouteImport } from './routes/_auth/tiere'
 import { Route as AuthPasswortAendernRouteImport } from './routes/_auth/passwort-aendern'
 import { Route as AuthOrderRouteImport } from './routes/_auth/order'
 import { Route as AuthErledigtRouteImport } from './routes/_auth/erledigt'
+import { Route as AuthDruckRouteImport } from './routes/_auth/druck'
 import { Route as AuthBenachrichtigungenRouteImport } from './routes/_auth/benachrichtigungen'
 
 const LoginRoute = LoginRouteImport.update({
@@ -52,6 +53,11 @@ const AuthErledigtRoute = AuthErledigtRouteImport.update({
   path: '/erledigt',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthDruckRoute = AuthDruckRouteImport.update({
+  id: '/druck',
+  path: '/druck',
+  getParentRoute: () => AuthRoute,
+} as any)
 const AuthBenachrichtigungenRoute = AuthBenachrichtigungenRouteImport.update({
   id: '/benachrichtigungen',
   path: '/benachrichtigungen',
@@ -62,6 +68,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthIndexRoute
   '/login': typeof LoginRoute
   '/benachrichtigungen': typeof AuthBenachrichtigungenRoute
+  '/druck': typeof AuthDruckRoute
   '/erledigt': typeof AuthErledigtRoute
   '/order': typeof AuthOrderRoute
   '/passwort-aendern': typeof AuthPasswortAendernRoute
@@ -70,6 +77,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/benachrichtigungen': typeof AuthBenachrichtigungenRoute
+  '/druck': typeof AuthDruckRoute
   '/erledigt': typeof AuthErledigtRoute
   '/order': typeof AuthOrderRoute
   '/passwort-aendern': typeof AuthPasswortAendernRoute
@@ -81,6 +89,7 @@ export interface FileRoutesById {
   '/_auth': typeof AuthRouteWithChildren
   '/login': typeof LoginRoute
   '/_auth/benachrichtigungen': typeof AuthBenachrichtigungenRoute
+  '/_auth/druck': typeof AuthDruckRoute
   '/_auth/erledigt': typeof AuthErledigtRoute
   '/_auth/order': typeof AuthOrderRoute
   '/_auth/passwort-aendern': typeof AuthPasswortAendernRoute
@@ -93,6 +102,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/benachrichtigungen'
+    | '/druck'
     | '/erledigt'
     | '/order'
     | '/passwort-aendern'
@@ -101,6 +111,7 @@ export interface FileRouteTypes {
   to:
     | '/login'
     | '/benachrichtigungen'
+    | '/druck'
     | '/erledigt'
     | '/order'
     | '/passwort-aendern'
@@ -111,6 +122,7 @@ export interface FileRouteTypes {
     | '/_auth'
     | '/login'
     | '/_auth/benachrichtigungen'
+    | '/_auth/druck'
     | '/_auth/erledigt'
     | '/_auth/order'
     | '/_auth/passwort-aendern'
@@ -174,6 +186,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthErledigtRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_auth/druck': {
+      id: '/_auth/druck'
+      path: '/druck'
+      fullPath: '/druck'
+      preLoaderRoute: typeof AuthDruckRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/_auth/benachrichtigungen': {
       id: '/_auth/benachrichtigungen'
       path: '/benachrichtigungen'
@@ -186,6 +205,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthRouteChildren {
   AuthBenachrichtigungenRoute: typeof AuthBenachrichtigungenRoute
+  AuthDruckRoute: typeof AuthDruckRoute
   AuthErledigtRoute: typeof AuthErledigtRoute
   AuthOrderRoute: typeof AuthOrderRoute
   AuthPasswortAendernRoute: typeof AuthPasswortAendernRoute
@@ -195,6 +215,7 @@ interface AuthRouteChildren {
 
 const AuthRouteChildren: AuthRouteChildren = {
   AuthBenachrichtigungenRoute: AuthBenachrichtigungenRoute,
+  AuthDruckRoute: AuthDruckRoute,
   AuthErledigtRoute: AuthErledigtRoute,
   AuthOrderRoute: AuthOrderRoute,
   AuthPasswortAendernRoute: AuthPasswortAendernRoute,
