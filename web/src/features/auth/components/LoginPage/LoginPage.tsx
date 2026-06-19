@@ -22,7 +22,11 @@ export const LoginPage: FC<LoginPageProps> = ({ redirect }) => {
   return (
     <Stack
       sx={(theme) => ({
-        minHeight: "100%",
+        // Fill the screen including when the mobile URL bar shows/hides.
+        // `100dvh` is the dynamic viewport height; the `100vh`/`100%` fallback
+        // for browsers without `dvh` lives on `#root` in AppGlobalStyles (which
+        // is full height there), so this just opts into the dynamic unit.
+        minHeight: "100dvh",
         width: "100%",
         px: 3.5,
         pb: 3.5,
