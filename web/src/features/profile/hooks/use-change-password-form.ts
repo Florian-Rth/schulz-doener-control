@@ -29,10 +29,11 @@ interface UseChangePasswordFormOptions {
 
 // Logic layer for the change-password screen: RHF + Zod resolver (length, charset
 // and match rules mirroring the backend validator) wired to the change-password
-// mutation. On success we await a fresh `/me` so the cleared `mustChangePassword`
-// is in the cache, then route home — the guard then no longer forces this page.
-// A 401 surfaces as the "wrong current password" message; anything else as a
-// generic failure.
+// mutation. On a 204 the backend re-issues fresh auth cookies, so the session
+// stays authenticated — we never clear it or force a re-login. We await a fresh
+// `/me` so the cleared `mustChangePassword` is in the cache, then route home — the
+// guard then no longer forces this page. A 401 surfaces as the "wrong current
+// password" message; anything else as a generic failure.
 export const useChangePasswordForm = ({
   redirectTo = "/",
 }: UseChangePasswordFormOptions = {}): UseChangePasswordFormResult => {
@@ -60,9 +61,11 @@ export const useChangePasswordForm = ({
         currentPassword: forced ? undefined : values.currentPassword,
         newPassword: values.newPassword,
       });
-      // Await a fresh `/me` so the cleared `mustChangePassword` is in the cache
-      // before we navigate — otherwise the `_auth` guard reads the stale locked
-      // session and bounces us straight back to this page.
+      // The backend re-issued fresh auth cookies on the 204, so we stay
+      // authenticated. Await a fresh `/me` (it now returns mustChangePassword=
+      // false) so the cleared flag is in the cache before we navigate — otherwise
+      // the `_auth` guard reads the stale locked session and bounces us back to
+      // this page. Then land on the app (dashboard), never /login.
       await refresh();
       await navigate({ to: redirectTo });
     } catch (error) {
