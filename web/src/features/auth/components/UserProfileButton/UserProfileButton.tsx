@@ -27,6 +27,7 @@ export const UserProfileButton: FC<UserProfileButtonProps> = ({ size = 38, sx })
     isLoggingOut,
     open,
     close,
+    goToAdmin,
     goToChangePassword,
     logout,
     logoutError,
@@ -36,6 +37,8 @@ export const UserProfileButton: FC<UserProfileButtonProps> = ({ size = 38, sx })
   if (user === null) {
     return null;
   }
+
+  const isAdmin = user.role.toLowerCase() === "admin";
 
   return (
     <>
@@ -70,6 +73,11 @@ export const UserProfileButton: FC<UserProfileButtonProps> = ({ size = 38, sx })
           },
         }}
       >
+        {isAdmin ? (
+          <MenuItem onClick={goToAdmin} sx={{ fontWeight: 600 }}>
+            {authCopy.adminArea}
+          </MenuItem>
+        ) : null}
         <MenuItem onClick={goToChangePassword} sx={{ fontWeight: 600 }}>
           {authCopy.changePassword}
         </MenuItem>

@@ -1,6 +1,7 @@
 export {
   authKeys,
   ensureAuthStatus,
+  ensureRole,
   ensureSession,
   ensureSessionGate,
   LOCKED_SESSION,

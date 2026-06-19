@@ -13,6 +13,7 @@ export const authCopy = {
   loginFailed: "Anmeldung fehlgeschlagen. Benutzername oder Passwort prüfen, Chef.",
   brandAlt: "Schulz Döner Control",
   profileMenuLabel: "Profilmenü öffnen",
+  adminArea: "Admin-Bereich",
   changePassword: "Passwort ändern",
   logout: "Abmelden",
   logoutFailed: "Abmelden fehlgeschlagen, Chef. Bitte gleich nochmal versuchen.",

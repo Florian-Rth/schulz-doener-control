@@ -144,4 +144,54 @@ describe("UserProfileButton", () => {
       expect(router.state.location.pathname).toBe("/passwort-aendern");
     });
   });
+
+  it("zeigt 'Admin-Bereich' für eine Admin-Sitzung", async () => {
+    mswServer.use(
+      http.get("*/api/auth/me", () =>
+        HttpResponse.json({ ...authenticatedSession, role: "Admin" }),
+      ),
+      http.get("*/api/dashboard", () => HttpResponse.json(closedDashboard)),
+    );
+    const user = userEvent.setup();
+    const { findByRole } = renderApp({ initialPath: "/" });
+
+    await user.click(await findByRole("button", { name: "Profilmenü öffnen" }));
+
+    expect(await findByRole("menuitem", { name: "Admin-Bereich" })).toBeInTheDocument();
+  });
+
+  it("verbirgt 'Admin-Bereich' für eine Employee-Sitzung", async () => {
+    mswServer.use(
+      http.get("*/api/auth/me", () =>
+        HttpResponse.json({ ...authenticatedSession, role: "Employee" }),
+      ),
+      http.get("*/api/dashboard", () => HttpResponse.json(closedDashboard)),
+    );
+    const user = userEvent.setup();
+    const { findByRole, queryByRole } = renderApp({ initialPath: "/" });
+
+    await user.click(await findByRole("button", { name: "Profilmenü öffnen" }));
+    // The change-password item proves the menu is open before asserting absence.
+    await findByRole("menuitem", { name: "Passwort ändern" });
+
+    expect(queryByRole("menuitem", { name: "Admin-Bereich" })).not.toBeInTheDocument();
+  });
+
+  it("navigiert über 'Admin-Bereich' nach /admin", async () => {
+    mswServer.use(
+      http.get("*/api/auth/me", () =>
+        HttpResponse.json({ ...authenticatedSession, role: "Admin" }),
+      ),
+      http.get("*/api/dashboard", () => HttpResponse.json(closedDashboard)),
+    );
+    const user = userEvent.setup();
+    const { findByRole, router } = renderApp({ initialPath: "/" });
+
+    await user.click(await findByRole("button", { name: "Profilmenü öffnen" }));
+    await user.click(await findByRole("menuitem", { name: "Admin-Bereich" }));
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/admin");
+    });
+  });
 });

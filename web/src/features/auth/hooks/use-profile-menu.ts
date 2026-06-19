@@ -11,6 +11,8 @@ interface UseProfileMenuResult {
   isLoggingOut: boolean;
   open: (event: React.MouseEvent<HTMLElement>) => void;
   close: () => void;
+  /** Closes the menu and routes to the admin hub. */
+  goToAdmin: () => void;
   /** Closes the menu and routes to the change-password page. */
   goToChangePassword: () => void;
   /**
@@ -40,6 +42,11 @@ export const useProfileMenu = (): UseProfileMenuResult => {
     setAnchorEl(null);
   };
 
+  const goToAdmin = (): void => {
+    close();
+    void navigate({ to: "/admin" });
+  };
+
   const goToChangePassword = (): void => {
     close();
     void navigate({ to: "/passwort-aendern" });
@@ -65,6 +72,7 @@ export const useProfileMenu = (): UseProfileMenuResult => {
     isLoggingOut: logoutMutation.isPending,
     open: (event) => setAnchorEl(event.currentTarget),
     close,
+    goToAdmin,
     goToChangePassword,
     logout,
     logoutError,

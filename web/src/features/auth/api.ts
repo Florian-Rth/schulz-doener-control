@@ -1,5 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { CancelledError, useMutation, useQuery } from "@tanstack/react-query";
+import { redirect } from "@tanstack/react-router";
 import { ApiError, apiClient } from "@/lib/api";
 import { LoginResponseSchema, SessionSchema } from "./schemas";
 import type { AuthStatus, LoginForm, LoginResponse, Session } from "./types";
@@ -78,6 +79,21 @@ export const ensureSessionGate = async (
     }
   }
   return { status: "loading", mustChangePassword: false };
+};
+
+// Role guard for route `beforeLoad`s: resolves the session (cache or
+// `GET /api/auth/me`) and throws a redirect to "/" unless the caller's role
+// matches `requiredRole`. The comparison is case-insensitive for safety even
+// though the backend emits PascalCase ("Admin" | "Employee"). It must run AFTER
+// the `_auth` authentication + must-change gating (its parent), so an anonymous
+// or locked caller has already been redirected by the time this runs; here we
+// only decide on role. A missing/cancelled session is treated as not having the
+// role and is bounced home rather than left on the admin route.
+export const ensureRole = async (queryClient: QueryClient, requiredRole: string): Promise<void> => {
+  const session = await ensureSession(queryClient);
+  if (session === null || session.role.toLowerCase() !== requiredRole.toLowerCase()) {
+    throw redirect({ to: "/" });
+  }
 };
 
 // A freshly provisioned account is authenticated but locked: the backend's

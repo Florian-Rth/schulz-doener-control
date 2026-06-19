@@ -1,0 +1,1 @@
+export { AdminPlaceholderPage } from "./AdminPlaceholderPage";

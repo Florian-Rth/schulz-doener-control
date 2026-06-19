@@ -18,6 +18,11 @@ import { Route as AuthOrderRouteImport } from './routes/_auth/order'
 import { Route as AuthErledigtRouteImport } from './routes/_auth/erledigt'
 import { Route as AuthDruckRouteImport } from './routes/_auth/druck'
 import { Route as AuthBenachrichtigungenRouteImport } from './routes/_auth/benachrichtigungen'
+import { Route as AuthAdminRouteImport } from './routes/_auth/admin'
+import { Route as AuthAdminIndexRouteImport } from './routes/_auth/admin/index'
+import { Route as AuthAdminTiereRouteImport } from './routes/_auth/admin/tiere'
+import { Route as AuthAdminMenueRouteImport } from './routes/_auth/admin/menue'
+import { Route as AuthAdminBenutzerRouteImport } from './routes/_auth/admin/benutzer'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -63,16 +68,46 @@ const AuthBenachrichtigungenRoute = AuthBenachrichtigungenRouteImport.update({
   path: '/benachrichtigungen',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthAdminRoute = AuthAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthAdminIndexRoute = AuthAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthAdminRoute,
+} as any)
+const AuthAdminTiereRoute = AuthAdminTiereRouteImport.update({
+  id: '/tiere',
+  path: '/tiere',
+  getParentRoute: () => AuthAdminRoute,
+} as any)
+const AuthAdminMenueRoute = AuthAdminMenueRouteImport.update({
+  id: '/menue',
+  path: '/menue',
+  getParentRoute: () => AuthAdminRoute,
+} as any)
+const AuthAdminBenutzerRoute = AuthAdminBenutzerRouteImport.update({
+  id: '/benutzer',
+  path: '/benutzer',
+  getParentRoute: () => AuthAdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthIndexRoute
   '/login': typeof LoginRoute
+  '/admin': typeof AuthAdminRouteWithChildren
   '/benachrichtigungen': typeof AuthBenachrichtigungenRoute
   '/druck': typeof AuthDruckRoute
   '/erledigt': typeof AuthErledigtRoute
   '/order': typeof AuthOrderRoute
   '/passwort-aendern': typeof AuthPasswortAendernRoute
   '/tiere': typeof AuthTiereRoute
+  '/admin/benutzer': typeof AuthAdminBenutzerRoute
+  '/admin/menue': typeof AuthAdminMenueRoute
+  '/admin/tiere': typeof AuthAdminTiereRoute
+  '/admin/': typeof AuthAdminIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -83,11 +118,16 @@ export interface FileRoutesByTo {
   '/passwort-aendern': typeof AuthPasswortAendernRoute
   '/tiere': typeof AuthTiereRoute
   '/': typeof AuthIndexRoute
+  '/admin/benutzer': typeof AuthAdminBenutzerRoute
+  '/admin/menue': typeof AuthAdminMenueRoute
+  '/admin/tiere': typeof AuthAdminTiereRoute
+  '/admin': typeof AuthAdminIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_auth': typeof AuthRouteWithChildren
   '/login': typeof LoginRoute
+  '/_auth/admin': typeof AuthAdminRouteWithChildren
   '/_auth/benachrichtigungen': typeof AuthBenachrichtigungenRoute
   '/_auth/druck': typeof AuthDruckRoute
   '/_auth/erledigt': typeof AuthErledigtRoute
@@ -95,18 +135,27 @@ export interface FileRoutesById {
   '/_auth/passwort-aendern': typeof AuthPasswortAendernRoute
   '/_auth/tiere': typeof AuthTiereRoute
   '/_auth/': typeof AuthIndexRoute
+  '/_auth/admin/benutzer': typeof AuthAdminBenutzerRoute
+  '/_auth/admin/menue': typeof AuthAdminMenueRoute
+  '/_auth/admin/tiere': typeof AuthAdminTiereRoute
+  '/_auth/admin/': typeof AuthAdminIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/login'
+    | '/admin'
     | '/benachrichtigungen'
     | '/druck'
     | '/erledigt'
     | '/order'
     | '/passwort-aendern'
     | '/tiere'
+    | '/admin/benutzer'
+    | '/admin/menue'
+    | '/admin/tiere'
+    | '/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -117,10 +166,15 @@ export interface FileRouteTypes {
     | '/passwort-aendern'
     | '/tiere'
     | '/'
+    | '/admin/benutzer'
+    | '/admin/menue'
+    | '/admin/tiere'
+    | '/admin'
   id:
     | '__root__'
     | '/_auth'
     | '/login'
+    | '/_auth/admin'
     | '/_auth/benachrichtigungen'
     | '/_auth/druck'
     | '/_auth/erledigt'
@@ -128,6 +182,10 @@ export interface FileRouteTypes {
     | '/_auth/passwort-aendern'
     | '/_auth/tiere'
     | '/_auth/'
+    | '/_auth/admin/benutzer'
+    | '/_auth/admin/menue'
+    | '/_auth/admin/tiere'
+    | '/_auth/admin/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -200,10 +258,64 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthBenachrichtigungenRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_auth/admin': {
+      id: '/_auth/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthAdminRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/admin/': {
+      id: '/_auth/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AuthAdminIndexRouteImport
+      parentRoute: typeof AuthAdminRoute
+    }
+    '/_auth/admin/tiere': {
+      id: '/_auth/admin/tiere'
+      path: '/tiere'
+      fullPath: '/admin/tiere'
+      preLoaderRoute: typeof AuthAdminTiereRouteImport
+      parentRoute: typeof AuthAdminRoute
+    }
+    '/_auth/admin/menue': {
+      id: '/_auth/admin/menue'
+      path: '/menue'
+      fullPath: '/admin/menue'
+      preLoaderRoute: typeof AuthAdminMenueRouteImport
+      parentRoute: typeof AuthAdminRoute
+    }
+    '/_auth/admin/benutzer': {
+      id: '/_auth/admin/benutzer'
+      path: '/benutzer'
+      fullPath: '/admin/benutzer'
+      preLoaderRoute: typeof AuthAdminBenutzerRouteImport
+      parentRoute: typeof AuthAdminRoute
+    }
   }
 }
 
+interface AuthAdminRouteChildren {
+  AuthAdminBenutzerRoute: typeof AuthAdminBenutzerRoute
+  AuthAdminMenueRoute: typeof AuthAdminMenueRoute
+  AuthAdminTiereRoute: typeof AuthAdminTiereRoute
+  AuthAdminIndexRoute: typeof AuthAdminIndexRoute
+}
+
+const AuthAdminRouteChildren: AuthAdminRouteChildren = {
+  AuthAdminBenutzerRoute: AuthAdminBenutzerRoute,
+  AuthAdminMenueRoute: AuthAdminMenueRoute,
+  AuthAdminTiereRoute: AuthAdminTiereRoute,
+  AuthAdminIndexRoute: AuthAdminIndexRoute,
+}
+
+const AuthAdminRouteWithChildren = AuthAdminRoute._addFileChildren(
+  AuthAdminRouteChildren,
+)
+
 interface AuthRouteChildren {
+  AuthAdminRoute: typeof AuthAdminRouteWithChildren
   AuthBenachrichtigungenRoute: typeof AuthBenachrichtigungenRoute
   AuthDruckRoute: typeof AuthDruckRoute
   AuthErledigtRoute: typeof AuthErledigtRoute
@@ -214,6 +326,7 @@ interface AuthRouteChildren {
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
+  AuthAdminRoute: AuthAdminRouteWithChildren,
   AuthBenachrichtigungenRoute: AuthBenachrichtigungenRoute,
   AuthDruckRoute: AuthDruckRoute,
   AuthErledigtRoute: AuthErledigtRoute,
