@@ -1,27 +1,14 @@
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { CancelledError } from "@tanstack/react-query";
 import type { ErrorComponentProps } from "@tanstack/react-router";
 import type { FC } from "react";
 
-// A query or navigation cancelled because the user navigated away (or React
-// StrictMode remounted in dev) is not a real failure — it must not render an
-// error screen.
-const isBenignCancellation = (error: unknown): boolean => {
-  if (error instanceof CancelledError) {
-    return true;
-  }
-  return error instanceof Error && (error.name === "CancelledError" || error.name === "AbortError");
-};
-
-// Root-level error boundary fallback for the router. Page-level by nature: it
-// replaces the whole route, so it owns its own full-viewport centering.
-export const AppErrorComponent: FC<ErrorComponentProps> = ({ error, reset }) => {
-  if (isBenignCancellation(error)) {
-    return null;
-  }
-
+// Root-level error boundary fallback for the router (the router warns if a root
+// route has none). Page-level by nature: it replaces the whole route, so it owns
+// its own full-viewport centering. It never renders `null` — a blank screen with
+// no recourse is worse than a visible "try again", even for a transient error.
+export const AppErrorComponent: FC<ErrorComponentProps> = ({ reset }) => {
   return (
     <Stack
       sx={{
