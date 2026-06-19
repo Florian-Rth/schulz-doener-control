@@ -2,8 +2,15 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { FC } from "react";
-import { GhostButton, LiveDot, MaterialIcon, PrimaryButton, RedChromeSurface } from "@/components";
-import { cutoffSentence, homeCopy, participantPill } from "../../../copy";
+import {
+  GhostButton,
+  LiveDot,
+  MaterialIcon,
+  PayPalButton,
+  PrimaryButton,
+  RedChromeSurface,
+} from "@/components";
+import { cutoffSentence, homeCopy, participantPill, payAbholerLabel } from "../../../copy";
 import { useDashboardContext } from "../../../dashboard-context";
 import type { DashboardDay } from "../../../types";
 import { OrderRowItem } from "./OrderRowItem";
@@ -82,23 +89,35 @@ export const DayOpenCard: FC<DayOpenCardProps> = ({ day }) => {
 
         {day.pickupNames.length > 0 ? (
           <Stack
-            direction="row"
             sx={(theme) => ({
-              alignItems: "center",
-              gap: 1.25,
+              gap: 1,
               backgroundColor: "pinkTint.main",
               borderRadius: `${theme.radii.sm - 1}px`,
               p: 1.25,
               mb: 1.75,
             })}
           >
-            <MaterialIcon name="directions_car" sx={{ fontSize: 22, color: "primary.main" }} />
-            <Typography sx={{ flex: 1, fontSize: "0.8125rem", color: "navy.main" }}>
-              <Typography component="b" sx={{ fontWeight: 700 }}>
-                {homeCopy.abholerLabel}
-              </Typography>{" "}
-              {day.pickupNames.join(", ")}
-            </Typography>
+            <Stack direction="row" sx={{ alignItems: "center", gap: 1.25 }}>
+              <MaterialIcon name="directions_car" sx={{ fontSize: 22, color: "primary.main" }} />
+              <Typography sx={{ flex: 1, fontSize: "0.8125rem", color: "navy.main" }}>
+                <Typography component="b" sx={{ fontWeight: 700 }}>
+                  {homeCopy.abholerLabel}
+                </Typography>{" "}
+                {day.pickupNames.join(", ")}
+              </Typography>
+            </Stack>
+            {day.abholer !== null && !day.amICollector ? (
+              <Stack sx={{ gap: 0.5 }}>
+                <PayPalButton href={day.abholer.payPalUrl}>
+                  {payAbholerLabel(day.abholer.name)}
+                </PayPalButton>
+                <Typography
+                  sx={{ fontSize: "0.6875rem", color: "muted.main", textAlign: "center" }}
+                >
+                  {homeCopy.payAbholerCaption}
+                </Typography>
+              </Stack>
+            ) : null}
           </Stack>
         ) : null}
 

@@ -26,6 +26,7 @@ export const homeCopy = {
   notifEyebrow: "Gesendete Benachrichtigung",
   abholerLabel: "Abholer heute:",
   goOrder: "Meine Bestellung abgeben",
+  payAbholerCaption: "Öffnet PayPal.Me · Betrag voreingestellt",
   printList: "Bestellliste drucken",
   // Leaderboard
   leaderboardTitle: "Döner-Bestenliste",
@@ -36,6 +37,9 @@ export const homeCopy = {
   loading: "Lädt …",
   loadFailed: "Übersicht konnte nicht geladen werden, Chef.",
 } as const;
+
+// "Jetzt an {name} zahlen" — the Abholer pay-button label on the open-day card.
+export const payAbholerLabel = (name: string): string => `Jetzt an ${name} zahlen`;
 
 // "Bestellschluss 11:30 Uhr" — assembled from the cutoff label.
 export const cutoffSentence = (cutoffLabel: string): string => `Bestellschluss ${cutoffLabel} Uhr`;

@@ -57,6 +57,13 @@ const openDay = {
   participantCount: 3,
   pickupNames: ["Lukas Brandt"],
   iCanStillOrder: true,
+  amICollector: false,
+  abholer: {
+    name: "Lukas Brandt",
+    initials: "LB",
+    colorHex: "#00728E",
+    payPalUrl: "https://paypal.me/LukasBrandtHB/7.60EUR",
+  },
   orders: [
     {
       orderId: "o1",
@@ -103,6 +110,8 @@ const closedDay = {
   participantCount: 0,
   pickupNames: [],
   iCanStillOrder: false,
+  amICollector: false,
+  abholer: null,
   orders: [],
 };
 

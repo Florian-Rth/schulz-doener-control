@@ -115,6 +115,13 @@ const openDay = {
   participantCount: 3,
   pickupNames: ["Lukas Brandt"],
   iCanStillOrder: true,
+  amICollector: false,
+  abholer: {
+    name: "Lukas Brandt",
+    initials: "LB",
+    colorHex: "#00728E",
+    payPalUrl: "https://paypal.me/LukasBrandtHB/7.60EUR",
+  },
   orders: [
     {
       orderId: "o1",
@@ -161,6 +168,8 @@ const closedDay = {
   participantCount: 0,
   pickupNames: [],
   iCanStillOrder: false,
+  amICollector: false,
+  abholer: null,
   orders: [],
 };
 
@@ -241,5 +250,45 @@ describe("DashboardPage", () => {
     const hrefs = payLinks.map((link) => link.getAttribute("href"));
     expect(hrefs).toContain("https://paypal.me/LukasBrandtHB/8.50EUR");
     expect(hrefs).toContain("https://paypal.me/SaraYHB/3.00EUR");
+  });
+
+  it("zeigt auf der offenen Tag-Karte einen PayPal-Link an den Abholer, wenn man nicht selbst abholt", async () => {
+    useDashboardHandlers(buildDashboard());
+    const { findByRole } = renderApp({ initialPath: "/" });
+
+    const payLink = await findByRole("link", { name: /Jetzt an Lukas Brandt zahlen/ });
+    expect(payLink).toHaveAttribute("href", "https://paypal.me/LukasBrandtHB/7.60EUR");
+  });
+
+  it("zeigt keinen Abholer-Zahllink, wenn noch kein Abholer feststeht", async () => {
+    useDashboardHandlers(buildDashboard({ day: { ...openDay, abholer: null } }));
+    const { findByText, queryByRole } = renderApp({ initialPath: "/" });
+
+    // wait for the open-day card to render before asserting absence
+    expect(await findByText("Döner-Tag läuft")).toBeInTheDocument();
+    expect(queryByRole("button", { name: /zahlen/ })).not.toBeInTheDocument();
+    expect(queryByRole("link", { name: /zahlen/ })).not.toBeInTheDocument();
+  });
+
+  it("zeigt einen deaktivierten Abholer-Button, wenn keine PayPal-URL vorliegt", async () => {
+    useDashboardHandlers(
+      buildDashboard({
+        day: { ...openDay, abholer: { ...openDay.abholer, payPalUrl: null } },
+      }),
+    );
+    const { findByRole } = renderApp({ initialPath: "/" });
+
+    const button = await findByRole("button", { name: /Jetzt an Lukas Brandt zahlen/ });
+    expect(button).toBeDisabled();
+    expect(button).not.toHaveAttribute("href");
+  });
+
+  it("zeigt dem Abholer selbst keinen Zahllink", async () => {
+    useDashboardHandlers(buildDashboard({ day: { ...openDay, amICollector: true } }));
+    const { findByText, queryByRole } = renderApp({ initialPath: "/" });
+
+    expect(await findByText("Döner-Tag läuft")).toBeInTheDocument();
+    expect(queryByRole("button", { name: /zahlen/ })).not.toBeInTheDocument();
+    expect(queryByRole("link", { name: /zahlen/ })).not.toBeInTheDocument();
   });
 });

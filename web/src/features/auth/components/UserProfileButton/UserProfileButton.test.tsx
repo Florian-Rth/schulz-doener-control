@@ -55,6 +55,8 @@ const closedDashboard: Dashboard = {
     participantCount: 0,
     pickupNames: [],
     iCanStillOrder: false,
+    amICollector: false,
+    abholer: null,
     orders: [],
   },
   debts: { openCount: 0, totalCents: 0, totalLabel: "0,00", rows: [] },

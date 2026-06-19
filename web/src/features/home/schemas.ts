@@ -57,8 +57,21 @@ const OrderRowSchema = z.object({
   isPickup: z.boolean(),
 });
 
+// The designated Abholer (pickup person) for the day. `payPalUrl` is the
+// prefilled paypal.me link the caller can pay their share through; it is null
+// when the caller IS the collector, hasn't ordered, or the collector has no
+// handle → the pay button renders disabled.
+const DayAbholerSchema = z.object({
+  name: z.string(),
+  initials: z.string(),
+  colorHex: z.string(),
+  payPalUrl: z.string().nullable(),
+});
+
 // Today's Döner-Tag. `isOpen` is the discriminant the section switches on;
 // the rich fields are present (synonym/pushText/orders…) only when open.
+// `abholer` is null until a collector is designated; `amICollector` flags
+// whether the caller is that pickup person (they pay no one).
 const DashboardDaySchema = z.object({
   isOpen: z.boolean(),
   id: z.string().nullable(),
@@ -68,6 +81,8 @@ const DashboardDaySchema = z.object({
   participantCount: z.number().int(),
   pickupNames: z.array(z.string()),
   iCanStillOrder: z.boolean(),
+  amICollector: z.boolean(),
+  abholer: DayAbholerSchema.nullable(),
   orders: z.array(OrderRowSchema),
 });
 
