@@ -132,8 +132,20 @@ public sealed class AuthService : IAuthService
         if (user is null)
             return Result.Validation(GenericFailure);
 
-        if (!passwordHasher.Verify(command.CurrentPassword, user.PasswordHash, user.PasswordSalt))
-            return Result.Validation(GenericFailure);
+        // Forced first-login change: the caller authenticated seconds ago at login, so the old
+        // password is not re-asked or verified. The authority is the DB flag, never a client value.
+        if (!user.MustChangePassword)
+        {
+            if (
+                command.CurrentPassword is null
+                || !passwordHasher.Verify(
+                    command.CurrentPassword,
+                    user.PasswordHash,
+                    user.PasswordSalt
+                )
+            )
+                return Result.Validation(GenericFailure);
+        }
 
         var rehashed = passwordHasher.Hash(command.NewPassword);
         user.PasswordHash = rehashed.Hash;

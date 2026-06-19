@@ -3,8 +3,9 @@ using Xunit;
 
 namespace Schulz.DoenerControl.Api.Tests.Auth;
 
-// Each test uses a distinct seeded MustChangePassword account (initial password "Schulz-Start!")
-// since change-password mutates the shared per-class database; distinct users keep tests disjoint.
+// Each test uses a distinct account since change-password mutates the shared per-class database;
+// distinct users keep tests disjoint. Forced accounts (initial password "Schulz-Start!") cover the
+// first-login path; self-service tests seed dedicated MustChangePassword=false users.
 public sealed class ChangePasswordTests : DoenerControlTestBase
 {
     private const string LoginUrl = "/api/auth/login";
@@ -16,9 +17,18 @@ public sealed class ChangePasswordTests : DoenerControlTestBase
         : base(app) { }
 
     [Fact]
-    public async Task Should_Return_Unauthorized_When_Current_Password_Wrong()
+    public async Task Should_Reject_Wrong_CurrentPassword_When_Not_Forced()
     {
-        var auth = await LoggedInClientAsync("l.brandt");
+        const string username = "self.wrongpw";
+        const string password = "selbst-passwort-1";
+        await App.Services.SeedUserAsync(
+            username,
+            "Selbst Falsch",
+            password,
+            mustChangePassword: false,
+            ct: TestContext.Current.CancellationToken
+        );
+        var auth = await LoggedInClientAsync(username, password);
 
         var response = await auth.PostJsonAsync(
             ChangePasswordUrl,
@@ -26,6 +36,48 @@ public sealed class ChangePasswordTests : DoenerControlTestBase
         );
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Should_Require_CurrentPassword_When_Not_Forced()
+    {
+        const string username = "self.requirepw";
+        const string password = "selbst-passwort-2";
+        await App.Services.SeedUserAsync(
+            username,
+            "Selbst Pflicht",
+            password,
+            mustChangePassword: false,
+            ct: TestContext.Current.CancellationToken
+        );
+        var auth = await LoggedInClientAsync(username, password);
+
+        var response = await auth.PostJsonAsync(
+            ChangePasswordUrl,
+            new { NewPassword = "neuesPasswort99" }
+        );
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Should_Change_Without_CurrentPassword_When_MustChangePassword_Set()
+    {
+        const string username = "t.klein";
+        const string newPassword = "ohneAltesPw5";
+        var auth = await LoggedInClientAsync(username);
+
+        var response = await auth.PostJsonAsync(
+            ChangePasswordUrl,
+            new { NewPassword = newPassword }
+        );
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+
+        // The forced flag must have cleared: the new password logs in and reaches a gated endpoint.
+        var fresh = new AuthTestClient(App.CreateClient());
+        await fresh.PostJsonAsync(LoginUrl, new { Username = username, Password = newPassword });
+        var me = await fresh.GetAsync(MeUrl);
+        Assert.Equal(HttpStatusCode.OK, me.StatusCode);
     }
 
     [Fact]
@@ -85,10 +137,13 @@ public sealed class ChangePasswordTests : DoenerControlTestBase
         Assert.Equal(HttpStatusCode.OK, me.StatusCode);
     }
 
-    private async Task<AuthTestClient> LoggedInClientAsync(string username)
+    private async Task<AuthTestClient> LoggedInClientAsync(
+        string username,
+        string password = InitialPassword
+    )
     {
         var auth = new AuthTestClient(App.CreateClient());
-        await auth.PostJsonAsync(LoginUrl, new { Username = username, Password = InitialPassword });
+        await auth.PostJsonAsync(LoginUrl, new { Username = username, Password = password });
         return auth;
     }
 }

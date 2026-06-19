@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using FastEndpoints;
 using FluentValidation;
 using Schulz.DoenerControl.Api.Auth;
@@ -5,13 +6,26 @@ using Schulz.DoenerControl.Application.Security;
 
 namespace Schulz.DoenerControl.Api.Endpoints.Auth;
 
-public sealed record ChangePasswordRequest(string CurrentPassword, string NewPassword);
+// CurrentPassword is omitted on the forced first-login change and required on the self-service
+// change. Whether the caller is forced is decided server-side from the must_change access-token
+// claim (server-issued and signed), never from a client-supplied flag.
+public sealed record ChangePasswordRequest(string? CurrentPassword, string NewPassword);
 
 public sealed class ChangePasswordRequestValidator : Validator<ChangePasswordRequest>
 {
     public ChangePasswordRequestValidator()
     {
-        RuleFor(request => request.CurrentPassword).NotEmpty().MaximumLength(256);
+        When(
+            _ => !CallerIsForced(),
+            () =>
+            {
+                RuleFor(request => request.CurrentPassword).NotEmpty().MaximumLength(256);
+                RuleFor(request => request.NewPassword)
+                    .NotEqual(request => request.CurrentPassword)
+                    .WithMessage("Das neue Passwort muss sich vom aktuellen unterscheiden.");
+            }
+        );
+
         RuleFor(request => request.NewPassword)
             .NotEmpty()
             .MinimumLength(10)
@@ -19,19 +33,27 @@ public sealed class ChangePasswordRequestValidator : Validator<ChangePasswordReq
             .Must(HasLetterAndDigit)
             .WithMessage(
                 "Das neue Passwort muss mindestens einen Buchstaben und eine Ziffer enthalten."
-            )
-            .NotEqual(request => request.CurrentPassword)
-            .WithMessage("Das neue Passwort muss sich vom aktuellen unterscheiden.");
+            );
     }
 
     private static bool HasLetterAndDigit(string password) =>
         password.Any(char.IsLetter) && password.Any(char.IsDigit);
+
+    private bool CallerIsForced() =>
+        string.Equals(
+            Resolve<IHttpContextAccessor>()
+                .HttpContext?.User.FindFirstValue(AuthClaims.MustChangePassword),
+            "true",
+            StringComparison.OrdinalIgnoreCase
+        );
 }
 
 // Self-sets a new password. The only authenticated endpoint reachable while MustChangePassword is
-// set. Verifies the current password (wrong -> 401), clears the flag, and revokes the caller's
-// refresh tokens so other sessions must re-login. Cookies are cleared so the client re-authenticates
-// with the new password (the access token still carries the now-stale must_change claim).
+// set. On the self-service path it verifies the current password (wrong -> 401); on the forced
+// first-login path (MustChangePassword set) the current password is neither required nor verified,
+// since the caller just authenticated at login. It clears the flag and revokes the caller's refresh
+// tokens so other sessions must re-login. Cookies are cleared so the client re-authenticates with
+// the new password (the access token still carries the now-stale must_change claim).
 public sealed class ChangePassword : Endpoint<ChangePasswordRequest>
 {
     private readonly IAuthService authService;
