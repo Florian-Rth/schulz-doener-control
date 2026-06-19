@@ -19,8 +19,14 @@ public sealed record OrderDayDetailsDto(
     IReadOnlyList<OrderRowSummaryDto> Orders,
     bool ICanStillOrder,
     bool IsOrderingClosed,
-    Guid? MyOrderId
+    Guid? MyOrderId,
+    bool AmICollector,
+    AbholerDto? Abholer
 );
+
+// The designated Abholer (collector) for the day. PayPalUrl is the per-caller reimbursement deep
+// link (FEATURE 3), null when no link should be offered to this caller.
+public sealed record AbholerDto(string Name, string Initials, string ColorHex, string? PayPalUrl);
 
 public sealed record OrderRowSummaryDto(
     Guid OrderId,
@@ -52,8 +58,13 @@ public static class OrderDayDetailsMapper
             details.Orders.Select(ToRowDto).ToList(),
             details.ICanStillOrder,
             details.IsOrderingClosed,
-            details.MyOrderId
+            details.MyOrderId,
+            details.AmICollector,
+            details.Abholer is { } abholer ? ToAbholerDto(abholer) : null
         );
+
+    private static AbholerDto ToAbholerDto(AbholerSummary abholer) =>
+        new(abholer.Name, abholer.Initials, abholer.ColorHex, abholer.PayPalUrl);
 
     private static OrderRowSummaryDto ToRowDto(OrderRowSummary row) =>
         new(

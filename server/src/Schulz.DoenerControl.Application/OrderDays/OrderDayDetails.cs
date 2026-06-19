@@ -17,5 +17,7 @@ public sealed record OrderDayDetails(
     IReadOnlyList<OrderRowSummary> Orders,
     bool ICanStillOrder,
     bool IsOrderingClosed,
-    Guid? MyOrderId
+    Guid? MyOrderId,
+    bool AmICollector,
+    AbholerSummary? Abholer
 );

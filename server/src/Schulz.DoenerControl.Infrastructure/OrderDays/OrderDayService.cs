@@ -243,6 +243,9 @@ public sealed class OrderDayService : IOrderDayService
             now
         );
 
+        var amICollector = day.CollectorUserId == callerId;
+        var abholer = await BuildAbholer(day, callerId, myOrder, ct);
+
         return new OrderDayDetails(
             day.Id,
             day.Date,
@@ -257,7 +260,48 @@ public sealed class OrderDayService : IOrderDayService
             rows,
             canStillOrder,
             day.OrderingClosedAt is not null,
-            myOrder?.Id
+            myOrder?.Id,
+            amICollector,
+            abholer
+        );
+    }
+
+    // Resolves the designated Abholer strictly from OrderDay.CollectorUserId (no opener/first-pickup
+    // heuristic): null when nobody is designated. The PayPal deep link is built per-caller and stays
+    // null when the caller is the collector, has not ordered yet, or the collector has no handle.
+    private async Task<AbholerSummary?> BuildAbholer(
+        OrderDay day,
+        Guid callerId,
+        Order? callersOrder,
+        CancellationToken ct
+    )
+    {
+        if (day.CollectorUserId is not { } collectorId)
+            return null;
+
+        var collector = await database
+            .Users.AsNoTracking()
+            .Where(user => user.Id == collectorId)
+            .Select(user => new
+            {
+                user.DisplayName,
+                user.AvatarColorHex,
+                user.PayPalHandle,
+            })
+            .FirstOrDefaultAsync(ct);
+        if (collector is null)
+            return null;
+
+        var payPalUrl =
+            callerId == collectorId || callersOrder is null
+                ? null
+                : PayPalLinkBuilder.BuildLink(collector.PayPalHandle, callersOrder.TotalCents);
+
+        return new AbholerSummary(
+            collector.DisplayName,
+            NameFormatter.InitialsOf(collector.DisplayName),
+            collector.AvatarColorHex,
+            payPalUrl
         );
     }
 
