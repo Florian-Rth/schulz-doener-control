@@ -1,6 +1,8 @@
+import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { FC } from "react";
+import logoUrl from "@/assets/logo.png";
 import { PrimaryButton } from "@/components/buttons";
 import { authCopy } from "../../copy";
 import { useLoginForm } from "../../hooks/use-login-form";
@@ -37,6 +39,12 @@ export const LoginPage: FC<LoginPageProps> = ({ redirect }) => {
           gap: 0.5,
         }}
       >
+        <Box
+          component="img"
+          src={logoUrl}
+          alt={authCopy.brandAlt}
+          sx={{ width: 248, maxWidth: "100%", height: "auto", display: "block", mb: 0.75 }}
+        />
         <Typography
           sx={{
             fontSize: 11,
