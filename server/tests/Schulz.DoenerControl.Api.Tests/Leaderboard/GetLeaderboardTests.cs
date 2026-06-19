@@ -141,7 +141,9 @@ public sealed class GetLeaderboardTests : DoenerControlTestBase
     [Fact]
     public async Task Should_Default_To_Current_Year_When_Year_Omitted()
     {
-        var currentYear = DateTimeOffset.UtcNow.Year;
+        // The default leaderboard year is the server's "now" year; anchor on the fixed test clock so
+        // the seeded year and the asserted default agree regardless of the wall clock.
+        var currentYear = FixedTimeProvider.Instant.Year;
 
         var chefId = await UserIdAsync("m.wagner");
 

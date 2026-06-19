@@ -143,7 +143,7 @@ public sealed class PutMyOrderTests : DoenerControlTestBase
             d => d.Id == dayId,
             TestContext.Current.CancellationToken
         );
-        day.OrderCutoffAt = DateTimeOffset.UtcNow.AddHours(-1);
+        day.OrderCutoffAt = FixedTimeProvider.Instant.AddHours(-1);
         await database.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 }

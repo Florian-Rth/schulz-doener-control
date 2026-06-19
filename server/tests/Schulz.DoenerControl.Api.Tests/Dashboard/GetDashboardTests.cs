@@ -32,7 +32,9 @@ public sealed class GetDashboardTests : DoenerControlTestBase
     [Fact]
     public async Task Should_Compose_Stats_Tier_Leaderboard_And_OpenDebts()
     {
-        var now = DateTimeOffset.UtcNow;
+        // Anchor on the fixed test clock so the seeded order instants line up with the windows the
+        // server derives (current month, this-week streak, current-year leaderboard, 90-day tier).
+        var now = FixedTimeProvider.Instant;
 
         var chefId = await UserIdAsync("m.wagner");
         var lukasId = await UserIdAsync("l.brandt");

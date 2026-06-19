@@ -183,7 +183,9 @@ public sealed class AuthTestClient
             if (
                 trimmed.StartsWith("Expires=", StringComparison.OrdinalIgnoreCase)
                 && DateTimeOffset.TryParse(trimmed["Expires=".Length..], out var expires)
-                && expires <= DateTimeOffset.UtcNow
+                // The server stamps cookie expiry from the fixed test clock, so judge freshness
+                // against that same instant — not the wall clock.
+                && expires <= FixedTimeProvider.Instant
             )
             {
                 return true;

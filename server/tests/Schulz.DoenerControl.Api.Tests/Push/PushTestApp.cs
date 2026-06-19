@@ -57,6 +57,8 @@ public sealed class PushTestApp : AppFixture<Program>
         // Swap the real Web Push HTTP transport for the recorder so sends are observable.
         services.RemoveAll<IWebPushTransport>();
         services.AddSingleton<IWebPushTransport>(Transport);
+
+        TestClock.Override(services);
     }
 
     protected override async ValueTask SetupAsync()

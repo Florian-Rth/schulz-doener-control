@@ -112,7 +112,9 @@ public sealed class GetTierTests : DoenerControlTestBase
 
     private async Task SeedMarkusHistoryAsync(Guid chefId, int dayBase)
     {
-        var now = DateTimeOffset.UtcNow;
+        // Anchor on the fixed test clock so the staggered instants stay inside the 90-day tier
+        // window the server measures from the same clock.
+        var now = FixedTimeProvider.Instant;
         await SeedAsync(database =>
         {
             var dayOffset = 0;

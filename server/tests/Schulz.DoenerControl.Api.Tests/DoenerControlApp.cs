@@ -58,6 +58,8 @@ public sealed class DoenerControlApp : AppFixture<Program>
         services.RemoveAll<DbContextOptions<AppDbContext>>();
         services.RemoveAll<AppDbContext>();
         services.AddDbContext<AppDbContext>(options => options.UseSqlite(connectionString));
+
+        TestClock.Override(services);
     }
 
     protected override async ValueTask SetupAsync()
