@@ -168,6 +168,32 @@ describe("AdminMenuPage", () => {
     expect((putBody as { name: string }).name).toBe("Dürüm Kalb XL");
   });
 
+  it("blockiert das Speichern mit leerem Preis und zeigt den Validierungsfehler", async () => {
+    seedXsrfCookie();
+    let putCalled = false;
+    mswServer.use(
+      http.get("*/api/admin/menu", () => HttpResponse.json({ items: [menuRow()] })),
+      http.put("*/api/admin/menu/duerum-kalb", () => {
+        putCalled = true;
+        return HttpResponse.json({ item: menuRow() });
+      }),
+    );
+    const user = userEvent.setup();
+    const { findByText, findByRole, findByLabelText } = renderPage();
+
+    await findByText("Dürüm Kalb");
+    await user.click(await findByRole("button", { name: "Bearbeiten" }));
+    // The price seeds the stale value 850; blanking it must not silently submit it.
+    const priceField = await findByLabelText("Preis (€)");
+    await user.clear(priceField);
+    await user.click(await findByRole("button", { name: "Speichern" }));
+
+    expect(await findByText("Gib einen gültigen Preis ein, Chef.")).toBeInTheDocument();
+    // Give any (incorrect) submit a chance to fire before asserting it did not.
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(putCalled).toBe(false);
+  });
+
   it("entfernt ein Gericht per DELETE und lädt die Karte neu", async () => {
     seedXsrfCookie();
     let deleteCalled = false;
