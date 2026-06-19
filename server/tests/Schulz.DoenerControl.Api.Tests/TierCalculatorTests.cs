@@ -292,4 +292,24 @@ public sealed class TierCalculatorTests
         Assert.Equal("Der Knoblauch-Wolf", catalog[1].Name);
         Assert.Equal("Der solide Döner-Bürger", catalog[14].Name);
     }
+
+    [Fact]
+    public void Should_Carry_A_German_Condition_For_Every_Tier()
+    {
+        var catalog = TierCalculator.Catalog;
+
+        Assert.All(catalog, tier => Assert.False(string.IsNullOrWhiteSpace(tier.Condition)));
+    }
+
+    [Fact]
+    public void Should_Render_Condition_Percentages_From_The_Comparison_Thresholds()
+    {
+        var catalog = TierCalculator.Catalog;
+
+        // The Knoblauch-Wolf branch compares garlic >= 0.7; the human-readable condition is rendered
+        // from that very constant, so it reads as a real percentage rather than a duplicated literal.
+        Assert.Equal("Knoblauch-Anteil ≥ 70 %", catalog[1].Condition);
+        Assert.Equal("Schärfe-Anteil ≥ 70 %", catalog[2].Condition);
+        Assert.Equal("Wenn keine andere Regel zutrifft", catalog[14].Condition);
+    }
 }

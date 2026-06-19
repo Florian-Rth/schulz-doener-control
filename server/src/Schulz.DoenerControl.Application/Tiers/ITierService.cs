@@ -11,4 +11,9 @@ public interface ITierService
 
     // The full 15-Tier catalogue in priority order, with the caller's own computed tier flagged.
     Task<Result<TierCatalogDetails>> GetCatalogAsync(Guid callerId, CancellationToken ct);
+
+    // The read-only admin view (B4): all 15 tier definitions in priority order with their
+    // calculator-derived German trigger conditions, plus the rolling window length they are
+    // computed over. No per-user state — purely the static definitions and the window basis.
+    Result<TierDefinitionsDetails> GetDefinitions();
 }

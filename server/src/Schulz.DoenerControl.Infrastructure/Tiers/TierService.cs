@@ -47,6 +47,11 @@ public sealed class TierService : ITierService
         return Result<TierCatalogDetails>.Success(new TierCatalogDetails(entries));
     }
 
+    public Result<TierDefinitionsDetails> GetDefinitions() =>
+        Result<TierDefinitionsDetails>.Success(
+            new TierDefinitionsDetails(TierCalculator.Catalog, TierWindowDays)
+        );
+
     private async Task<DoenerTier> ComputeTierAsync(Guid callerId, CancellationToken ct)
     {
         var orders = await database
