@@ -23,8 +23,31 @@ interface DayOpenCardProps {
 // "{n} dabei"), notification preview, the abholer line, the order rows, and the
 // "Meine Bestellung abgeben" CTA.
 export const DayOpenCard: FC<DayOpenCardProps> = ({ day }) => {
-  const { goOrder, goPrint } = useDashboardContext();
+  const { goOrder, goPrint, closeOrdering, isClosingOrdering, closeDay, isClosingDay } =
+    useDashboardContext();
   const cutoff = day.cutoffLabel ?? "";
+
+  // Collector-only close controls. day.id is only read here, inside this
+  // open-state card; while ordering is open the collector locks ordering, once
+  // locked they close the whole day (creating the debts).
+  const dayId = day.id;
+  const collectorControls =
+    day.amICollector && dayId !== null ? (
+      <PrimaryButton
+        onClick={() => {
+          if (day.isOrderingClosed) {
+            closeDay(dayId);
+          } else {
+            closeOrdering(dayId);
+          }
+        }}
+        loading={day.isOrderingClosed ? isClosingDay : isClosingOrdering}
+        startIcon={day.isOrderingClosed ? "lock" : "lock_clock"}
+        sx={{ mt: 1 }}
+      >
+        {day.isOrderingClosed ? homeCopy.closeDay : homeCopy.closeOrdering}
+      </PrimaryButton>
+    ) : null;
 
   return (
     <Paper
@@ -135,6 +158,7 @@ export const DayOpenCard: FC<DayOpenCardProps> = ({ day }) => {
             {homeCopy.printList}
           </GhostButton>
         ) : null}
+        {collectorControls}
       </Stack>
     </Paper>
   );

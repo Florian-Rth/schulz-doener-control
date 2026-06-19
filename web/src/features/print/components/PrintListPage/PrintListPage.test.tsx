@@ -57,6 +57,7 @@ const openDay = {
   participantCount: 3,
   pickupNames: ["Lukas Brandt"],
   iCanStillOrder: true,
+  isOrderingClosed: false,
   amICollector: false,
   abholer: {
     name: "Lukas Brandt",
@@ -110,6 +111,7 @@ const closedDay = {
   participantCount: 0,
   pickupNames: [],
   iCanStillOrder: false,
+  isOrderingClosed: false,
   amICollector: false,
   abholer: null,
   orders: [],

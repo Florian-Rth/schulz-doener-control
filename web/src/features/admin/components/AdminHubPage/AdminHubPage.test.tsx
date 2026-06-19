@@ -36,6 +36,7 @@ const closedDashboard: Dashboard = {
     participantCount: 0,
     pickupNames: [],
     iCanStillOrder: false,
+    isOrderingClosed: false,
     amICollector: false,
     abholer: null,
     orders: [],

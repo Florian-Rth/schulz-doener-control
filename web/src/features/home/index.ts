@@ -1,4 +1,4 @@
-export { dashboardKeys, useDashboard, useOpenDay } from "./api";
+export { dashboardKeys, useCloseDay, useCloseOrdering, useDashboard, useOpenDay } from "./api";
 export { DashboardProvider } from "./components/DashboardProvider";
 export { DashboardSchema } from "./schemas";
 export type {

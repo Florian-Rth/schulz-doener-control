@@ -22,6 +22,12 @@ export interface DashboardContextValue {
   /** Opens today's Döner-Tag (the closed-state CTA). */
   openDay: () => void;
   isOpeningDay: boolean;
+  /** Collector-only: locks ordering for the running day. */
+  closeOrdering: (dayId: string) => void;
+  isClosingOrdering: boolean;
+  /** Collector-only: closes the day and creates the debts. */
+  closeDay: (dayId: string) => void;
+  isClosingDay: boolean;
   /** Navigates to the order screen. */
   goOrder: () => void;
   /** Navigates to the Döner-Tiere catalog. */

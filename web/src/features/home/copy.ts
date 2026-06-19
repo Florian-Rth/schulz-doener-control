@@ -28,6 +28,11 @@ export const homeCopy = {
   goOrder: "Meine Bestellung abgeben",
   payAbholerCaption: "Öffnet PayPal.Me · Betrag voreingestellt",
   printList: "Bestellliste drucken",
+  // Collector-only close actions (Abholer steuert den Tag)
+  closeOrdering: "Bestellung schließen",
+  closeDay: "Döner-Tag schließen",
+  closeOrderingFailed: "Bestellung konnte nicht geschlossen werden, Chef.",
+  closeDayFailed: "Döner-Tag konnte nicht geschlossen werden, Chef.",
   // Leaderboard
   leaderboardTitle: "Döner-Bestenliste",
   // Open payments

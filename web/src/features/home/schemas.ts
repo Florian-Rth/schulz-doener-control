@@ -81,6 +81,9 @@ const DashboardDaySchema = z.object({
   participantCount: z.number().int(),
   pickupNames: z.array(z.string()),
   iCanStillOrder: z.boolean(),
+  // Manual lock set by the collector's "Bestellung schließen". Flips which
+  // collector button shows on the open-day card; also drives iCanStillOrder.
+  isOrderingClosed: z.boolean(),
   amICollector: z.boolean(),
   abholer: DayAbholerSchema.nullable(),
   orders: z.array(OrderRowSchema),

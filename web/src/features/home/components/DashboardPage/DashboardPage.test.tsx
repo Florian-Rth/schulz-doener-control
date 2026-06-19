@@ -1,3 +1,5 @@
+import { waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { HttpResponse, http } from "msw";
 import { describe, expect, it } from "vitest";
 import type { Dashboard } from "@/features/home";
@@ -115,6 +117,7 @@ const openDay = {
   participantCount: 3,
   pickupNames: ["Lukas Brandt"],
   iCanStillOrder: true,
+  isOrderingClosed: false,
   amICollector: false,
   abholer: {
     name: "Lukas Brandt",
@@ -168,6 +171,7 @@ const closedDay = {
   participantCount: 0,
   pickupNames: [],
   iCanStillOrder: false,
+  isOrderingClosed: false,
   amICollector: false,
   abholer: null,
   orders: [],
@@ -290,5 +294,133 @@ describe("DashboardPage", () => {
     expect(await findByText("Döner-Tag läuft")).toBeInTheDocument();
     expect(queryByRole("button", { name: /zahlen/ })).not.toBeInTheDocument();
     expect(queryByRole("link", { name: /zahlen/ })).not.toBeInTheDocument();
+  });
+
+  it("zeigt einem Nicht-Abholer keine Schließen-Buttons", async () => {
+    useDashboardHandlers(buildDashboard({ day: { ...openDay, amICollector: false } }));
+    const { findByText, queryByRole } = renderApp({ initialPath: "/" });
+
+    expect(await findByText("Döner-Tag läuft")).toBeInTheDocument();
+    expect(queryByRole("button", { name: "Bestellung schließen" })).not.toBeInTheDocument();
+    expect(queryByRole("button", { name: "Döner-Tag schließen" })).not.toBeInTheDocument();
+  });
+
+  it("zeigt dem Abholer bei offener Bestellung 'Bestellung schließen' und feuert den richtigen POST", async () => {
+    let closeOrderingHit = false;
+    let closeDayHit = false;
+    let dashboardFetches = 0;
+    mswServer.use(
+      http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
+      http.get("*/api/dashboard", () => {
+        dashboardFetches += 1;
+        return HttpResponse.json(
+          buildDashboard({ day: { ...openDay, amICollector: true, isOrderingClosed: false } }),
+        );
+      }),
+      http.post("*/api/order-days/day-1/close-ordering", () => {
+        closeOrderingHit = true;
+        return HttpResponse.json({ day: {} });
+      }),
+      http.post("*/api/order-days/day-1/close", () => {
+        closeDayHit = true;
+        return HttpResponse.json({ day: {}, debtsCreated: 0 });
+      }),
+    );
+
+    const { findByRole, queryByRole } = renderApp({ initialPath: "/" });
+    const user = userEvent.setup();
+
+    // ordering open → only the "Bestellung schließen" button shows
+    expect(queryByRole("button", { name: "Döner-Tag schließen" })).not.toBeInTheDocument();
+    const fetchesBefore = dashboardFetches;
+    await user.click(await findByRole("button", { name: "Bestellung schließen" }));
+
+    await waitFor(() => {
+      expect(closeOrderingHit).toBe(true);
+    });
+    expect(closeDayHit).toBe(false);
+    // onSuccess invalidates dashboardKeys.all → a refetch fires
+    await waitFor(() => {
+      expect(dashboardFetches).toBeGreaterThan(fetchesBefore);
+    });
+  });
+
+  it("zeigt dem Abholer nach geschlossener Bestellung 'Döner-Tag schließen' und feuert den Close-POST", async () => {
+    let closeDayHit = false;
+    let dashboardFetches = 0;
+    mswServer.use(
+      http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
+      http.get("*/api/dashboard", () => {
+        dashboardFetches += 1;
+        return HttpResponse.json(
+          buildDashboard({ day: { ...openDay, amICollector: true, isOrderingClosed: true } }),
+        );
+      }),
+      http.post("*/api/order-days/day-1/close", () => {
+        closeDayHit = true;
+        return HttpResponse.json({ day: {}, debtsCreated: 3 });
+      }),
+    );
+
+    const { findByRole, queryByRole } = renderApp({ initialPath: "/" });
+    const user = userEvent.setup();
+
+    // ordering closed → the button flips to "Döner-Tag schließen"
+    expect(queryByRole("button", { name: "Bestellung schließen" })).not.toBeInTheDocument();
+    const fetchesBefore = dashboardFetches;
+    await user.click(await findByRole("button", { name: "Döner-Tag schließen" }));
+
+    await waitFor(() => {
+      expect(closeDayHit).toBe(true);
+    });
+    await waitFor(() => {
+      expect(dashboardFetches).toBeGreaterThan(fetchesBefore);
+    });
+  });
+
+  it("zeigt eine deutsche Fehlermeldung, wenn das Schließen mit 409 fehlschlägt", async () => {
+    mswServer.use(
+      http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
+      http.get("*/api/dashboard", () =>
+        HttpResponse.json(
+          buildDashboard({ day: { ...openDay, amICollector: true, isOrderingClosed: false } }),
+        ),
+      ),
+      http.post("*/api/order-days/day-1/close-ordering", () =>
+        HttpResponse.json({ title: "Conflict" }, { status: 409 }),
+      ),
+    );
+
+    const { findByRole, findByText } = renderApp({ initialPath: "/" });
+    const user = userEvent.setup();
+
+    await user.click(await findByRole("button", { name: "Bestellung schließen" }));
+
+    expect(
+      await findByText("Bestellung konnte nicht geschlossen werden, Chef."),
+    ).toBeInTheDocument();
+  });
+
+  it("zeigt eine deutsche Fehlermeldung, wenn der Tag-Schluss mit 403 fehlschlägt", async () => {
+    mswServer.use(
+      http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
+      http.get("*/api/dashboard", () =>
+        HttpResponse.json(
+          buildDashboard({ day: { ...openDay, amICollector: true, isOrderingClosed: true } }),
+        ),
+      ),
+      http.post("*/api/order-days/day-1/close", () =>
+        HttpResponse.json({ title: "Forbidden" }, { status: 403 }),
+      ),
+    );
+
+    const { findByRole, findByText } = renderApp({ initialPath: "/" });
+    const user = userEvent.setup();
+
+    await user.click(await findByRole("button", { name: "Döner-Tag schließen" }));
+
+    expect(
+      await findByText("Döner-Tag konnte nicht geschlossen werden, Chef."),
+    ).toBeInTheDocument();
   });
 });
