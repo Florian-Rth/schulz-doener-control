@@ -15,7 +15,7 @@ interface ChangePasswordFormProps {
 // Logic lives in `useChangePasswordForm`; this body only composes the fields,
 // hint, CTA and the inline server-error line.
 export const ChangePasswordForm: FC<ChangePasswordFormProps> = ({ redirectTo }) => {
-  const { form, onSubmit, isPending, serverError } = useChangePasswordForm({ redirectTo });
+  const { form, onSubmit, isPending, serverError, forced } = useChangePasswordForm({ redirectTo });
 
   return (
     <Stack component="form" noValidate onSubmit={onSubmit} sx={{ gap: 0.5 }}>
@@ -29,13 +29,15 @@ export const ChangePasswordForm: FC<ChangePasswordFormProps> = ({ redirectTo }) 
         {changePasswordCopy.intro}
       </Typography>
 
-      <PasswordField
-        control={form.control}
-        name="currentPassword"
-        label={changePasswordCopy.currentLabel}
-        placeholder={changePasswordCopy.currentPlaceholder}
-        autoComplete="current-password"
-      />
+      {forced ? null : (
+        <PasswordField
+          control={form.control}
+          name="currentPassword"
+          label={changePasswordCopy.currentLabel}
+          placeholder={changePasswordCopy.currentPlaceholder}
+          autoComplete="current-password"
+        />
+      )}
       <PasswordField
         control={form.control}
         name="newPassword"

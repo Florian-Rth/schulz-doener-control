@@ -3,9 +3,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PageLayout } from "@/components";
 import { ChangePasswordForm } from "@/features/profile";
 
-// The forced password-change screen (reached when the backend reports
-// `mustChangePassword`). Pure layout: composes the page shell around the
-// change-password feature form; all logic lives in the feature hook.
+// The password-change screen. Serves BOTH the forced first-login change (the
+// guard routes a locked account here) and the self-service change reached from
+// the profile menu. Pure layout: composes the page shell around the
+// change-password feature form. The form derives forced-vs-self-service from the
+// session (`useAuth().user.mustChangePassword`) and adapts itself; all logic
+// lives in the feature hook.
 const PasswortAendernRoute = () => {
   return (
     <PageLayout bg="login">

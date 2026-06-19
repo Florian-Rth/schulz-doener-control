@@ -26,17 +26,25 @@ export const useUpdatePayPalHandle = () => {
 };
 
 export interface ChangePasswordInput {
-  currentPassword: string;
+  /**
+   * Omitted in forced mode — the backend detects "forced" server-side from the
+   * signed must_change claim and ignores any current password. Only the
+   * self-service path sends it (and the server verifies it against the hash).
+   */
+  currentPassword?: string;
   newPassword: string;
 }
 
 // 204 No Content on success; the apiClient throws an ApiError on a 401 (wrong
-// current password) which the form hook maps to a German message.
+// current password) which the form hook maps to a German message. When
+// `currentPassword` is undefined (forced mode) it is left out of the wire body
+// entirely rather than sent as null/empty.
 const changePassword = async (input: ChangePasswordInput): Promise<void> => {
-  await apiClient.post("/api/auth/change-password", {
-    currentPassword: input.currentPassword,
-    newPassword: input.newPassword,
-  });
+  const body =
+    input.currentPassword === undefined
+      ? { newPassword: input.newPassword }
+      : { currentPassword: input.currentPassword, newPassword: input.newPassword };
+  await apiClient.post("/api/auth/change-password", body);
 };
 
 // Self-sets a new password (the only endpoint reachable while the forced-change

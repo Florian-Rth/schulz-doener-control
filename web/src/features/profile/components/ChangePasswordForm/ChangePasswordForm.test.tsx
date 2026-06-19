@@ -35,11 +35,12 @@ interface ChangePasswordFixture {
   requestCount: () => number;
 }
 
-// Stateful `/me`: while locked the backend gate answers 403; once a 204 change
-// lands the SPA invalidates the session and the next `/me` returns an unlocked
-// profile, so the guard lets the home route render. `status` controls what the
-// change-password endpoint answers (204 success, or 401 wrong current password).
-const useChangePasswordHandlers = (status: 204 | 401 = 204): ChangePasswordFixture => {
+// Forced flow: the freshly provisioned account is locked, so `GET /api/auth/me`
+// answers 403 (the SPA maps that to the LOCKED_SESSION sentinel) until a 204
+// change lands; the next `/me` then returns an unlocked profile so the guard lets
+// the home route render. The forced backend path needs no current password, so it
+// always answers 204 (no 401 branch exists for forced).
+const useForcedHandlers = (): ChangePasswordFixture => {
   let locked = true;
   let body: unknown = null;
   let requestCount = 0;
@@ -53,9 +54,6 @@ const useChangePasswordHandlers = (status: 204 | 401 = 204): ChangePasswordFixtu
     http.post("*/api/auth/change-password", async ({ request }) => {
       requestCount += 1;
       body = await request.json();
-      if (status === 401) {
-        return HttpResponse.json({ detail: "Unauthorized" }, { status: 401 });
-      }
       locked = false;
       return new HttpResponse(null, { status: 204 });
     }),
@@ -63,10 +61,43 @@ const useChangePasswordHandlers = (status: 204 | 401 = 204): ChangePasswordFixtu
   return { body: () => body, requestCount: () => requestCount };
 };
 
+// Self-service flow: the account is already unlocked (`mustChangePassword=false`),
+// reached from the profile menu. `GET /api/auth/me` returns the unlocked profile
+// throughout. `status` controls what the change-password endpoint answers
+// (204 success, or 401 wrong current password).
+const useSelfServiceHandlers = (status: 204 | 401 = 204): ChangePasswordFixture => {
+  let body: unknown = null;
+  let requestCount = 0;
+  mswServer.use(
+    http.get("*/api/auth/me", () => HttpResponse.json(unlockedSession)),
+    http.post("*/api/auth/change-password", async ({ request }) => {
+      requestCount += 1;
+      body = await request.json();
+      if (status === 401) {
+        return HttpResponse.json({ detail: "Unauthorized" }, { status: 401 });
+      }
+      return new HttpResponse(null, { status: 204 });
+    }),
+  );
+  return { body: () => body, requestCount: () => requestCount };
+};
+
 describe("ChangePasswordForm — forced-change flow", () => {
-  it("schickt einen gesperrten Account auf /passwort-aendern und nach Erfolg nach Hause", async () => {
+  it("rendert das Feld 'Aktuelles Passwort' NICHT, wenn mustChangePassword=true", async () => {
     seedXsrfCookie();
-    const fixture = useChangePasswordHandlers(204);
+    useForcedHandlers();
+
+    const { findByLabelText, queryByLabelText } = renderApp({ initialPath: "/passwort-aendern" });
+
+    // The two new-password fields must be present so the form is interactive…
+    await findByLabelText("Neues Passwort");
+    // …but the current-password field is suppressed in forced mode.
+    expect(queryByLabelText("Aktuelles Passwort")).toBeNull();
+  });
+
+  it("schickt einen gesperrten Account auf /passwort-aendern und nach Erfolg nach Hause (Payload ohne currentPassword)", async () => {
+    seedXsrfCookie();
+    const fixture = useForcedHandlers();
     // Once unlocked, the home route mounts the dashboard which fetches this. We
     // only assert the route landed on "/", so an empty body (the query then
     // errors harmlessly) is enough to keep MSW from flagging an unhandled request.
@@ -80,6 +111,69 @@ describe("ChangePasswordForm — forced-change flow", () => {
       expect(router.state.location.pathname).toBe("/passwort-aendern");
     });
 
+    await user.type(await findByLabelText("Neues Passwort"), NEW);
+    await user.type(await findByLabelText("Neues Passwort bestätigen"), NEW);
+    await user.click(await findByRole("button", { name: "Passwort speichern" }));
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/");
+    });
+    // Forced mode omits currentPassword from the wire body entirely.
+    expect(fixture.body()).toEqual({ newPassword: NEW });
+  });
+
+  it("zeigt einen Validierungsfehler, wenn die Passwörter nicht übereinstimmen", async () => {
+    seedXsrfCookie();
+    const fixture = useForcedHandlers();
+
+    const user = userEvent.setup();
+    const { findByLabelText, findByRole, findByText } = renderApp({
+      initialPath: "/passwort-aendern",
+    });
+
+    await user.type(await findByLabelText("Neues Passwort"), NEW);
+    await user.type(await findByLabelText("Neues Passwort bestätigen"), "andersPw9");
+    await user.click(await findByRole("button", { name: "Passwort speichern" }));
+
+    expect(await findByText(/stimmen nicht überein/i)).toBeInTheDocument();
+    expect(fixture.requestCount()).toBe(0);
+  });
+});
+
+describe("ChangePasswordForm — self-service flow", () => {
+  it("rendert das Feld 'Aktuelles Passwort' und verlangt es, wenn mustChangePassword=false", async () => {
+    seedXsrfCookie();
+    const fixture = useSelfServiceHandlers(204);
+
+    const user = userEvent.setup();
+    const { findByLabelText, findByRole, findByText } = renderApp({
+      initialPath: "/passwort-aendern",
+    });
+
+    // The current-password field is rendered in self-service mode…
+    await findByLabelText("Aktuelles Passwort");
+    // …and it is required: submitting without it surfaces a validation error and
+    // never reaches the server.
+    await user.type(await findByLabelText("Neues Passwort"), NEW);
+    await user.type(await findByLabelText("Neues Passwort bestätigen"), NEW);
+    await user.click(await findByRole("button", { name: "Passwort speichern" }));
+
+    expect(await findByText(/Pflichtfeld/i)).toBeInTheDocument();
+    expect(fixture.requestCount()).toBe(0);
+  });
+
+  it("sendet currentPassword im Payload, wenn mustChangePassword=false", async () => {
+    seedXsrfCookie();
+    const fixture = useSelfServiceHandlers(204);
+    // After a successful self-service change the form awaits a fresh `/me` and
+    // routes home; the dashboard query fires there.
+    mswServer.use(http.get("*/api/dashboard", () => HttpResponse.json({})));
+
+    const user = userEvent.setup();
+    const { findByLabelText, findByRole, router } = renderApp({
+      initialPath: "/passwort-aendern",
+    });
+
     await user.type(await findByLabelText("Aktuelles Passwort"), INITIAL);
     await user.type(await findByLabelText("Neues Passwort"), NEW);
     await user.type(await findByLabelText("Neues Passwort bestätigen"), NEW);
@@ -88,30 +182,13 @@ describe("ChangePasswordForm — forced-change flow", () => {
     await waitFor(() => {
       expect(router.state.location.pathname).toBe("/");
     });
+    // Self-service mode includes currentPassword on the wire.
     expect(fixture.body()).toEqual({ currentPassword: INITIAL, newPassword: NEW });
-  });
-
-  it("zeigt einen Validierungsfehler, wenn die Passwörter nicht übereinstimmen", async () => {
-    seedXsrfCookie();
-    const fixture = useChangePasswordHandlers(204);
-
-    const user = userEvent.setup();
-    const { findByLabelText, findByRole, findByText } = renderApp({
-      initialPath: "/passwort-aendern",
-    });
-
-    await user.type(await findByLabelText("Aktuelles Passwort"), INITIAL);
-    await user.type(await findByLabelText("Neues Passwort"), NEW);
-    await user.type(await findByLabelText("Neues Passwort bestätigen"), "andersPw9");
-    await user.click(await findByRole("button", { name: "Passwort speichern" }));
-
-    expect(await findByText(/stimmen nicht überein/i)).toBeInTheDocument();
-    expect(fixture.requestCount()).toBe(0);
   });
 
   it("zeigt den Server-Fehler, wenn das aktuelle Passwort falsch ist", async () => {
     seedXsrfCookie();
-    useChangePasswordHandlers(401);
+    useSelfServiceHandlers(401);
 
     const user = userEvent.setup();
     const { findByLabelText, findByRole, findByText, router } = renderApp({
@@ -124,7 +201,7 @@ describe("ChangePasswordForm — forced-change flow", () => {
     await user.click(await findByRole("button", { name: "Passwort speichern" }));
 
     expect(await findByText(/aktuelle Passwort stimmt nicht/i)).toBeInTheDocument();
-    // A failed change must not navigate away from the locked page.
+    // A failed change must not navigate away from the page.
     expect(router.state.location.pathname).toBe("/passwort-aendern");
   });
 });

@@ -21,6 +21,37 @@ export const PayPalHandleFormSchema = z.object({
     .regex(/^[A-Za-z0-9]+$/, "Nur Buchstaben und Zahlen erlaubt (kein /, keine Leerzeichen)."),
 });
 
+// The newPassword rules shared by both change-password variants, mirroring the
+// backend validator: at least 10 chars and at least one letter AND one digit.
+const refineNewPassword = (newPassword: string, ctx: z.RefinementCtx): void => {
+  if (newPassword.length < 10) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["newPassword"],
+      message: "Mindestens 10 Zeichen, Chef.",
+    });
+  }
+  if (!(/[A-Za-z]/.test(newPassword) && /\d/.test(newPassword))) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["newPassword"],
+      message: "Mindestens ein Buchstabe und eine Ziffer, Chef.",
+    });
+  }
+};
+
+// The confirm-match rule shared by both variants.
+const refineConfirm = (newPassword: string, confirm: string, ctx: z.RefinementCtx): void => {
+  if (newPassword !== confirm) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["confirmNewPassword"],
+      message: "Die Passwörter stimmen nicht überein, Chef.",
+    });
+  }
+};
+
+// Self-service variant (reached from the profile menu, `mustChangePassword=false`).
 // Mirrors the backend ChangePasswordRequestValidator: the new password must be at
 // least 10 chars, contain a letter AND a digit, and differ from the current one.
 // confirmNewPassword must match newPassword. The current password only has to be
@@ -32,20 +63,7 @@ export const ChangePasswordFormSchema = z
     confirmNewPassword: z.string().min(1, "Pflichtfeld"),
   })
   .superRefine((values, ctx) => {
-    if (values.newPassword.length < 10) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["newPassword"],
-        message: "Mindestens 10 Zeichen, Chef.",
-      });
-    }
-    if (!(/[A-Za-z]/.test(values.newPassword) && /\d/.test(values.newPassword))) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["newPassword"],
-        message: "Mindestens ein Buchstabe und eine Ziffer, Chef.",
-      });
-    }
+    refineNewPassword(values.newPassword, ctx);
     if (values.newPassword.length > 0 && values.newPassword === values.currentPassword) {
       ctx.addIssue({
         code: "custom",
@@ -53,11 +71,19 @@ export const ChangePasswordFormSchema = z
         message: "Das neue Passwort muss sich vom aktuellen unterscheiden.",
       });
     }
-    if (values.newPassword !== values.confirmNewPassword) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["confirmNewPassword"],
-        message: "Die Passwörter stimmen nicht überein, Chef.",
-      });
-    }
+    refineConfirm(values.newPassword, values.confirmNewPassword, ctx);
+  });
+
+// Forced variant (forced first-login change, `mustChangePassword=true`). The
+// backend detects "forced" server-side from the signed must_change claim and does
+// NOT need the current password, so this schema omits the currentPassword field
+// entirely — and with it the new!=current rule, which does not apply when forced.
+export const ChangePasswordForcedFormSchema = z
+  .object({
+    newPassword: z.string(),
+    confirmNewPassword: z.string().min(1, "Pflichtfeld"),
+  })
+  .superRefine((values, ctx) => {
+    refineNewPassword(values.newPassword, ctx);
+    refineConfirm(values.newPassword, values.confirmNewPassword, ctx);
   });

@@ -6,7 +6,7 @@ import { useAuth } from "@/features/auth";
 import { ApiError } from "@/lib/api";
 import { useChangePassword } from "../api";
 import { changePasswordCopy } from "../copy";
-import { ChangePasswordFormSchema } from "../schemas";
+import { ChangePasswordForcedFormSchema, ChangePasswordFormSchema } from "../schemas";
 import type { ChangePasswordForm } from "../types";
 
 interface UseChangePasswordFormResult {
@@ -14,6 +14,12 @@ interface UseChangePasswordFormResult {
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
   isPending: boolean;
   serverError: string | null;
+  /**
+   * True on the forced first-login change (LOCKED_SESSION sentinel). The form
+   * then hides the current-password field and omits it from the payload; the
+   * backend detects "forced" server-side and never needs it.
+   */
+  forced: boolean;
 }
 
 interface UseChangePasswordFormOptions {
@@ -31,12 +37,17 @@ export const useChangePasswordForm = ({
   redirectTo = "/",
 }: UseChangePasswordFormOptions = {}): UseChangePasswordFormResult => {
   const navigate = useNavigate();
-  const { refresh } = useAuth();
+  const { user, refresh } = useAuth();
   const changePasswordMutation = useChangePassword();
   const [serverError, setServerError] = useState<string | null>(null);
 
+  // Forced is derived purely from the session — true for the LOCKED_SESSION
+  // sentinel (forced first-login route), false for the self-service entry from
+  // the profile menu. Never read from any client-controlled field.
+  const forced = user?.mustChangePassword === true;
+
   const form = useForm<ChangePasswordForm>({
-    resolver: zodResolver(ChangePasswordFormSchema),
+    resolver: zodResolver(forced ? ChangePasswordForcedFormSchema : ChangePasswordFormSchema),
     defaultValues: { currentPassword: "", newPassword: "", confirmNewPassword: "" },
   });
 
@@ -44,7 +55,9 @@ export const useChangePasswordForm = ({
     setServerError(null);
     try {
       await changePasswordMutation.mutateAsync({
-        currentPassword: values.currentPassword,
+        // Omit the current password entirely when forced — the backend ignores
+        // it there and the new!=current rule does not apply.
+        currentPassword: forced ? undefined : values.currentPassword,
         newPassword: values.newPassword,
       });
       // Await a fresh `/me` so the cleared `mustChangePassword` is in the cache
@@ -66,5 +79,6 @@ export const useChangePasswordForm = ({
     onSubmit,
     isPending: changePasswordMutation.isPending,
     serverError,
+    forced,
   };
 };
