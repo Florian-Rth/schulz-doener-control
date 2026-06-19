@@ -7,4 +7,9 @@
     <LangVersion>latest</LangVersion>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
   </PropertyGroup>
+  <ItemGroup>
+    <!-- Transitive via Microsoft.EntityFrameworkCore.Sqlite 9.0.17 -> SQLitePCLRaw.lib.e_sqlite3 2.1.10.
+         Cannot bump without an EF Core update; remove this when EF Core ships a patched transitive. -->
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-2m69-gcr7-jv3q" />
+  </ItemGroup>
 </Project>
