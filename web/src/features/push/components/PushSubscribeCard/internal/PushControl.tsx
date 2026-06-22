@@ -26,6 +26,8 @@ export const PushControl: FC = () => {
   switch (status) {
     case "unsupported":
       return <Notice title={pushCopy.unsupportedTitle} body={pushCopy.unsupported} />;
+    case "ios-install":
+      return <Notice title={pushCopy.iosInstallTitle} body={pushCopy.iosInstall} />;
     case "denied":
       return <Notice title={pushCopy.deniedTitle} body={pushCopy.denied} />;
     case "subscribed":

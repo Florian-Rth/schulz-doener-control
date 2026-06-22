@@ -10,9 +10,12 @@ export type PushSubscriptionResponse = z.infer<typeof PushSubscriptionResponseSc
 export type PushSubscriptionPayload = z.infer<typeof PushSubscriptionPayloadSchema>;
 
 // The user-facing state of the push-subscribe flow. Drives which copy + control
-// the card renders. "unsupported"/"denied" are the graceful-degradation states.
+// the card renders. "unsupported"/"denied"/"ios-install" are the graceful-
+// degradation states. "ios-install" = an iPhone/iPad in a browser tab, where push
+// only works once the app is added to the Home Screen.
 export type PushStatus =
   | "unsupported"
+  | "ios-install"
   | "default"
   | "denied"
   | "subscribing"

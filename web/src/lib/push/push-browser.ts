@@ -120,3 +120,38 @@ export const currentPermission = (): NotificationPermission => {
   }
   return Notification.permission;
 };
+
+declare global {
+  interface Navigator {
+    // Legacy iOS-only flag: true when the page is launched from the Home Screen.
+    readonly standalone?: boolean;
+  }
+}
+
+// iOS (incl. iPadOS) exposes the Push API only inside a Home-Screen-installed PWA,
+// never in a normal Safari tab. Detecting an iPhone/iPad lets the UI guide the
+// user to install instead of showing a dead "unsupported" notice.
+export const isIosDevice = (): boolean => {
+  if (typeof navigator === "undefined") {
+    return false;
+  }
+  const ua = navigator.userAgent;
+  // iPadOS 13+ reports a desktop-Mac user agent, so fall back to the touch hint.
+  const isIPadOs = /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
+  return /iPad|iPhone|iPod/.test(ua) || isIPadOs;
+};
+
+// True when the app runs as an installed standalone PWA (Home Screen launch).
+export const isStandalonePwa = (): boolean => {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  const displayModeStandalone =
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(display-mode: standalone)").matches;
+  return displayModeStandalone || navigator.standalone === true;
+};
+
+// True on an iPhone/iPad opened in a browser tab (not yet installed): Web Push is
+// unavailable here and only works once the app is added to the Home Screen.
+export const needsIosInstall = (): boolean => isIosDevice() && !isStandalonePwa();

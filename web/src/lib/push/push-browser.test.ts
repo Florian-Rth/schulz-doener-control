@@ -1,11 +1,41 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  isIosDevice,
   isPushSupported,
+  isStandalonePwa,
+  needsIosInstall,
   registerServiceWorker,
   subscribeToPush,
   unsubscribeFromPush,
   urlBase64ToUint8Array,
 } from "@/lib/push/push-browser";
+
+const IPHONE_UA =
+  "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1";
+const IPADOS_UA =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15";
+const MAC_DESKTOP_UA =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
+
+// Stubs the device-detection globals the iOS helpers read.
+const stubDevice = (opts: {
+  userAgent: string;
+  maxTouchPoints?: number;
+  standalone?: boolean;
+  displayModeStandalone?: boolean;
+}): void => {
+  vi.stubGlobal("navigator", {
+    userAgent: opts.userAgent,
+    maxTouchPoints: opts.maxTouchPoints ?? 0,
+    standalone: opts.standalone,
+  });
+  vi.stubGlobal("window", {
+    matchMedia: (query: string) => ({
+      matches: opts.displayModeStandalone ?? false,
+      media: query,
+    }),
+  });
+};
 
 // A minimal stand-in for the W3C PushSubscription returned by pushManager.subscribe().
 const fakeSubscription = (endpoint: string): PushSubscription =>
@@ -178,5 +208,51 @@ describe("unsubscribeFromPush", () => {
     }
     const endpoint = await unsubscribeFromPush(registration);
     expect(endpoint).toBeNull();
+  });
+});
+
+describe("iOS-Erkennung", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("erkennt ein iPhone", () => {
+    stubDevice({ userAgent: IPHONE_UA, maxTouchPoints: 5 });
+    expect(isIosDevice()).toBe(true);
+  });
+
+  it("erkennt iPadOS (Desktop-Mac-UA + Touch)", () => {
+    stubDevice({ userAgent: IPADOS_UA, maxTouchPoints: 5 });
+    expect(isIosDevice()).toBe(true);
+  });
+
+  it("ist kein iOS auf einem Mac-Desktop ohne Touch", () => {
+    stubDevice({ userAgent: MAC_DESKTOP_UA, maxTouchPoints: 0 });
+    expect(isIosDevice()).toBe(false);
+  });
+
+  it("erkennt den installierten Standalone-Modus per display-mode", () => {
+    stubDevice({ userAgent: IPHONE_UA, maxTouchPoints: 5, displayModeStandalone: true });
+    expect(isStandalonePwa()).toBe(true);
+  });
+
+  it("erkennt den installierten Standalone-Modus per navigator.standalone", () => {
+    stubDevice({ userAgent: IPHONE_UA, maxTouchPoints: 5, standalone: true });
+    expect(isStandalonePwa()).toBe(true);
+  });
+
+  it("needsIosInstall ist true für ein iPhone im Safari-Tab", () => {
+    stubDevice({ userAgent: IPHONE_UA, maxTouchPoints: 5 });
+    expect(needsIosInstall()).toBe(true);
+  });
+
+  it("needsIosInstall ist false für eine installierte iPhone-PWA", () => {
+    stubDevice({ userAgent: IPHONE_UA, maxTouchPoints: 5, displayModeStandalone: true });
+    expect(needsIosInstall()).toBe(false);
+  });
+
+  it("needsIosInstall ist false auf einem Nicht-iOS-Gerät", () => {
+    stubDevice({ userAgent: MAC_DESKTOP_UA, maxTouchPoints: 0 });
+    expect(needsIosInstall()).toBe(false);
   });
 });

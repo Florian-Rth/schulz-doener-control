@@ -12,7 +12,7 @@ export const BenachrichtigungenPage: FC = () => {
   const { goHome } = usePushNavigation();
 
   return (
-    <PageLayout bg="app" safeAreaTop={54}>
+    <PageLayout bg="app">
       <PageLayout.Header>
         <PushPageHeader onBack={goHome} />
       </PageLayout.Header>

@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   currentPermission,
   isPushSupported,
+  needsIosInstall,
   registerServiceWorker,
   subscribeToPush,
   unsubscribeFromPush,
@@ -19,6 +20,11 @@ export interface PushOperations {
 
 // Maps the static browser capability + permission into the initial card state.
 const initialStatus = (): PushStatus => {
+  // Check iOS-in-a-tab first: there the Push API is absent (so isPushSupported is
+  // false), but the right guidance is "install to Home Screen", not "unsupported".
+  if (needsIosInstall()) {
+    return "ios-install";
+  }
   if (!isPushSupported()) {
     return "unsupported";
   }

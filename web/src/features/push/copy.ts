@@ -3,7 +3,7 @@
 export const pushCopy = {
   // Page shell (the dedicated notification-settings screen).
   pageTitle: "Benachrichtigungen",
-  pageSubtitle: "WERKS-KANTINE · HB-01",
+  pageSubtitle: "BÜRO LEIPZIG · L-01",
   pageIntro: "Lass dich pingen, sobald die heilige Döner-Schicht beginnt, Chef.",
   back: "Zurück zur Übersicht",
   backIconLabel: "Zurück",
@@ -21,6 +21,9 @@ export const pushCopy = {
   unsupportedTitle: "Push wird hier nicht unterstützt",
   unsupported:
     "Dein Browser kann keine Push-Benachrichtigungen. Schau auf dem Handy im Standard-Browser vorbei.",
+  iosInstallTitle: "iPhone? Kurz zum Home-Bildschirm hinzufügen",
+  iosInstall:
+    "Auf dem iPhone gibt's Push nur aus der installierten App, Chef. Tippe unten auf das Teilen-Symbol, wähle „Zum Home-Bildschirm“ und öffne Döner Control über das neue Icon — dann kannst du hier aktivieren.",
   error: "Hat nicht geklappt, Chef. Versuch es gleich nochmal.",
   // Notification shown by the service worker on an incoming push.
   notificationFallbackTitle: "Schulz Döner Control",
