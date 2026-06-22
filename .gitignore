@@ -12,3 +12,6 @@ Thumbs.db
 
 # Claude Code local (keep shared skills; ignore machine-local settings)
 .claude/settings.local.json
+
+# Docker compose secrets (copy of .env.docker.example)
+.env

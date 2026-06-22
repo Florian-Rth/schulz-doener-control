@@ -1,0 +1,20 @@
+# Build outputs — rebuilt inside the image
+**/bin/
+**/obj/
+**/out/
+
+# Local SQLite runtime databases — never bake into the image
+**/*.db
+**/*.db-shm
+**/*.db-wal
+**/*.sqlite
+**/*.sqlite3
+
+# Tests are not part of the runtime image
+tests/
+
+# Tooling / local noise
+**/.vs/
+**/.idea/
+**/*.user
+.DS_Store

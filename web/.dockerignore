@@ -1,0 +1,16 @@
+# Dependencies & build outputs — recreated inside the image
+node_modules/
+dist/
+dist-ssr/
+.tanstack/
+
+# Local env overrides — never bake secrets/hosts into the image
+.env
+.env.local
+.env.*.local
+
+# Tooling / local noise
+.vscode/
+.idea/
+*.log
+.DS_Store

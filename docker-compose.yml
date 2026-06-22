@@ -1,0 +1,43 @@
+# Schulz Döner Control — run the published images together.
+#
+#   1. cp .env.docker.example .env   and fill in the secrets
+#   2. docker compose pull           (or: scripts/docker-build-push.sh to build locally)
+#   3. docker compose up -d
+#
+# The web container serves the SPA and reverse-proxies /api to the api container,
+# so the whole app is reachable on a single origin (http://<host>:8080) with
+# first-party auth cookies and no CORS config needed.
+
+services:
+  api:
+    image: florianrth/doener-control-api:${TAG:-latest}
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__AppDb: "Data Source=/data/doenercontrol.db"
+      # REQUIRED — the app refuses to start without a non-empty signing key.
+      Auth__JwtSigningKey: ${JWT_SIGNING_KEY:?set JWT_SIGNING_KEY in .env}
+      # REQUIRED — server-side password pepper (Argon2id). Must be valid Base64.
+      Auth__Pepper: ${AUTH_PEPPER:?set AUTH_PEPPER in .env}
+      # Seeded once on first startup into an empty database.
+      Auth__AdminSeed__Password: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in .env}
+      # Optional web-push (leave empty to disable).
+      Push__VapidPublicKey: ${VAPID_PUBLIC_KEY:-}
+      Push__VapidPrivateKey: ${VAPID_PRIVATE_KEY:-}
+    volumes:
+      - doener-data:/data
+    expose:
+      - "8080"
+
+  web:
+    image: florianrth/doener-control-web:${TAG:-latest}
+    restart: unless-stopped
+    environment:
+      API_UPSTREAM: "http://api:8080"
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    depends_on:
+      - api
+
+volumes:
+  doener-data:
