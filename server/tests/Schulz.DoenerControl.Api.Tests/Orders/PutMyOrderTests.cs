@@ -12,9 +12,9 @@ using Xunit;
 namespace Schulz.DoenerControl.Api.Tests.Orders;
 
 // The F9 first-failing test, now multi-line: upsert is idempotent per (day,user) and only allowed
-// before cutoff. PUT before cutoff creates (200); a second PUT replaces the order's whole line set on
-// the same row (the composite unique index holds — no duplicate); PUT after cutoff is rejected (409).
-// Then GET /orders/{id}/result returns the server-driven success-screen summary.
+// while ordering is open. PUT while open creates (200); a second PUT replaces the order's whole line
+// set on the same row (the composite unique index holds — no duplicate); PUT after the collector
+// closes ordering is rejected (409). Then GET /orders/{id}/result returns the success-screen summary.
 public sealed class PutMyOrderTests : DoenerControlTestBase
 {
     private const string LoginUrl = "/api/auth/login";
@@ -37,7 +37,7 @@ public sealed class PutMyOrderTests : DoenerControlTestBase
     }
 
     [Fact]
-    public async Task Should_Upsert_Edit_And_Reject_After_Cutoff_And_Expose_Result()
+    public async Task Should_Upsert_Edit_And_Reject_After_Ordering_Closed_And_Expose_Result()
     {
         var auth = await OrderDayTestHelpers.LoginAsChefAsync(App, LoginUrl);
         var dayId = await OpenTodayAsync(auth);
@@ -127,14 +127,14 @@ public sealed class PutMyOrderTests : DoenerControlTestBase
         Assert.Equal(1700, summary.PriceCents);
         Assert.True(summary.IsPickup);
 
-        // Push the persisted cutoff into the past, then a further PUT is rejected with 409.
-        await MoveCutoffToPastAsync(dayId);
+        // The collector locks ordering, then a further PUT is rejected with 409.
+        await CloseOrderingAsync(dayId);
 
-        var afterCutoff = await auth.PutJsonAsync(
+        var afterClose = await auth.PutJsonAsync(
             $"/api/order-days/{dayId}/orders/mine",
             SampleDoenerBody()
         );
-        Assert.Equal(HttpStatusCode.Conflict, afterCutoff.StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, afterClose.StatusCode);
     }
 
     private static object SampleDoenerBody() => OrderTestHelpers.DoenerBody();
@@ -153,7 +153,7 @@ public sealed class PutMyOrderTests : DoenerControlTestBase
         return body!.Day.Id;
     }
 
-    private async Task MoveCutoffToPastAsync(Guid dayId)
+    private async Task CloseOrderingAsync(Guid dayId)
     {
         using var scope = App.Services.CreateScope();
         var database = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -161,7 +161,7 @@ public sealed class PutMyOrderTests : DoenerControlTestBase
             d => d.Id == dayId,
             TestContext.Current.CancellationToken
         );
-        day.OrderCutoffAt = FixedTimeProvider.Instant.AddHours(-1);
+        day.OrderingClosedAt = FixedTimeProvider.Instant;
         await database.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 }

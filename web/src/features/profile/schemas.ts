@@ -7,6 +7,19 @@ export const PayPalHandleResponseSchema = z.object({
   payPalHandleSet: z.boolean(),
 });
 
+// PUT /api/profile/display-name response — the persisted name plus the derived
+// initials/avatar color (the avatar re-reads these via the session refresh).
+export const DisplayNameResponseSchema = z.object({
+  displayName: z.string(),
+  initials: z.string(),
+  avatarColorHex: z.string(),
+});
+
+// Mirrors the backend PutDisplayNameRequestValidator: non-empty, max 128 chars.
+export const DisplayNameFormSchema = z.object({
+  displayName: z.string().trim().min(1, "Pflichtfeld").max(128, "Höchstens 128 Zeichen."),
+});
+
 // --- Form schema ---
 
 // Mirrors the backend validator: PayPal.Me handle charset is `[A-Za-z0-9]`

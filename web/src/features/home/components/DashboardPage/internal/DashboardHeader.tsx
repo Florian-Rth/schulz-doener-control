@@ -5,8 +5,15 @@ import { IconChipBox, LiveDot, MaterialIcon, RedChromeSurface } from "@/componen
 import { UserProfileButton } from "@/features/auth";
 import { homeCopy } from "../../../copy";
 
-// The red chrome app header: kebab icon tile + title block + LIVE pill.
-export const DashboardHeader: FC = () => {
+interface DashboardHeaderProps {
+  /** True while today's Döner-Tag is open — drives the honest LIVE indicator. */
+  isDayOpen: boolean;
+}
+
+// The red chrome app header: kebab icon tile + title block + status pill. The
+// pill is honest: it pulses "LIVE" only while a day is open, otherwise it shows
+// a static "Kein Döner-Tag" with no pulsing dot.
+export const DashboardHeader: FC<DashboardHeaderProps> = ({ isDayOpen }) => {
   return (
     <RedChromeSurface
       start={
@@ -27,7 +34,7 @@ export const DashboardHeader: FC = () => {
               py: 0.625,
             })}
           >
-            <LiveDot color="live" size={7} />
+            {isDayOpen ? <LiveDot color="live" size={7} /> : null}
             <Typography
               sx={{
                 fontSize: "0.6875rem",
@@ -36,7 +43,7 @@ export const DashboardHeader: FC = () => {
                 letterSpacing: ".04em",
               }}
             >
-              {homeCopy.live}
+              {isDayOpen ? homeCopy.live : homeCopy.noDayPill}
             </Typography>
           </Stack>
           <UserProfileButton size={36} />

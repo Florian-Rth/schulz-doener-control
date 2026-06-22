@@ -62,7 +62,8 @@ public sealed class AbholerProjectionNoCollectorTests : DoenerControlTestBase
     {
         var chef = await DebtTestHelpers.LoginAsChefAsync(App);
         var dayId = await DebtTestHelpers.OpenTodayAsync(chef);
-        await DebtTestHelpers.PlaceOrderAsync(chef, dayId, priceCents: 950, isPickup: true);
+        // No one has picked up, so auto-designate never fires → CollectorUserId stays null.
+        await DebtTestHelpers.PlaceOrderAsync(chef, dayId, priceCents: 950, isPickup: false);
 
         var today = await chef.GetAsync(TodayUrl);
         var body = await today.Content.ReadFromJsonAsync<GetTodayOrderDayResponse>(
@@ -71,7 +72,7 @@ public sealed class AbholerProjectionNoCollectorTests : DoenerControlTestBase
 
         Assert.Equal(HttpStatusCode.OK, today.StatusCode);
         Assert.NotNull(body!.Day);
-        // Strict CollectorUserId: no opener/first-pickup heuristic, so no collector means no Abholer.
+        // Strict CollectorUserId: no collector designated (no pickup) means no Abholer.
         Assert.Null(body.Day!.Abholer);
         Assert.False(body.Day.AmICollector);
     }

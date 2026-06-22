@@ -14,7 +14,7 @@ import { PrintListPage } from "./PrintListPage";
 const PrintMessage: FC<{ message: string }> = ({ message }) => {
   const navigate = useNavigate();
   return (
-    <PageLayout bg="app" safeAreaTop={54}>
+    <PageLayout bg="app">
       <PageLayout.Content>
         <Stack sx={{ gap: 2, alignItems: "center", pt: 6 }}>
           <Typography

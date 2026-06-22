@@ -5,6 +5,7 @@ import { SelectChips } from "@/components";
 import { orderCopy } from "../../../copy";
 import { useOrderFormContext, useOrderLineContext } from "../../../order-context";
 import type { PizzaVariant } from "../../../types";
+import { FieldError } from "./FieldError";
 import { SectionLabel } from "./SectionLabel";
 
 // Pizza-variant single-select for one line. Rendered only when pizzaVisible
@@ -13,6 +14,7 @@ export const PizzaVariantField: FC = () => {
   const { form, menu } = useOrderFormContext();
   const { index } = useOrderLineContext();
   const options = menu.pizzaVariants.map((variant) => ({ value: variant, label: variant }));
+  const errorId = `lines.${index}.pizzaVariant-error`;
 
   return (
     <Stack sx={{ gap: 1 }}>
@@ -20,14 +22,17 @@ export const PizzaVariantField: FC = () => {
       <Controller
         control={form.control}
         name={`lines.${index}.pizzaVariant`}
-        render={({ field }) => (
-          <SelectChips
-            options={options}
-            value={field.value}
-            onChange={(value: PizzaVariant) => {
-              field.onChange(value);
-            }}
-          />
+        render={({ field, fieldState }) => (
+          <>
+            <SelectChips
+              options={options}
+              value={field.value}
+              onChange={(value: PizzaVariant) => {
+                field.onChange(value);
+              }}
+            />
+            <FieldError error={fieldState.error} id={errorId} />
+          </>
         )}
       />
     </Stack>

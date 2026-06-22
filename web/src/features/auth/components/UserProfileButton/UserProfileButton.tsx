@@ -16,9 +16,10 @@ interface UserProfileButtonProps {
 }
 
 // Profile menu behind the user avatar: an IconButton wrapping the Avatar that
-// opens a Menu with "Passwort ändern" and "Abmelden". Reads the current user
-// from the auth context; all actions live in `useProfileMenu`. Reusable on any
-// authenticated header — sets no positioning margin of its own.
+// opens a Menu with "Einstellungen", "Döner-Tiere", "Benachrichtigungen",
+// "Admin-Bereich" (admins only), "Passwort ändern" and "Abmelden". Reads the
+// current user from the auth context; all actions live in `useProfileMenu`.
+// Reusable on any authenticated header — sets no positioning margin of its own.
 export const UserProfileButton: FC<UserProfileButtonProps> = ({ size = 38, sx }) => {
   const { user } = useAuth();
   const {
@@ -27,6 +28,9 @@ export const UserProfileButton: FC<UserProfileButtonProps> = ({ size = 38, sx })
     isLoggingOut,
     open,
     close,
+    goToSettings,
+    goToTiere,
+    goToNotifications,
     goToAdmin,
     goToChangePassword,
     logout,
@@ -73,6 +77,15 @@ export const UserProfileButton: FC<UserProfileButtonProps> = ({ size = 38, sx })
           },
         }}
       >
+        <MenuItem onClick={goToSettings} sx={{ fontWeight: 600 }}>
+          {authCopy.settings}
+        </MenuItem>
+        <MenuItem onClick={goToTiere} sx={{ fontWeight: 600 }}>
+          {authCopy.tiere}
+        </MenuItem>
+        <MenuItem onClick={goToNotifications} sx={{ fontWeight: 600 }}>
+          {authCopy.notifications}
+        </MenuItem>
         {isAdmin ? (
           <MenuItem onClick={goToAdmin} sx={{ fontWeight: 600 }}>
             {authCopy.adminArea}

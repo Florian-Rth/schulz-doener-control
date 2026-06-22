@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as RegisterRouteImport } from './routes/register'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as AuthIndexRouteImport } from './routes/_auth/index'
@@ -16,6 +17,7 @@ import { Route as AuthTiereRouteImport } from './routes/_auth/tiere'
 import { Route as AuthPasswortAendernRouteImport } from './routes/_auth/passwort-aendern'
 import { Route as AuthOrderRouteImport } from './routes/_auth/order'
 import { Route as AuthErledigtRouteImport } from './routes/_auth/erledigt'
+import { Route as AuthEinstellungenRouteImport } from './routes/_auth/einstellungen'
 import { Route as AuthDruckRouteImport } from './routes/_auth/druck'
 import { Route as AuthBenachrichtigungenRouteImport } from './routes/_auth/benachrichtigungen'
 import { Route as AuthAdminRouteImport } from './routes/_auth/admin'
@@ -24,6 +26,11 @@ import { Route as AuthAdminTiereRouteImport } from './routes/_auth/admin/tiere'
 import { Route as AuthAdminMenueRouteImport } from './routes/_auth/admin/menue'
 import { Route as AuthAdminBenutzerRouteImport } from './routes/_auth/admin/benutzer'
 
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -56,6 +63,11 @@ const AuthOrderRoute = AuthOrderRouteImport.update({
 const AuthErledigtRoute = AuthErledigtRouteImport.update({
   id: '/erledigt',
   path: '/erledigt',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthEinstellungenRoute = AuthEinstellungenRouteImport.update({
+  id: '/einstellungen',
+  path: '/einstellungen',
   getParentRoute: () => AuthRoute,
 } as any)
 const AuthDruckRoute = AuthDruckRouteImport.update({
@@ -97,9 +109,11 @@ const AuthAdminBenutzerRoute = AuthAdminBenutzerRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof AuthIndexRoute
   '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
   '/admin': typeof AuthAdminRouteWithChildren
   '/benachrichtigungen': typeof AuthBenachrichtigungenRoute
   '/druck': typeof AuthDruckRoute
+  '/einstellungen': typeof AuthEinstellungenRoute
   '/erledigt': typeof AuthErledigtRoute
   '/order': typeof AuthOrderRoute
   '/passwort-aendern': typeof AuthPasswortAendernRoute
@@ -111,8 +125,10 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
   '/benachrichtigungen': typeof AuthBenachrichtigungenRoute
   '/druck': typeof AuthDruckRoute
+  '/einstellungen': typeof AuthEinstellungenRoute
   '/erledigt': typeof AuthErledigtRoute
   '/order': typeof AuthOrderRoute
   '/passwort-aendern': typeof AuthPasswortAendernRoute
@@ -127,9 +143,11 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_auth': typeof AuthRouteWithChildren
   '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
   '/_auth/admin': typeof AuthAdminRouteWithChildren
   '/_auth/benachrichtigungen': typeof AuthBenachrichtigungenRoute
   '/_auth/druck': typeof AuthDruckRoute
+  '/_auth/einstellungen': typeof AuthEinstellungenRoute
   '/_auth/erledigt': typeof AuthErledigtRoute
   '/_auth/order': typeof AuthOrderRoute
   '/_auth/passwort-aendern': typeof AuthPasswortAendernRoute
@@ -145,9 +163,11 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/register'
     | '/admin'
     | '/benachrichtigungen'
     | '/druck'
+    | '/einstellungen'
     | '/erledigt'
     | '/order'
     | '/passwort-aendern'
@@ -159,8 +179,10 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
+    | '/register'
     | '/benachrichtigungen'
     | '/druck'
+    | '/einstellungen'
     | '/erledigt'
     | '/order'
     | '/passwort-aendern'
@@ -174,9 +196,11 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_auth'
     | '/login'
+    | '/register'
     | '/_auth/admin'
     | '/_auth/benachrichtigungen'
     | '/_auth/druck'
+    | '/_auth/einstellungen'
     | '/_auth/erledigt'
     | '/_auth/order'
     | '/_auth/passwort-aendern'
@@ -191,10 +215,18 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AuthRoute: typeof AuthRouteWithChildren
   LoginRoute: typeof LoginRoute
+  RegisterRoute: typeof RegisterRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -242,6 +274,13 @@ declare module '@tanstack/react-router' {
       path: '/erledigt'
       fullPath: '/erledigt'
       preLoaderRoute: typeof AuthErledigtRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/einstellungen': {
+      id: '/_auth/einstellungen'
+      path: '/einstellungen'
+      fullPath: '/einstellungen'
+      preLoaderRoute: typeof AuthEinstellungenRouteImport
       parentRoute: typeof AuthRoute
     }
     '/_auth/druck': {
@@ -318,6 +357,7 @@ interface AuthRouteChildren {
   AuthAdminRoute: typeof AuthAdminRouteWithChildren
   AuthBenachrichtigungenRoute: typeof AuthBenachrichtigungenRoute
   AuthDruckRoute: typeof AuthDruckRoute
+  AuthEinstellungenRoute: typeof AuthEinstellungenRoute
   AuthErledigtRoute: typeof AuthErledigtRoute
   AuthOrderRoute: typeof AuthOrderRoute
   AuthPasswortAendernRoute: typeof AuthPasswortAendernRoute
@@ -329,6 +369,7 @@ const AuthRouteChildren: AuthRouteChildren = {
   AuthAdminRoute: AuthAdminRouteWithChildren,
   AuthBenachrichtigungenRoute: AuthBenachrichtigungenRoute,
   AuthDruckRoute: AuthDruckRoute,
+  AuthEinstellungenRoute: AuthEinstellungenRoute,
   AuthErledigtRoute: AuthErledigtRoute,
   AuthOrderRoute: AuthOrderRoute,
   AuthPasswortAendernRoute: AuthPasswortAendernRoute,
@@ -341,6 +382,7 @@ const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRouteWithChildren,
   LoginRoute: LoginRoute,
+  RegisterRoute: RegisterRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -14,7 +14,7 @@ export const AdminHubPage: FC = () => {
   const { cards } = adminCopy;
 
   return (
-    <PageLayout bg="app" safeAreaTop={54}>
+    <PageLayout bg="app">
       <PageLayout.Header>
         <AdminHubHeader onBack={goHome} />
       </PageLayout.Header>

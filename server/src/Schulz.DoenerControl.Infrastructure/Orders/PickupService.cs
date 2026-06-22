@@ -72,6 +72,58 @@ public sealed class PickupService : IPickupService
         );
     }
 
+    public async Task<Result<OrderDayDetails>> ClaimCollectorAsync(
+        ClaimCollectorCommand command,
+        CancellationToken ct
+    )
+    {
+        var day = await database.OrderDays.FirstOrDefaultAsync(d => d.Id == command.OrderDayId, ct);
+        if (day is null)
+            return Result<OrderDayDetails>.NotFound("Döner-Tag nicht gefunden.");
+
+        if (day.Status != OrderDayStatus.Open)
+            return Result<OrderDayDetails>.Conflict("Der Döner-Tag ist geschlossen.");
+
+        var callerOrder = await database.Orders.FirstOrDefaultAsync(
+            order => order.OrderDayId == command.OrderDayId && order.UserId == command.CallerUserId,
+            ct
+        );
+        if (callerOrder is null)
+            return Result<OrderDayDetails>.Validation("Erst bestellen, dann abholen, Chef.");
+
+        // Take-over path: clear the previous collector's pickup flag so they become a regular debtor
+        // again. Without this they keep IsPickup=true and slip out of the close-day debtor set (a free
+        // Döner) and double-up the open-day "Abholer heute:" list.
+        if (
+            day.CollectorUserId is { } previousCollectorId
+            && previousCollectorId != command.CallerUserId
+        )
+        {
+            var previousCollectorOrder = await database.Orders.FirstOrDefaultAsync(
+                order =>
+                    order.OrderDayId == command.OrderDayId && order.UserId == previousCollectorId,
+                ct
+            );
+            if (previousCollectorOrder is not null)
+            {
+                previousCollectorOrder.IsPickup = false;
+                previousCollectorOrder.UpdatedAt = clock.UtcNow();
+            }
+        }
+
+        // Force both the pickup flag and the collector to the caller. Unconditional: this is also the
+        // take-over path, so it must override whoever is currently designated.
+        callerOrder.IsPickup = true;
+        callerOrder.UpdatedAt = clock.UtcNow();
+        day.CollectorUserId = command.CallerUserId;
+        await database.SaveChangesAsync(ct);
+
+        return await orderDayService.GetByIdAsync(
+            new GetOrderDayQuery(command.CallerUserId, command.OrderDayId),
+            ct
+        );
+    }
+
     private async Task<Result<PickupResult>> SetPickupAsync(
         Guid callerUserId,
         Guid orderDayId,
@@ -83,14 +135,7 @@ public sealed class PickupService : IPickupService
         if (day is null)
             return Result<PickupResult>.NotFound("Döner-Tag nicht gefunden.");
 
-        if (
-            !OrderWindow.CanOrder(
-                day.Status,
-                day.OrderingClosedAt,
-                day.OrderCutoffAt,
-                clock.UtcNow()
-            )
-        )
+        if (!OrderWindow.CanOrder(day.Status, day.OrderingClosedAt))
             return Result<PickupResult>.Conflict(CutoffMessage);
 
         var order = await database
@@ -102,9 +147,12 @@ public sealed class PickupService : IPickupService
         order.IsPickup = isPickup;
         order.UpdatedAt = clock.UtcNow();
 
-        // Releasing the current collector vacates the designation; it must be re-set explicitly.
-        if (!isPickup && day.CollectorUserId == callerUserId)
-            day.CollectorUserId = null;
+        // Auto-designate: a pickup with no collector becomes it; releasing vacates only if self was it.
+        day.CollectorUserId = CollectorDesignation.Reconcile(
+            day.CollectorUserId,
+            callerUserId,
+            isPickup
+        );
 
         await database.SaveChangesAsync(ct);
 

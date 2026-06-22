@@ -1,6 +1,12 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { useCloseDay, useCloseOrdering, useOpenDay, useSettleDebt } from "../api";
+import {
+  useClaimCollector,
+  useCloseDay,
+  useCloseOrdering,
+  useOpenDay,
+  useSettleDebt,
+} from "../api";
 
 export interface DashboardOperations {
   toast: string | null;
@@ -11,6 +17,9 @@ export interface DashboardOperations {
   isClosingOrdering: boolean;
   closeDay: (dayId: string) => void;
   isClosingDay: boolean;
+  /** Become the designated Abholer for the running day ("Ich hole heute ab" / take-over). */
+  claimCollector: (dayId: string) => void;
+  isClaimingCollector: boolean;
   /** Personal "ich hab bezahlt" confirmation for an open debt (one-way settle). */
   settle: (debtId: string) => void;
   /** True only for the debt row whose settle is currently in flight. */
@@ -43,6 +52,7 @@ export const useDashboardOperations = ({
   };
   const closeOrderingMutation = useCloseOrdering({ onError: showError });
   const closeDayMutation = useCloseDay({ onError: showError });
+  const claimCollectorMutation = useClaimCollector({ onError: showError });
   const settleMutation = useSettleDebt();
   // The debt row whose settle is in flight, so only that row disables its
   // control. null = none pending.
@@ -76,6 +86,11 @@ export const useDashboardOperations = ({
       closeDayMutation.mutate(dayId);
     },
     isClosingDay: closeDayMutation.isPending,
+    claimCollector: (dayId: string) => {
+      setErrorToast(null);
+      claimCollectorMutation.mutate(dayId);
+    },
+    isClaimingCollector: claimCollectorMutation.isPending,
     settle: (debtId: string) => {
       setSettlingDebtId(debtId);
       settleMutation.mutate(debtId, {

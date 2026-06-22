@@ -1,3 +1,4 @@
+import userEvent from "@testing-library/user-event";
 import { HttpResponse, http } from "msw";
 import { describe, expect, it } from "vitest";
 import type { OrderResult } from "@/features/success";
@@ -66,6 +67,25 @@ const pickupResult: OrderResult = {
   myPayPalUrl: null,
 };
 
+// Owes the abholer, but that abholer has no PayPal handle on file → cash fallback.
+const owesCashResult: OrderResult = {
+  ...owesResult,
+  abholer: {
+    name: "Lukas Brandt",
+    initials: "LB",
+    colorHex: "#00728E",
+    payPalHandle: null,
+  },
+  myPayPalUrl: null,
+};
+
+// Not the pickup person and no abholer designated yet → info card, no payment.
+const noAbholerResult: OrderResult = {
+  ...owesResult,
+  abholer: null,
+  myPayPalUrl: null,
+};
+
 const useSuccessHandlers = (result: OrderResult): void => {
   mswServer.use(
     http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
@@ -101,5 +121,54 @@ describe("SuccessPage", () => {
     expect(await findByText(/Du sammelst 15,50 € von 2 Kollegen ein\./)).toBeInTheDocument();
     // No pay-to-abholer button in the pickup branch.
     expect(queryByRole("link", { name: /per PayPal senden/ })).not.toBeInTheDocument();
+  });
+
+  it("zeigt eine Bar-Warnung statt eines toten PayPal-Buttons, wenn der Abholer kein PayPal hat", async () => {
+    useSuccessHandlers(owesCashResult);
+    const { findAllByText, findByText, queryByRole } = renderApp({
+      initialPath: `/erledigt?orderId=${ORDER_ID}`,
+    });
+
+    // The amount stays prominent (the big amount + the Gesamt line) and the cash
+    // fallback names the abholer.
+    expect((await findAllByText("26,00 €")).length).toBeGreaterThanOrEqual(2);
+    expect(
+      await findByText(/Kein PayPal hinterlegt — bitte Lukas Brandt 26,00 € in bar geben, Chef\./),
+    ).toBeInTheDocument();
+    // No PayPal button at all — neither link nor disabled button.
+    expect(queryByRole("link", { name: /per PayPal senden/ })).not.toBeInTheDocument();
+    expect(queryByRole("button", { name: /per PayPal senden/ })).not.toBeInTheDocument();
+  });
+
+  it("zeigt einen Hinweis, wenn noch kein Abholer festgelegt ist", async () => {
+    useSuccessHandlers(noAbholerResult);
+    const { findByText, queryByRole } = renderApp({
+      initialPath: `/erledigt?orderId=${ORDER_ID}`,
+    });
+
+    expect(await findByText(/Noch kein Abholer festgelegt/)).toBeInTheDocument();
+    expect(queryByRole("link", { name: /per PayPal senden/ })).not.toBeInTheDocument();
+  });
+
+  it("zeigt einen Fehler mit Retry, wenn die Bestellung nicht geladen werden kann", async () => {
+    mswServer.use(
+      http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
+      http.get("*/api/orders/:id/result", () => HttpResponse.json(null, { status: 500 })),
+    );
+    const { findByText, queryByText, findByRole } = renderApp({
+      initialPath: `/erledigt?orderId=${ORDER_ID}`,
+    });
+
+    expect(await findByText("Bestellung konnte nicht geladen werden, Chef.")).toBeInTheDocument();
+    // The celebratory success header is withheld on a load failure.
+    expect(queryByText("Erledigt, Chef")).not.toBeInTheDocument();
+
+    // Retry now succeeds → the result renders and the error clears.
+    mswServer.use(http.get("*/api/orders/:id/result", () => HttpResponse.json(owesResult)));
+    const user = userEvent.setup();
+    await user.click(await findByRole("button", { name: "Nochmal versuchen" }));
+
+    expect(await findByText("Erledigt, Chef")).toBeInTheDocument();
+    expect(queryByText("Bestellung konnte nicht geladen werden, Chef.")).not.toBeInTheDocument();
   });
 });

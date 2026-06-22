@@ -24,10 +24,9 @@ public static class PushTextBuilder
     public static string BuildOpenDayBody(string synonym) =>
         $"Heute wird ein {synonym} organisiert! 🌯";
 
-    // The dashboard's "Gesendete Benachrichtigung" preview sentence, parameterized by the day's
-    // cutoff label (e.g. "11:30 Uhr"). Mirrors the mock's notifText.
+    // The dashboard's "Gesendete Benachrichtigung" preview sentence. Ordering has no time cutoff, so
+    // the sentence makes no time promise — it just rallies the colleagues.
     [Pure]
-    public static string BuildOpenDayPreview(string synonym, string cutoffLabel) =>
-        $"Achtung Kollegen — heute wird ein „{synonym}\" organisiert! "
-        + $"Bestellschluss {cutoffLabel}. Wer ist dabei?";
+    public static string BuildOpenDayPreview(string synonym) =>
+        $"Achtung Kollegen — heute wird ein „{synonym}\" organisiert! Wer ist dabei?";
 }

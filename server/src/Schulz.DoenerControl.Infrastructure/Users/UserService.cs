@@ -1,4 +1,8 @@
+using System.Security.Cryptography;
+using System.Text;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Schulz.DoenerControl.Application.Calculators;
 using Schulz.DoenerControl.Application.Security;
 using Schulz.DoenerControl.Application.Users;
@@ -15,20 +19,24 @@ public sealed class UserService : IUserService
     private const string UsernameTaken = "Dieser Benutzername ist bereits vergeben.";
     private const string LastAdminGuard =
         "Der letzte aktive Administrator kann nicht herabgestuft oder deaktiviert werden.";
+    private const string InvalidInviteCode = "Ungültiger Registrierungscode, Chef.";
 
     private readonly AppDbContext database;
     private readonly IPasswordHasher passwordHasher;
     private readonly TimeProvider timeProvider;
+    private readonly RegistrationOptions registrationOptions;
 
     public UserService(
         AppDbContext database,
         IPasswordHasher passwordHasher,
-        TimeProvider timeProvider
+        TimeProvider timeProvider,
+        IOptions<RegistrationOptions> registrationOptions
     )
     {
         this.database = database;
         this.passwordHasher = passwordHasher;
         this.timeProvider = timeProvider;
+        this.registrationOptions = registrationOptions.Value;
     }
 
     public async Task<Result<CurrentUserDetails>> GetMeAsync(Guid callerId, CancellationToken ct)
@@ -91,6 +99,69 @@ public sealed class UserService : IUserService
 
         return Result<ProvisionedUserDetails>.Success(
             new ProvisionedUserDetails(user.Id, user.Username, temporaryPassword)
+        );
+    }
+
+    public async Task<Result<RegisteredUserDetails>> SelfRegisterAsync(
+        SelfRegisterCommand command,
+        CancellationToken ct
+    )
+    {
+        // Optional invite-code gate: only enforced when one is configured (open registration
+        // otherwise). Checked before any uniqueness/hash work so a bad code never touches the DB.
+        if (
+            !string.IsNullOrWhiteSpace(registrationOptions.InviteCode)
+            && !MatchesInviteCode(registrationOptions.InviteCode, command.InviteCode)
+        )
+        {
+            return Result<RegisteredUserDetails>.Forbidden(InvalidInviteCode);
+        }
+
+        var username = command.Username.Trim();
+        var normalized = username.ToLowerInvariant();
+
+        var exists = await database.Users.AnyAsync(
+            candidate => candidate.NormalizedUserName == normalized,
+            ct
+        );
+        if (exists)
+            return Result<RegisteredUserDetails>.Conflict(UsernameTaken);
+
+        // The colleague chose this password themselves, so there is no forced first-login change.
+        var hashed = passwordHasher.Hash(command.Password);
+
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Username = username,
+            NormalizedUserName = normalized,
+            DisplayName = command.DisplayName.Trim(),
+            PayPalHandle = NormalizeHandle(command.PayPalHandle),
+            PasswordHash = hashed.Hash,
+            PasswordSalt = hashed.Salt,
+            // Self-registration always yields a plain Employee: the role is never client-selectable.
+            Role = UserRole.Employee,
+            IsActive = true,
+            MustChangePassword = false,
+            AvatarColorHex = AvatarColorPalette.ForUsername(normalized),
+            CreatedAt = timeProvider.GetUtcNow(),
+        };
+
+        database.Users.Add(user);
+
+        try
+        {
+            await database.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException ex) when (IsUniqueViolation(ex))
+        {
+            // A concurrent registration claimed the same username between the check and the insert.
+            database.ChangeTracker.Clear();
+            return Result<RegisteredUserDetails>.Conflict(UsernameTaken);
+        }
+
+        return Result<RegisteredUserDetails>.Success(
+            new RegisteredUserDetails(user.Id, user.Username, user.DisplayName)
         );
     }
 
@@ -206,8 +277,24 @@ public sealed class UserService : IUserService
             token.RevokedAt = now;
     }
 
+    // Constant-time comparison of the configured invite code against the supplied one. A
+    // missing/empty supplied code is a clean mismatch (never compared against the secret), and
+    // FixedTimeEquals keeps the comparison resistant to timing side channels.
+    private static bool MatchesInviteCode(string configured, string? supplied)
+    {
+        if (string.IsNullOrEmpty(supplied))
+            return false;
+
+        var expected = Encoding.UTF8.GetBytes(configured);
+        var actual = Encoding.UTF8.GetBytes(supplied);
+        return CryptographicOperations.FixedTimeEquals(expected, actual);
+    }
+
     private static string? NormalizeHandle(string? handle) =>
         string.IsNullOrWhiteSpace(handle) ? null : handle.Trim();
+
+    private static bool IsUniqueViolation(DbUpdateException ex) =>
+        ex.InnerException is SqliteException { SqliteErrorCode: 19 };
 
     private static CurrentUserDetails MapCurrent(User user) =>
         new(

@@ -47,7 +47,7 @@ const OrderFormReady: FC<ReadyProps> = ({ dayId, menu }) => {
 const OrderMessage: FC<{ message: string; showBack?: boolean }> = ({ message, showBack }) => {
   const navigate = useNavigate();
   return (
-    <PageLayout bg="app" safeAreaTop={54}>
+    <PageLayout bg="app">
       <PageLayout.Content>
         <Stack sx={{ gap: 2, alignItems: "center", pt: 6 }}>
           <Typography

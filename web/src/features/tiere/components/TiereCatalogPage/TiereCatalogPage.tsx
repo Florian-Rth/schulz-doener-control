@@ -12,7 +12,7 @@ export const TiereCatalogPage: FC = () => {
   const { entries, isPending, isError, goHome } = useTiereCatalog();
 
   return (
-    <PageLayout bg="app" safeAreaTop={54}>
+    <PageLayout bg="app">
       <PageLayout.Header>
         <TiereHeader onBack={goHome} />
       </PageLayout.Header>

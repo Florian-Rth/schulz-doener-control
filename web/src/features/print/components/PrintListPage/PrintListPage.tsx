@@ -14,7 +14,7 @@ import { PrintTable } from "./internal/PrintTable";
 // phone and on paper — only PrintStyles' @media print rules differ.
 export const PrintListPage: FC = () => {
   return (
-    <PageLayout bg="app" safeAreaTop={54}>
+    <PageLayout bg="app">
       <PrintStyles />
       <PageLayout.Content sx={{ gap: 2 }}>
         <Paper

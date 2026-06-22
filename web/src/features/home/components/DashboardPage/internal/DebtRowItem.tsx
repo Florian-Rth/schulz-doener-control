@@ -13,7 +13,8 @@ interface DebtRowItemProps {
 }
 
 // One open-payment row: creditor avatar + name + reason/day over the amount and
-// a PayPal button (disabled when the creditor has no handle → paypalUrl null).
+// a PayPal button. When the creditor has no handle (paypalUrl null) we drop the
+// dead button for a muted "Bar zahlen" hint instead.
 export const DebtRowItem: FC<DebtRowItemProps> = ({ debt, divider }) => {
   const reasonLine = debt.dayLabel !== null ? `${debt.reason} · ${debt.dayLabel}` : debt.reason;
 
@@ -40,9 +41,15 @@ export const DebtRowItem: FC<DebtRowItemProps> = ({ debt, divider }) => {
         </Typography>
         <Stack direction="row" sx={{ alignItems: "center", gap: 0.75 }}>
           <SettleDebtButton debtId={debt.id} />
-          <PayPalButton href={debt.paypalUrl} size="pill">
-            {homeCopy.pay}
-          </PayPalButton>
+          {debt.paypalUrl !== null ? (
+            <PayPalButton href={debt.paypalUrl} size="pill">
+              {homeCopy.pay}
+            </PayPalButton>
+          ) : (
+            <Typography sx={{ fontSize: "0.75rem", fontWeight: 600, color: "muted.main" }}>
+              {homeCopy.payCash}
+            </Typography>
+          )}
         </Stack>
       </Stack>
     </Stack>

@@ -2,7 +2,7 @@ using Microsoft.Extensions.Options;
 
 namespace Schulz.DoenerControl.Infrastructure.OrderDays;
 
-// Resolves the business "today" (the local Bremen calendar day) and the absolute cutoff instant
+// Resolves the business "today" (the local business calendar day) and the absolute cutoff instant
 // for a given day, from the injected TimeProvider so time-dependent behaviour stays deterministic
 // in tests. Everything is computed in the configured business timezone, then anchored to a UTC
 // DateTimeOffset for storage.
@@ -34,7 +34,10 @@ public sealed class OrderDayClock
 
     public DateTimeOffset UtcNow() => timeProvider.GetUtcNow();
 
-    public string CutoffLabel() => $"{options.CutoffLocalTime:HH\\:mm} Uhr";
+    // The bare "HH:mm" wall-clock label of an instant in the business timezone (no " Uhr" suffix —
+    // the frontend appends it). Used to render the moment ordering was closed.
+    public string LocalTimeLabel(DateTimeOffset instant) =>
+        $"{TimeZoneInfo.ConvertTime(instant, timeZone):HH\\:mm}";
 
     private DateTimeOffset LocalNow() =>
         TimeZoneInfo.ConvertTime(timeProvider.GetUtcNow(), timeZone);

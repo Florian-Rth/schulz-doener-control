@@ -33,7 +33,7 @@ export const AdminUsersPage: FC = () => {
   } = useUsersPage();
 
   return (
-    <PageLayout bg="app" safeAreaTop={54}>
+    <PageLayout bg="app">
       <PageLayout.Header>
         <AdminUsersHeader onBack={() => void navigate({ to: "/admin" })} />
       </PageLayout.Header>

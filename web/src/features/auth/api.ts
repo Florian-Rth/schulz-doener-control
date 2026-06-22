@@ -2,8 +2,15 @@ import type { QueryClient } from "@tanstack/react-query";
 import { CancelledError, useMutation, useQuery } from "@tanstack/react-query";
 import { redirect } from "@tanstack/react-router";
 import { ApiError, apiClient } from "@/lib/api";
-import { LoginResponseSchema, SessionSchema } from "./schemas";
-import type { AuthStatus, LoginForm, LoginResponse, Session } from "./types";
+import { LoginResponseSchema, RegisterResponseSchema, SessionSchema } from "./schemas";
+import type {
+  AuthStatus,
+  LoginForm,
+  LoginResponse,
+  RegisterForm,
+  RegisterResponse,
+  Session,
+} from "./types";
 
 export const authKeys = {
   session: ["auth", "session"] as const,
@@ -150,6 +157,38 @@ const login = async (form: LoginForm): Promise<LoginResponse> => {
 export const useLogin = () =>
   useMutation({
     mutationFn: login,
+  });
+
+interface RegisterArgs {
+  form: RegisterForm;
+  /**
+   * Optional invite code lifted from the QR-code URL (`/register?code=…`). Sent
+   * as `inviteCode` only when present; omitted otherwise (open registration).
+   */
+  inviteCode?: string;
+}
+
+// Self-registration. Anonymous endpoint; issues no session, so there is nothing
+// to invalidate — the user logs in afterward. The optional PayPal handle is sent
+// as null when left blank, and the invite code only when one is present. A 409
+// (duplicate username) / 403 (wrong/missing invite code) / 400 (validation)
+// surfaces as an ApiError, the same shape login uses, so the form hook can branch
+// on it.
+const register = async ({ form, inviteCode }: RegisterArgs): Promise<RegisterResponse> => {
+  const handle = form.payPalHandle.trim();
+  const data = await apiClient.post("/api/auth/register", {
+    username: form.username,
+    displayName: form.displayName,
+    payPalHandle: handle === "" ? null : handle,
+    password: form.password,
+    ...(inviteCode !== undefined ? { inviteCode } : {}),
+  });
+  return RegisterResponseSchema.parse(data);
+};
+
+export const useRegister = () =>
+  useMutation({
+    mutationFn: register,
   });
 
 const logout = async (): Promise<void> => {

@@ -218,7 +218,8 @@ namespace Schulz.DoenerControl.Infrastructure.Persistence.Migrations
                     b.HasIndex("CollectorUserId");
 
                     b.HasIndex("Date")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("\"Status\" <> 2");
 
                     b.HasIndex("OpenedByUserId");
 

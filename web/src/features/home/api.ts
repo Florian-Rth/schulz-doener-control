@@ -21,6 +21,10 @@ export const useDashboard = () =>
   useQuery({
     queryKey: dashboardKeys.all,
     queryFn: ({ signal }) => fetchDashboard(signal),
+    // Keep the running day fresh while the tab is focused; pause polling in the
+    // background so we do not hammer the API on a hidden tab.
+    refetchInterval: 5000,
+    refetchIntervalInBackground: false,
   });
 
 // GET /api/debts/history — the caller's own settled payments (newest first,
@@ -117,6 +121,32 @@ export const useSettleDebt = () => {
     onError: (error) => {
       if (error instanceof ApiError && error.status === 409) {
         void queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
+      }
+    },
+  });
+};
+
+// POST /api/order-days/{dayId}/collector/claim — "Ich hole heute ab" / take-over
+// (FEATURE 2/3). The caller becomes the designated Abholer (they must already
+// have an order). Contract: 200 success · 400 caller has no order · 409 day
+// closed. On success we invalidate so the abholer block + collector controls
+// swap on refetch.
+const claimCollector = async (dayId: string): Promise<void> => {
+  await apiClient.post(`/api/order-days/${dayId}/collector/claim`);
+};
+
+export const useClaimCollector = ({ onError }: CloseMutationOptions) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: claimCollector,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
+    },
+    onError: (error) => {
+      if (error instanceof ApiError && error.status === 400) {
+        onError(homeCopy.claimNeedsOrder);
+      } else {
+        onError(homeCopy.claimFailed);
       }
     },
   });

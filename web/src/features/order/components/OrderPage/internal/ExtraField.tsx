@@ -18,13 +18,15 @@ export const ExtraField: FC = () => {
       <Controller
         control={form.control}
         name={`lines.${index}.extra`}
-        render={({ field }) => (
+        render={({ field, fieldState }) => (
           <TextField
             value={field.value ?? ""}
             onChange={field.onChange}
             multiline
             minRows={2}
             placeholder={orderCopy.extraPlaceholder}
+            error={fieldState.error !== undefined}
+            helperText={fieldState.error?.message ?? " "}
             slotProps={{ htmlInput: { "aria-label": orderCopy.extraSection } }}
           />
         )}

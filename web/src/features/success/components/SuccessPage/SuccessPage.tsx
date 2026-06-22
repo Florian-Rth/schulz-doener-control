@@ -1,3 +1,5 @@
+import Alert from "@mui/material/Alert";
+import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useNavigate } from "@tanstack/react-router";
@@ -16,6 +18,8 @@ interface SuccessPageProps {
 // The success screen. URL-driven: the validated `orderId` search param feeds the
 // server-fetched result (product summary + payment branch). Logic (the query)
 // + Layout (the card stack); the payment branch is chosen by PaymentSection.
+// On load failure the celebratory header is withheld and an error Alert with a
+// retry replaces the summary.
 export const SuccessPage: FC<SuccessPageProps> = ({ orderId }) => {
   const navigate = useNavigate();
   const resultQuery = useOrderResult(orderId);
@@ -24,10 +28,27 @@ export const SuccessPage: FC<SuccessPageProps> = ({ orderId }) => {
     void navigate({ to: "/" });
   };
 
+  const retry = (): void => {
+    void resultQuery.refetch();
+  };
+
   return (
-    <PageLayout bg="app" safeAreaTop={64}>
+    <PageLayout bg="app">
       <PageLayout.Content sx={{ gap: 2 }}>
-        <SuccessHeader />
+        {resultQuery.isError ? (
+          <Alert
+            severity="error"
+            action={
+              <Button color="inherit" size="small" onClick={retry}>
+                {successCopy.retry}
+              </Button>
+            }
+          >
+            {successCopy.loadError}
+          </Alert>
+        ) : (
+          <SuccessHeader />
+        )}
         {resultQuery.isPending ? (
           <Typography sx={{ fontSize: "0.875rem", color: "muted.main", textAlign: "center" }}>
             {successCopy.loading}

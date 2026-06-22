@@ -11,6 +11,12 @@ interface UseProfileMenuResult {
   isLoggingOut: boolean;
   open: (event: React.MouseEvent<HTMLElement>) => void;
   close: () => void;
+  /** Closes the menu and routes to the settings hub. */
+  goToSettings: () => void;
+  /** Closes the menu and routes to the Döner-Tiere catalog. */
+  goToTiere: () => void;
+  /** Closes the menu and routes to the notification settings. */
+  goToNotifications: () => void;
   /** Closes the menu and routes to the admin hub. */
   goToAdmin: () => void;
   /** Closes the menu and routes to the change-password page. */
@@ -40,6 +46,21 @@ export const useProfileMenu = (): UseProfileMenuResult => {
 
   const close = (): void => {
     setAnchorEl(null);
+  };
+
+  const goToSettings = (): void => {
+    close();
+    void navigate({ to: "/einstellungen" });
+  };
+
+  const goToTiere = (): void => {
+    close();
+    void navigate({ to: "/tiere" });
+  };
+
+  const goToNotifications = (): void => {
+    close();
+    void navigate({ to: "/benachrichtigungen" });
   };
 
   const goToAdmin = (): void => {
@@ -72,6 +93,9 @@ export const useProfileMenu = (): UseProfileMenuResult => {
     isLoggingOut: logoutMutation.isPending,
     open: (event) => setAnchorEl(event.currentTarget),
     close,
+    goToSettings,
+    goToTiere,
+    goToNotifications,
     goToAdmin,
     goToChangePassword,
     logout,

@@ -1,9 +1,17 @@
 import type { z } from "zod";
-import type { LoginFormSchema, LoginResponseSchema, SessionSchema } from "./schemas";
+import type {
+  LoginFormSchema,
+  LoginResponseSchema,
+  RegisterFormSchema,
+  RegisterResponseSchema,
+  SessionSchema,
+} from "./schemas";
 
 export type LoginResponse = z.infer<typeof LoginResponseSchema>;
 export type Session = z.infer<typeof SessionSchema>;
 export type LoginForm = z.infer<typeof LoginFormSchema>;
+export type RegisterForm = z.infer<typeof RegisterFormSchema>;
+export type RegisterResponse = z.infer<typeof RegisterResponseSchema>;
 
 export type AuthStatus = "loading" | "authenticated" | "anonymous";
 

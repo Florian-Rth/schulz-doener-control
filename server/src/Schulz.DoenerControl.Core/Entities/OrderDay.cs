@@ -15,6 +15,9 @@ public sealed class OrderDay
     // notification preview is reproducible after a refresh.
     public required string Synonym { get; set; }
 
+    // Historical/audit value: the cutoff instant computed when the day was opened. After the
+    // time-decoupling, ordering is gated by Status + OrderingClosedAt (not this), so it no longer
+    // gates ordering and is not exposed on the wire.
     public DateTimeOffset OrderCutoffAt { get; set; }
 
     public Guid OpenedByUserId { get; set; }

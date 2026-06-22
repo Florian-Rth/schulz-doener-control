@@ -20,7 +20,7 @@ export const printCopy = {
   noOpenDay: "Heute läuft kein Döner-Tag, Chef — es gibt nichts zu drucken.",
   noOrders: "Noch keine Bestellungen eingegangen, Chef.",
   // Tiny footer line on the printed sheet.
-  footer: "Schulz Döner Control · Werks-Kantine HB-01",
+  footer: "Schulz Döner Control · Büro Leipzig L-01",
 } as const;
 
 // "Döner-Tag {date}" — the print sheet title. The date is the German long form

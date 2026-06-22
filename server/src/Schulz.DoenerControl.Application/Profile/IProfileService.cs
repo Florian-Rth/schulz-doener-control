@@ -10,4 +10,9 @@ public interface IProfileService
         UpdatePayPalHandleCommand command,
         CancellationToken ct
     );
+
+    Task<Result<ProfileDetails>> UpdateDisplayNameAsync(
+        UpdateDisplayNameCommand command,
+        CancellationToken ct
+    );
 }

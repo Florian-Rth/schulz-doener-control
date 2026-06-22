@@ -3,12 +3,12 @@
 
 export const homeCopy = {
   headerTitle: "Döner Control",
-  headerSubline: "WERKS-KANTINE · HB-01",
+  headerSubline: "BÜRO LEIPZIG · L-01",
   live: "LIVE",
   greetingSubline: "Donnerstag · die heilige Döner-Schicht",
   tierEyebrow: "Dein Döner-Tier",
   tierFooter: "Alle Tiere ansehen",
-  statsEyebrow: "Werks-Überwachung",
+  statsEyebrow: "Döner-Überwachung",
   statTotal: "Döner gesamt",
   statMonth: "Diesen Monat",
   statOpen: "Offen",
@@ -23,11 +23,42 @@ export const homeCopy = {
   openDayFailed: "Döner-Tag konnte nicht eröffnet werden, Chef.",
   // Day — open state
   dayRunningTitle: "Döner-Tag läuft",
+  // Sub-header while ordering is still open (no cutoff yet — the collector
+  // decides when to close). Swaps to cutoffSentence(...) once closed.
+  orderingOpenSubtitle: "Bestellung läuft · noch offen",
   notifEyebrow: "Gesendete Benachrichtigung",
   abholerLabel: "Abholer heute:",
   goOrder: "Meine Bestellung abgeben",
+  // CTA + info line once the collector has closed ordering (FEATURE 4).
+  orderingClosedCta: "Bestellung geschlossen",
+  orderingClosedInfo: "Der Abholer hat die Bestellung geschlossen, Chef.",
   payAbholerCaption: "Öffnet PayPal.Me · Betrag voreingestellt",
   printList: "Bestellliste drucken",
+  // Empty running-day order list nudge.
+  noOrdersYet: "Noch keine Bestellungen — sei der Erste, Chef.",
+  // Personal status eyebrow on the running-day card (derived from the day).
+  statusOrderingInfo: "Bestellung läuft · du bist dabei",
+  statusOrderingMissing: "Bestellung läuft · du fehlst noch",
+  statusOrderingClosed: "Bestellung geschlossen · warte auf Abholung",
+  // No-collector warning + "Ich hole heute ab" (FEATURE 2).
+  noCollectorTitle: "Noch kein Abholer, Chef!",
+  noCollectorBody: "Ohne Fahrer bleibt der Döner im Laden.",
+  // Shown in the no-collector alert when the caller hasn't ordered yet — the
+  // backend gates the "Ich hole heute ab" claim on an existing order, so point
+  // them at ordering first.
+  noCollectorOrderFirst:
+    "Gib erst deine Bestellung ab, dann kannst du dich als Abholer eintragen, Chef.",
+  claimCollector: "Ich hole heute ab",
+  // Take-over confirmation (FEATURE 3).
+  takeOverCollector: "Ich übernehme die Abholung",
+  takeOverDialogTitle: "Abholung übernehmen?",
+  takeOverConfirm: "Ja, ich übernehme",
+  takeOverCancel: "Doch nicht",
+  // claimCollector mutation error toasts (items 2/3).
+  claimNeedsOrder: "Erst bestellen, dann abholen, Chef.",
+  claimFailed: "Hat nicht geklappt, Chef.",
+  // Cash fallback when the recipient has no PayPal handle (item 6).
+  payCash: "Bar zahlen",
   // Collector-only close actions (Abholer steuert den Tag)
   closeOrdering: "Bestellung schließen",
   closeDay: "Döner-Tag schließen",
@@ -49,10 +80,24 @@ export const homeCopy = {
   settleConfirm: "Hab ich bezahlt",
   settlePending: "Wird abgehakt …",
   settleCancel: "Doch nicht",
+  // Header LIVE pill — only shown while a day is open; otherwise this static
+  // label makes clear nothing is running (item 1/5).
+  noDayPill: "Kein Döner-Tag",
   // Loading / error
   loading: "Lädt …",
   loadFailed: "Übersicht konnte nicht geladen werden, Chef.",
+  retry: "Nochmal versuchen",
 } as const;
+
+// "{name} hat kein PayPal hinterlegt — bitte bar bezahlen, Chef." — the cash
+// fallback alert on the open-day card when the Abholer has no handle (item 6).
+export const payCashAbholer = (name: string): string =>
+  `${name} hat kein PayPal hinterlegt — bitte bar bezahlen, Chef.`;
+
+// "{name} ist gerade dran. …" — the take-over confirmation body naming the
+// current Abholer (item 3).
+export const takeOverDialogBody = (name: string): string =>
+  `${name} ist gerade dran. Wenn du übernimmst, sammelst DU das Geld ein und schließt den Tag, Chef.`;
 
 // "Jetzt an {name} zahlen" — the Abholer pay-button label on the open-day card.
 export const payAbholerLabel = (name: string): string => `Jetzt an ${name} zahlen`;

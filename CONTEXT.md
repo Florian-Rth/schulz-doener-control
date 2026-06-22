@@ -25,7 +25,9 @@ notifications — but it sits on the **serious Schulz Machine-Eye design system*
 - **Auth** — Username + password login. Employee accounts.
 - **Döner-Tag (order day)** — Any colleague can open today's order day
   ("Ich will heute Döner!"). Once open, others check in and add their orders. A
-  Döner-Tag has a **Bestellschluss** (order cutoff time).
+  Döner-Tag has a **Bestellschluss** that is *action-driven*, not time-based: there
+  is no cutoff clock — ordering closes only when the Abholer (pickup person) closes
+  it.
 - **Order** — Each person picks one menu item and configures it (see below).
 - **Abholer (pickup person)** — One or more people check in as today's pickup. They pay
   the shop and collect reimbursements.

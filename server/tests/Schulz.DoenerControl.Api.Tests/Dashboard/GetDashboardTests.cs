@@ -127,9 +127,13 @@ public sealed class GetDashboardTests : DoenerControlTestBase
         Assert.Equal(6, lukasRow.Count);
         Assert.Equal("🥇", lukasRow.Medal);
 
-        // Today: no day was opened in this fixture → the flat day object reports closed.
+        // Today: no day was opened in this fixture → the flat day object reports closed, with the
+        // collector-control flags off and no Abholer (the SPA's DashboardSchema requires these keys).
         Assert.False(body.Day.IsOpen);
         Assert.Null(body.Day.Id);
+        Assert.False(body.Day.IsOrderingClosed);
+        Assert.False(body.Day.AmICollector);
+        Assert.Null(body.Day.Abholer);
 
         // Open debts ledger: the single 11,50 the chef owes Lukas (creditor side, bare label).
         Assert.Equal(1, body.Debts.OpenCount);

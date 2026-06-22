@@ -13,6 +13,11 @@ public interface IUserService
         CancellationToken ct
     );
 
+    Task<Result<RegisteredUserDetails>> SelfRegisterAsync(
+        SelfRegisterCommand command,
+        CancellationToken ct
+    );
+
     Task<Result<AdminUserSummary>> UpdateAsync(UpdateUserCommand command, CancellationToken ct);
 
     Task<Result> DeactivateAsync(Guid userId, CancellationToken ct);

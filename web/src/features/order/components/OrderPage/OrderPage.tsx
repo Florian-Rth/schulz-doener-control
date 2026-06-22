@@ -32,7 +32,7 @@ export const OrderPage: FC = () => {
   };
 
   return (
-    <PageLayout bg="app" safeAreaTop={54}>
+    <PageLayout bg="app">
       <PageLayout.Header>
         <OrderHeader onBack={goHome} />
       </PageLayout.Header>

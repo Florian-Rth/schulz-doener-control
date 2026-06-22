@@ -205,7 +205,7 @@ describe("OrderPage", () => {
     expect(queryAllByText("Position entfernen")).toHaveLength(0);
   });
 
-  it("blockiert den Submit, wenn bei Pizza keine Sorte gewählt ist", async () => {
+  it("blockiert den Submit und zeigt den Sorten-Fehler, wenn bei Pizza keine Sorte gewählt ist", async () => {
     seedXsrfCookie();
     let captured: unknown = null;
     useOrderHandlers({
@@ -214,13 +214,40 @@ describe("OrderPage", () => {
       },
     });
     const user = userEvent.setup();
-    const { findByRole, router } = renderApp({ initialPath: "/order" });
+    const { findByRole, findByText, router } = renderApp({ initialPath: "/order" });
 
     // Pizza picked but no variant chosen → per-line superRefine blocks submit.
     await user.click(await findByRole("button", { name: /^Pizza/ }));
     await user.click(await findByRole("button", { name: /Bestellung abgeben/ }));
 
+    // The now-visible variant error is surfaced below the chip row.
+    expect(await findByText("Welche Pizza, Chef?")).toBeInTheDocument();
+
     // The per-line pizza validation prevents the PUT and any navigation.
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/order");
+    });
+    expect(captured).toBeNull();
+  });
+
+  it("zeigt den Fleisch-Fehler, wenn beim Döner kein Fleisch gewählt ist", async () => {
+    seedXsrfCookie();
+    let captured: unknown = null;
+    useOrderHandlers({
+      onSubmit: (body) => {
+        captured = body;
+      },
+    });
+    const user = userEvent.setup();
+    const { findByRole, findByText, router } = renderApp({ initialPath: "/order" });
+
+    // Döner picked but no meat chosen → per-line superRefine blocks submit.
+    await user.click(await findByRole("button", { name: /^Döner/ }));
+    await user.click(await findByRole("button", { name: /Bestellung abgeben/ }));
+
+    // The meat error is surfaced below the segmented control.
+    expect(await findByText("Fleisch wählen, Chef.")).toBeInTheDocument();
+
     await waitFor(() => {
       expect(router.state.location.pathname).toBe("/order");
     });

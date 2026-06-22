@@ -40,6 +40,21 @@ public sealed class ProfileService : IProfileService
         return Result<ProfileDetails>.Success(Map(user));
     }
 
+    public async Task<Result<ProfileDetails>> UpdateDisplayNameAsync(
+        UpdateDisplayNameCommand command,
+        CancellationToken ct
+    )
+    {
+        var user = await FindAsync(command.UserId, ct);
+        if (user is null)
+            return Result<ProfileDetails>.NotFound("Benutzer nicht gefunden.");
+
+        user.DisplayName = command.DisplayName.Trim();
+        await database.SaveChangesAsync(ct);
+
+        return Result<ProfileDetails>.Success(Map(user));
+    }
+
     // A blank handle is the user clearing it; store null so PayPalHandleSet is false and the
     // payment buttons disable. A real handle is stored trimmed.
     private static string? Normalize(string? handle) =>

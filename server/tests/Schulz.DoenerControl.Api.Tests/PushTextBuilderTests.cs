@@ -36,13 +36,12 @@ public sealed class PushTextBuilderTests
     }
 
     [Fact]
-    public void Should_Build_Dashboard_Preview_With_Synonym_And_Cutoff()
+    public void Should_Build_Dashboard_Preview_With_Synonym_And_No_Time_Promise()
     {
-        var preview = PushTextBuilder.BuildOpenDayPreview("Klappkatze", "11:30 Uhr");
+        var preview = PushTextBuilder.BuildOpenDayPreview("Klappkatze");
 
         Assert.Equal(
-            "Achtung Kollegen — heute wird ein „Klappkatze\" organisiert! "
-                + "Bestellschluss 11:30 Uhr. Wer ist dabei?",
+            "Achtung Kollegen — heute wird ein „Klappkatze\" organisiert! Wer ist dabei?",
             preview
         );
     }

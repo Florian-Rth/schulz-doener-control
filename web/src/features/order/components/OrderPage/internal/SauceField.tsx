@@ -5,6 +5,7 @@ import { MultiSelectChips } from "@/components";
 import { orderCopy, SAUCE_LABELS } from "../../../copy";
 import { useOrderFormContext, useOrderLineContext } from "../../../order-context";
 import type { SauceType } from "../../../types";
+import { FieldError } from "./FieldError";
 import { SectionLabel } from "./SectionLabel";
 
 // Sauce multi-select (Kräuter / Knoblauch / Scharf) for one line. Rendered only
@@ -17,6 +18,7 @@ export const SauceField: FC = () => {
     label: SAUCE_LABELS[sauce].label,
     emoji: SAUCE_LABELS[sauce].emoji,
   }));
+  const errorId = `lines.${index}.sauces-error`;
 
   return (
     <Stack sx={{ gap: 1 }}>
@@ -24,17 +26,20 @@ export const SauceField: FC = () => {
       <Controller
         control={form.control}
         name={`lines.${index}.sauces`}
-        render={({ field }) => (
-          <MultiSelectChips
-            options={options}
-            value={field.value}
-            onToggle={(value: SauceType) => {
-              const next = field.value.includes(value)
-                ? field.value.filter((entry) => entry !== value)
-                : [...field.value, value];
-              field.onChange(next);
-            }}
-          />
+        render={({ field, fieldState }) => (
+          <>
+            <MultiSelectChips
+              options={options}
+              value={field.value}
+              onToggle={(value: SauceType) => {
+                const next = field.value.includes(value)
+                  ? field.value.filter((entry) => entry !== value)
+                  : [...field.value, value];
+                field.onChange(next);
+              }}
+            />
+            <FieldError error={fieldState.error} id={errorId} />
+          </>
         )}
       />
     </Stack>

@@ -1,7 +1,7 @@
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { FC } from "react";
-import { PageLayout } from "@/components";
+import { PageLayout, PrimaryButton } from "@/components";
 import { useDashboard } from "../api";
 import { homeCopy } from "../copy";
 import { DashboardContext, type DashboardContextValue } from "../dashboard-context";
@@ -9,10 +9,16 @@ import { useDashboardOperations } from "../hooks/use-dashboard-operations";
 import type { Dashboard } from "../types";
 import { DashboardPage } from "./DashboardPage";
 
-// A minimal centered message shell for the loading / error states.
-const DashboardMessage: FC<{ message: string }> = ({ message }) => {
+// A minimal centered message shell for the loading / error states. The error
+// state passes onRetry so the user can re-fire the dashboard query.
+interface DashboardMessageProps {
+  message: string;
+  onRetry?: () => void;
+}
+
+const DashboardMessage: FC<DashboardMessageProps> = ({ message, onRetry }) => {
   return (
-    <PageLayout bg="app" safeAreaTop={54}>
+    <PageLayout bg="app">
       <PageLayout.Content>
         <Stack sx={{ gap: 2, alignItems: "center", pt: 6 }}>
           <Typography
@@ -25,6 +31,11 @@ const DashboardMessage: FC<{ message: string }> = ({ message }) => {
           >
             {message}
           </Typography>
+          {onRetry !== undefined ? (
+            <PrimaryButton onClick={onRetry} startIcon="campaign">
+              {homeCopy.retry}
+            </PrimaryButton>
+          ) : null}
         </Stack>
       </PageLayout.Content>
     </PageLayout>
@@ -57,6 +68,8 @@ const DashboardReady: FC<ReadyProps> = ({ dashboard }) => {
     isClosingOrdering: operations.isClosingOrdering,
     closeDay: operations.closeDay,
     isClosingDay: operations.isClosingDay,
+    claimCollector: operations.claimCollector,
+    isClaimingCollector: operations.isClaimingCollector,
     settle: operations.settle,
     isSettling: operations.isSettling,
     goOrder: operations.goOrder,
@@ -81,7 +94,14 @@ export const DashboardProvider: FC = () => {
   }
 
   if (dashboardQuery.isError || dashboardQuery.data === undefined) {
-    return <DashboardMessage message={homeCopy.loadFailed} />;
+    return (
+      <DashboardMessage
+        message={homeCopy.loadFailed}
+        onRetry={() => {
+          void dashboardQuery.refetch();
+        }}
+      />
+    );
   }
 
   return <DashboardReady dashboard={dashboardQuery.data} />;

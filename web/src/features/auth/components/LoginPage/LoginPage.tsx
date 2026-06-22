@@ -1,6 +1,7 @@
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import { Link } from "@tanstack/react-router";
 import type { FC } from "react";
 import logoUrl from "@/assets/logo.png";
 import { PrimaryButton } from "@/components/buttons";
@@ -109,6 +110,14 @@ export const LoginPage: FC<LoginPageProps> = ({ redirect }) => {
           <PrimaryButton type="submit" loading={isPending} sx={{ mt: 1.5 }}>
             {authCopy.submit}
           </PrimaryButton>
+        </Stack>
+
+        <Stack sx={{ mt: 1.75 }}>
+          <Link to="/register" style={{ textDecoration: "none" }}>
+            <Typography sx={{ fontSize: 13, fontWeight: 600, color: "primary.main" }}>
+              {authCopy.loginToRegister}
+            </Typography>
+          </Link>
         </Stack>
 
         <Stack sx={{ mt: 2.25 }}>

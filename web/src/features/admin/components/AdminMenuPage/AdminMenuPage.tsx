@@ -28,7 +28,7 @@ export const AdminMenuPage: FC = () => {
   } = useMenuPage();
 
   return (
-    <PageLayout bg="app" safeAreaTop={54}>
+    <PageLayout bg="app">
       <PageLayout.Header>
         <AdminMenuHeader onBack={() => void navigate({ to: "/admin" })} />
       </PageLayout.Header>

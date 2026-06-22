@@ -31,14 +31,7 @@ public sealed class OrderService : IOrderService
         if (day is null)
             return Result<OrderDetails>.NotFound("Döner-Tag nicht gefunden.");
 
-        if (
-            !OrderWindow.CanOrder(
-                day.Status,
-                day.OrderingClosedAt,
-                day.OrderCutoffAt,
-                clock.UtcNow()
-            )
-        )
+        if (!OrderWindow.CanOrder(day.Status, day.OrderingClosedAt))
             return Result<OrderDetails>.Conflict(CutoffMessage);
 
         var menuItems = await LoadMenuItems(command.Lines, ct);
@@ -80,6 +73,14 @@ public sealed class OrderService : IOrderService
             await database.SaveChangesAsync(ct);
         }
 
+        // Auto-designate: the order-form pickup toggle reconciles the day's single collector (the
+        // frontend never calls SetCollector). `day` is tracked, so this persists on the SaveChanges below.
+        day.CollectorUserId = CollectorDesignation.Reconcile(
+            day.CollectorUserId,
+            command.CallerUserId,
+            command.IsPickup
+        );
+
         var newLines = BuildLines(command.Lines, menuItems, existing.Id).ToList();
         database.OrderLines.AddRange(newLines);
         await database.SaveChangesAsync(ct);
@@ -114,14 +115,7 @@ public sealed class OrderService : IOrderService
         if (day is null)
             return Result.NotFound("Döner-Tag nicht gefunden.");
 
-        if (
-            !OrderWindow.CanOrder(
-                day.Status,
-                day.OrderingClosedAt,
-                day.OrderCutoffAt,
-                clock.UtcNow()
-            )
-        )
+        if (!OrderWindow.CanOrder(day.Status, day.OrderingClosedAt))
             return Result.Conflict(CutoffMessage);
 
         var order = await database.Orders.FirstOrDefaultAsync(

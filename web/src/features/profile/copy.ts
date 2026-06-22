@@ -1,6 +1,6 @@
 // German UI strings for the profile / PayPal-handle UI. Single-locale app.
 export const profileCopy = {
-  eyebrow: "Profil",
+  eyebrow: "Geld kassieren",
   title: "Dein PayPal.Me-Name",
   intro:
     "Hinterlege deinen PayPal.Me-Namen, Chef. Erst dann können Kollegen dir per Klick Geld senden.",
@@ -12,6 +12,41 @@ export const profileCopy = {
   saved: "Gespeichert ✓",
   errorGeneric: "Konnte nicht gespeichert werden, Chef. Versuch es nochmal.",
   gatedNotice: "PayPal-Buttons bleiben deaktiviert, bis du deinen Namen hinterlegt hast.",
+  // Clear-to-cash action — only offered when a handle is currently set.
+  clearAction: "PayPal-Name entfernen",
+  clearConfirmTitle: "PayPal-Name entfernen?",
+  clearConfirmBody: "Ohne PayPal-Name wirst du in bar bezahlt, Chef.",
+  clearConfirm: "Entfernen",
+  clearPending: "Entfernen …",
+  clearCancel: "Abbrechen",
+  clearError: "Konnte nicht entfernt werden, Chef. Versuch es nochmal.",
+} as const;
+
+// German UI strings for the self-service settings hub at /einstellungen.
+export const settingsCopy = {
+  eyebrow: "Einstellungen",
+  title: "Dein Profil, Chef",
+  back: "Zurück zur Übersicht",
+  backIconLabel: "Zurück zur Übersicht",
+  loading: "Einen Moment, Chef …",
+  // Identität section.
+  identitySectionEyebrow: "Identität",
+  identitySectionTitle: "Wer bist du, Chef?",
+  displayNameLabel: "Anzeigename",
+  displayNameHelper: "So sehen dich die Kollegen, Chef.",
+  displayNamePlaceholder: "z. B. Markus Wagner",
+  displayNameSubmit: "Namen speichern",
+  displayNameSaving: "Speichern …",
+  displayNameSaved: "Gespeichert ✓",
+  displayNameError: "Konnte nicht gespeichert werden, Chef. Versuch es nochmal.",
+  // Read-only identity preview. The session does not carry the login username,
+  // so we show the live avatar + first name (the greeting name) as the identity.
+  identityPreviewLabel: "Dein Avatar",
+  // Sicherheit section.
+  securitySectionEyebrow: "Sicherheit",
+  securitySectionTitle: "Passwort",
+  securityIntro: "Zeit für ein frisches Passwort, Chef?",
+  changePasswordLink: "Passwort ändern",
 } as const;
 
 // German UI strings for the change-password screen. Reached as a forced step for

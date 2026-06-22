@@ -5,7 +5,10 @@ import type { FC } from "react";
 // Registers the three Machine-Eye keyframes once, application-wide, so any
 // component can reference them by the name token in `theme.keyframes`. Also
 // roots the document at full height so that the `100%`/`100dvh` page shells
-// resolve against the viewport rather than an auto-height body.
+// resolve against the viewport rather than an auto-height body. Under
+// `prefers-reduced-motion: reduce` the decorative/infinite animations (the
+// pulsing LiveDot, the toast slide-in and any spinner) are switched off so the
+// app respects the OS-level motion preference.
 export const AppGlobalStyles: FC = () => {
   const theme = useTheme();
 
@@ -29,6 +32,24 @@ export const AppGlobalStyles: FC = () => {
         },
         [`@keyframes ${theme.keyframes.spin360}`]: {
           to: { transform: "rotate(360deg)" },
+        },
+        // Honour the OS "reduce motion" setting. Emotion hashes the keyframe
+        // class names, so we cannot target them by token; instead we neutralise
+        // animations app-wide (covers the infinite pulseDot, the slideDown toast
+        // entrance and any spin360 spinner) with the standard near-instant reset.
+        // The LiveDot keeps its colour but stops pulsing — its lingering ring
+        // box-shadow is cleared so it reads as a plain static dot.
+        "@media (prefers-reduced-motion: reduce)": {
+          "*, *::before, *::after": {
+            animationDuration: "0.01ms !important",
+            animationIterationCount: "1 !important",
+            transitionDuration: "0.01ms !important",
+            scrollBehavior: "auto !important",
+          },
+          '[data-testid="live-dot"]': {
+            animation: "none !important",
+            boxShadow: "none !important",
+          },
         },
       }}
     />

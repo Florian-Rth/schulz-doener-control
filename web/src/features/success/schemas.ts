@@ -21,7 +21,7 @@ const OrderResultLineSchema = z.object({
 // GET /api/orders/{id}/result — the server-driven success view. Money is in
 // integer cents; `priceCents` is the ORDER TOTAL across all lines. `myPayPalUrl`
 // is the prefilled paypal.me link (null when the abholer has no handle → the
-// button renders disabled).
+// owes-abholer card shows a cash-fallback warning Alert instead of a button).
 export const OrderResultSchema = z.object({
   lines: z.array(OrderResultLineSchema),
   priceCents: z.number().int(),

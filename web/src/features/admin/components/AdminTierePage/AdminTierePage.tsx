@@ -13,7 +13,7 @@ export const AdminTierePage: FC = () => {
   const { tiers, windowDays, isLoading, isError, goBack } = useAdminTierePage();
 
   return (
-    <PageLayout bg="app" safeAreaTop={54}>
+    <PageLayout bg="app">
       <PageLayout.Header>
         <AdminTiereHeader onBack={goBack} />
       </PageLayout.Header>

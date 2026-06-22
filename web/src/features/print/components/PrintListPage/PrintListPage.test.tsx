@@ -53,7 +53,7 @@ const openDay = {
   id: "day-1",
   synonym: "Drehspieß-Tasche",
   pushText: null,
-  cutoffLabel: "11:30",
+  cutoffLabel: null,
   participantCount: 3,
   pickupNames: ["Lukas Brandt"],
   iCanStillOrder: true,

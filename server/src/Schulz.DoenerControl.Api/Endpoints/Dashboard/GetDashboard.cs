@@ -47,7 +47,9 @@ public sealed record DashboardLeaderboardDto(
 );
 
 // Today's Döner-Tag flattened (the SPA switches on IsOpen): the rich fields are populated only when
-// a day exists; null/empty otherwise. Order price labels are the bare German number.
+// a day exists; null/empty otherwise. Order price labels are the bare German number. IsOrderingClosed
+// and AmICollector drive the collector close-ordering/close-day controls; Abholer is the designated
+// pickup person (null until one is set), carrying the caller-specific PayPal reimbursement link.
 public sealed record DashboardDayDto(
     bool IsOpen,
     Guid? Id,
@@ -57,7 +59,17 @@ public sealed record DashboardDayDto(
     int ParticipantCount,
     IReadOnlyList<string> PickupNames,
     bool ICanStillOrder,
+    bool IsOrderingClosed,
+    bool AmICollector,
+    DashboardAbholerDto? Abholer,
     IReadOnlyList<DashboardOrderRowDto> Orders
+);
+
+public sealed record DashboardAbholerDto(
+    string Name,
+    string Initials,
+    string ColorHex,
+    string? PayPalUrl
 );
 
 public sealed record DashboardOrderRowDto(
@@ -199,6 +211,9 @@ public sealed class GetDashboard : EndpointWithoutRequest<GetDashboardResponse>
                 ParticipantCount: 0,
                 PickupNames: [],
                 ICanStillOrder: false,
+                IsOrderingClosed: false,
+                AmICollector: false,
+                Abholer: null,
                 Orders: []
             );
         }
@@ -212,9 +227,22 @@ public sealed class GetDashboard : EndpointWithoutRequest<GetDashboardResponse>
             day.ParticipantCount,
             day.PickupNames,
             day.ICanStillOrder,
+            day.IsOrderingClosed,
+            day.AmICollector,
+            MapAbholer(day.Abholer),
             day.Orders.Select(MapOrderRow).ToList()
         );
     }
+
+    private static DashboardAbholerDto? MapAbholer(AbholerSummary? abholer) =>
+        abholer is null
+            ? null
+            : new DashboardAbholerDto(
+                abholer.Name,
+                abholer.Initials,
+                abholer.ColorHex,
+                abholer.PayPalUrl
+            );
 
     private static DashboardOrderRowDto MapOrderRow(OrderRowSummary row) =>
         new(

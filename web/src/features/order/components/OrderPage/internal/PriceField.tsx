@@ -3,7 +3,7 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { type FC, useState } from "react";
-import { useWatch } from "react-hook-form";
+import { useFormState, useWatch } from "react-hook-form";
 import { orderCopy } from "../../../copy";
 import { centsToInput, inputToCents } from "../../../money";
 import { useOrderFormContext, useOrderLineContext } from "../../../order-context";
@@ -17,6 +17,9 @@ export const PriceField: FC = () => {
   const { form } = useOrderFormContext();
   const { index } = useOrderLineContext();
   const cents = useWatch({ control: form.control, name: `lines.${index}.priceCents` });
+  // Subscribe to this line's price error so the message renders on a blocked submit.
+  const { errors } = useFormState({ control: form.control, name: `lines.${index}.priceCents` });
+  const fieldError = errors.lines?.[index]?.priceCents;
 
   const [display, setDisplay] = useState<string>(() => centsToInput(cents));
   const [lastCents, setLastCents] = useState<number>(cents);
@@ -32,6 +35,8 @@ export const PriceField: FC = () => {
       <TextField
         value={display}
         inputMode="decimal"
+        error={fieldError !== undefined}
+        helperText={fieldError?.message ?? " "}
         onChange={(event) => {
           const raw = event.target.value;
           setDisplay(raw);

@@ -1,24 +1,47 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { authKeys } from "@/features/auth";
 import { apiClient } from "@/lib/api";
-import { PayPalHandleResponseSchema } from "./schemas";
-import type { PayPalHandleResponse } from "./types";
+import { DisplayNameResponseSchema, PayPalHandleResponseSchema } from "./schemas";
+import type { DisplayNameResponse, PayPalHandleResponse } from "./types";
 
 export const profileKeys = {
   me: ["profile", "me"] as const,
 };
 
+// Sends the handle, or `null` to clear it (the backend treats null/blank as
+// "switch to cash-only"). Empty strings from the clear-to-cash action map to
+// null so the wire body matches the clear contract.
 const updatePayPalHandle = async (handle: string): Promise<PayPalHandleResponse> => {
-  const data = await apiClient.put("/api/profile/paypal-handle", { payPalHandle: handle });
+  const payPalHandle = handle.trim() === "" ? null : handle;
+  const data = await apiClient.put("/api/profile/paypal-handle", { payPalHandle });
   return PayPalHandleResponseSchema.parse(data);
 };
 
-// Captures/updates the caller's PayPal.Me handle. On success the auth session is
-// invalidated so the app-wide `payPalHandleSet` gating re-reads from `/me`.
+// Captures/updates/clears the caller's PayPal.Me handle. On success the auth
+// session is invalidated so the app-wide `payPalHandleSet` gating re-reads from
+// `/me`.
 export const useUpdatePayPalHandle = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: updatePayPalHandle,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: authKeys.session });
+    },
+  });
+};
+
+const updateDisplayName = async (displayName: string): Promise<DisplayNameResponse> => {
+  const data = await apiClient.put("/api/profile/display-name", { displayName });
+  return DisplayNameResponseSchema.parse(data);
+};
+
+// Self-renames the caller's display name. On success the auth session is
+// invalidated (same key `useAuth` reads) so the avatar initials/color and the
+// home greeting re-read from `/me` immediately.
+export const useUpdateDisplayName = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: updateDisplayName,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: authKeys.session });
     },

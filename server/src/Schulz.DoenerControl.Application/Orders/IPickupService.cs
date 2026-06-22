@@ -15,4 +15,11 @@ public interface IPickupService
         SetCollectorCommand command,
         CancellationToken ct
     );
+
+    // The caller claims (or takes over) the Abholer role for the day. Forces both the caller's
+    // pickup flag and the day's collector to the caller. Returns the updated day projection.
+    Task<Result<OrderDayDetails>> ClaimCollectorAsync(
+        ClaimCollectorCommand command,
+        CancellationToken ct
+    );
 }

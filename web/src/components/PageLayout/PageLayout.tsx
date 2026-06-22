@@ -10,8 +10,6 @@ interface PageLayoutProps {
   children: ReactNode;
   /** Which background token to paint the mobile column. */
   bg?: PageBackground;
-  /** Height of the top safe-area spacer in px (mock uses 54 / 64). */
-  safeAreaTop?: number;
   sx?: SxProps<Theme>;
 }
 
@@ -20,9 +18,10 @@ interface PageLayoutComponent extends FC<PageLayoutProps> {
   Content: typeof PageLayoutContent;
 }
 
-// Mobile-first column page shell with a top safe-area spacer. Compound: compose
-// with PageLayout.Header + PageLayout.Content. Layout only.
-const PageLayoutBase: FC<PageLayoutProps> = ({ children, bg = "app", safeAreaTop = 54, sx }) => {
+// Mobile-first column page shell. The top inset is a small base gap plus the
+// device-driven safe-area inset (zero on a normal browser, the real notch inset on a
+// standalone iOS PWA). Compound: compose with PageLayout.Header + PageLayout.Content. Layout only.
+const PageLayoutBase: FC<PageLayoutProps> = ({ children, bg = "app", sx }) => {
   return (
     <Stack
       sx={[
@@ -32,12 +31,12 @@ const PageLayoutBase: FC<PageLayoutProps> = ({ children, bg = "app", safeAreaTop
           px: 2,
           pb: 4.5,
           gap: 1.5,
+          paddingTop: `calc(${theme.spacing(2)} + env(safe-area-inset-top, 0px))`,
           backgroundColor: theme.palette.background[bg],
         }),
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
     >
-      <Stack sx={{ height: `${safeAreaTop}px`, flexShrink: 0 }} aria-hidden />
       {children}
     </Stack>
   );

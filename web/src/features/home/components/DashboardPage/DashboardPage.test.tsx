@@ -111,9 +111,10 @@ const openDay = {
   isOpen: true as const,
   id: "day-1",
   synonym: "Drehspieß-Tasche",
-  pushText:
-    'Achtung Kollegen — heute wird ein „Drehspieß-Tasche" organisiert! Bestellschluss 11:30 Uhr. Wer ist dabei?',
-  cutoffLabel: "11:30",
+  pushText: 'Achtung Kollegen — heute wird ein „Drehspieß-Tasche" organisiert! Wer ist dabei?',
+  // Ordering is open → no cutoff yet (the collector sets it on close, never
+  // time-based). Stays null until isOrderingClosed flips to true.
+  cutoffLabel: null,
   participantCount: 3,
   pickupNames: ["Lukas Brandt"],
   iCanStillOrder: true,
@@ -251,6 +252,24 @@ describe("DashboardPage", () => {
     expect(await findByRole("button", { name: /Meine Bestellung abgeben/ })).toBeInTheDocument();
   });
 
+  it("zeigt bei offener Bestellung KEINE 'Bestellschluss'-Zeile", async () => {
+    useDashboardHandlers(buildDashboard());
+    const { findByText, queryByText } = renderApp({ initialPath: "/" });
+
+    // wait for the open-day card, then assert the cutoff line is absent
+    expect(await findByText("Döner-Tag läuft")).toBeInTheDocument();
+    expect(queryByText(/Bestellschluss/)).not.toBeInTheDocument();
+  });
+
+  it("zeigt nach geschlossener Bestellung die 'Bestellschluss'-Zeile mit der Schluss-Uhrzeit", async () => {
+    useDashboardHandlers(
+      buildDashboard({ day: { ...openDay, isOrderingClosed: true, cutoffLabel: "12:47" } }),
+    );
+    const { findByText } = renderApp({ initialPath: "/" });
+
+    expect(await findByText("Bestellschluss 12:47 Uhr")).toBeInTheDocument();
+  });
+
   it("zeigt im CLOSED-Zustand die Eröffnungs-CTA", async () => {
     useDashboardHandlers(buildDashboard({ day: closedDay }));
     const { findByRole, findByText } = renderApp({ initialPath: "/" });
@@ -302,17 +321,20 @@ describe("DashboardPage", () => {
     expect(queryByRole("link", { name: /zahlen/ })).not.toBeInTheDocument();
   });
 
-  it("zeigt einen deaktivierten Abholer-Button, wenn keine PayPal-URL vorliegt", async () => {
+  it("zeigt statt eines toten PayPal-Buttons einen Bar-zahlen-Hinweis, wenn der Abholer kein PayPal hat", async () => {
     useDashboardHandlers(
       buildDashboard({
         day: { ...openDay, abholer: { ...openDay.abholer, payPalUrl: null } },
       }),
     );
-    const { findByRole } = renderApp({ initialPath: "/" });
+    const { findByText, queryByRole } = renderApp({ initialPath: "/" });
 
-    const button = await findByRole("button", { name: /Jetzt an Lukas Brandt zahlen/ });
-    expect(button).toBeDisabled();
-    expect(button).not.toHaveAttribute("href");
+    // no dead PayPal button — instead a cash-payment alert naming the Abholer
+    expect(
+      await findByText("Lukas Brandt hat kein PayPal hinterlegt — bitte bar bezahlen, Chef."),
+    ).toBeInTheDocument();
+    expect(queryByRole("button", { name: /Jetzt an Lukas Brandt zahlen/ })).not.toBeInTheDocument();
+    expect(queryByRole("link", { name: /Jetzt an Lukas Brandt zahlen/ })).not.toBeInTheDocument();
   });
 
   it("zeigt dem Abholer selbst keinen Zahllink", async () => {
@@ -527,9 +549,12 @@ describe("DashboardPage", () => {
     releaseSettle();
   });
 
-  it("hält den PayPal-Button einer Schuld deaktiviert, wenn keine PayPal-URL vorliegt", async () => {
+  it("zeigt statt eines toten PayPal-Buttons einen 'Bar zahlen'-Hinweis, wenn die Schuld keine PayPal-URL hat", async () => {
     useDashboardHandlers(
       buildDashboard({
+        // close the day so the open-day card's working Abholer-PayPal link is
+        // gone — leaving exactly the debt row under test.
+        day: closedDay,
         debts: {
           ...baseDebts,
           rows: [{ ...baseDebts.rows[0], paypalUrl: null }],
@@ -537,13 +562,13 @@ describe("DashboardPage", () => {
         },
       }),
     );
-    const { findByText, findByRole } = renderApp({ initialPath: "/" });
+    const { findByText, queryByRole } = renderApp({ initialPath: "/" });
 
     expect(await findByText("Offene Zahlungen")).toBeInTheDocument();
-    // null paypalUrl → the pill renders as a disabled <button>, not a link
-    const payButton = await findByRole("button", { name: "PayPal" });
-    expect(payButton).toBeDisabled();
-    expect(payButton).not.toHaveAttribute("href");
+    // null paypalUrl → no PayPal pill at all, just a muted "Bar zahlen" hint
+    expect(await findByText("Bar zahlen")).toBeInTheDocument();
+    expect(queryByRole("button", { name: "PayPal" })).not.toBeInTheDocument();
+    expect(queryByRole("link", { name: "PayPal" })).not.toBeInTheDocument();
   });
 
   it("zeigt die letzten Zahlungen mit Name, Betrag und Datum, neueste zuerst", async () => {

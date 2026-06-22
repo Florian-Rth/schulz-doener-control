@@ -1,8 +1,9 @@
+import Alert from "@mui/material/Alert";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { FC } from "react";
 import { Avatar, PayPalButton } from "@/components";
-import { successCopy } from "../../../copy";
+import { cashFallbackSentence, successCopy } from "../../../copy";
 import { formatEur } from "../../../money";
 import type { Abholer } from "../../../types";
 
@@ -13,7 +14,9 @@ interface OwesAbholerCardProps {
 }
 
 // "I owe the abholer" card: avatar + name + big amount + the prefilled PayPal
-// CTA. Shown when the caller is not the pickup person.
+// CTA. Shown when the caller is not the pickup person. When the abholer has no
+// PayPal handle (payPalUrl === null) the CTA is replaced by a cash-fallback
+// warning Alert instead of a dead, disabled button.
 export const OwesAbholerCard: FC<OwesAbholerCardProps> = ({ abholer, priceCents, payPalUrl }) => {
   const priceLabel = formatEur(priceCents);
   return (
@@ -41,12 +44,20 @@ export const OwesAbholerCard: FC<OwesAbholerCardProps> = ({ abholer, priceCents,
       >
         {priceLabel}
       </Typography>
-      <PayPalButton href={payPalUrl}>
-        {`${successCopy.payButtonPrefix} ${priceLabel} ${successCopy.payButtonSuffix}`}
-      </PayPalButton>
-      <Typography sx={{ fontSize: "0.6875rem", color: "muted.main" }}>
-        {successCopy.owesCaption}
-      </Typography>
+      {payPalUrl === null ? (
+        <Alert severity="warning" sx={{ width: "100%" }}>
+          {cashFallbackSentence(abholer.name, priceLabel)}
+        </Alert>
+      ) : (
+        <>
+          <PayPalButton href={payPalUrl}>
+            {`${successCopy.payButtonPrefix} ${priceLabel} ${successCopy.payButtonSuffix}`}
+          </PayPalButton>
+          <Typography sx={{ fontSize: "0.6875rem", color: "muted.main" }}>
+            {successCopy.owesCaption}
+          </Typography>
+        </>
+      )}
     </Stack>
   );
 };

@@ -50,6 +50,7 @@ public static class DependencyInjection
         services.AddSingleton<ILoginLockout, LoginLockout>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IUserService, UserService>();
+        services.AddRegistration(configuration);
         services.AddScoped<IProfileService, ProfileService>();
         services.AddScoped<IMenuService, MenuService>();
         services.AddPush(configuration);
@@ -96,6 +97,28 @@ public static class DependencyInjection
         if (!string.IsNullOrWhiteSpace(avatarColorHex))
         {
             options.AvatarColorHex = avatarColorHex;
+        }
+    }
+
+    private static void AddRegistration(
+        this IServiceCollection services,
+        IConfiguration configuration
+    )
+    {
+        services
+            .AddOptions<RegistrationOptions>()
+            .Configure(options => BindRegistrationOptions(configuration, options));
+    }
+
+    private static void BindRegistrationOptions(
+        IConfiguration configuration,
+        RegistrationOptions options
+    )
+    {
+        var inviteCode = configuration[RegistrationOptions.InviteCodeConfigKey];
+        if (!string.IsNullOrWhiteSpace(inviteCode))
+        {
+            options.InviteCode = inviteCode;
         }
     }
 

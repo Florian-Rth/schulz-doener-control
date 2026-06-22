@@ -39,7 +39,9 @@ public sealed class OrderDayService : IOrderDayService
     public async Task<Result<OrderDayDetails?>> GetTodayAsync(Guid callerId, CancellationToken ct)
     {
         var today = clock.Today();
-        var day = await LoadDay(d => d.Date == today, ct);
+        // Only an active (non-closed) day counts as "today's Döner-Tag": a day closed earlier today
+        // resolves to null so the dashboard/order page treat it as no active day and offer to reopen.
+        var day = await LoadDay(d => d.Date == today && d.Status == OrderDayStatus.Open, ct);
         if (day is null)
             return Result<OrderDayDetails?>.Success(null);
 
@@ -53,10 +55,12 @@ public sealed class OrderDayService : IOrderDayService
     {
         var today = clock.Today();
 
-        var existing = await LoadDay(d => d.Date == today, ct);
+        // Only an active (non-closed) day blocks a fresh open. A day closed earlier today must not be
+        // returned idempotently — opening again mints a brand-new Döner-Tag.
+        var existing = await LoadDay(d => d.Date == today && d.Status == OrderDayStatus.Open, ct);
         if (existing is not null)
         {
-            // Idempotent: a day already exists for today → return it, notify nobody again.
+            // Idempotent: an active day already exists for today → return it, notify nobody again.
             return Result<OpenDayResult>.Success(
                 new OpenDayResult(await ProjectAsync(existing, command.CallerUserId, ct), 0)
             );
@@ -93,10 +97,10 @@ public sealed class OrderDayService : IOrderDayService
         }
         catch (DbUpdateException)
         {
-            // Lost the simultaneous-open race on the unique Date index → re-read and return the
-            // winner's day instead of erroring. No push fires for a day we did not open.
+            // Lost the simultaneous-open race on the partial unique Date index → re-read the active
+            // winner and return it instead of erroring. No push fires for a day we did not open.
             database.ChangeTracker.Clear();
-            var winner = await LoadDay(d => d.Date == today, ct);
+            var winner = await LoadDay(d => d.Date == today && d.Status == OrderDayStatus.Open, ct);
             if (winner is null)
                 throw;
 
@@ -232,16 +236,11 @@ public sealed class OrderDayService : IOrderDayService
             .Select(order => order.User?.DisplayName ?? string.Empty)
             .ToList();
 
-        var now = clock.UtcNow();
-        var isPastCutoff = now > day.OrderCutoffAt;
         var myOrder = orders.FirstOrDefault(order => order.UserId == callerId);
-        var cutoffLabel = clock.CutoffLabel();
-        var canStillOrder = OrderWindow.CanOrder(
-            day.Status,
-            day.OrderingClosedAt,
-            day.OrderCutoffAt,
-            now
-        );
+        var cutoffLabel = day.OrderingClosedAt is { } closedAt
+            ? clock.LocalTimeLabel(closedAt)
+            : null;
+        var canStillOrder = OrderWindow.CanOrder(day.Status, day.OrderingClosedAt);
 
         var amICollector = day.CollectorUserId == callerId;
         var abholer = await BuildAbholer(day, callerId, myOrder, ct);
@@ -251,10 +250,8 @@ public sealed class OrderDayService : IOrderDayService
             day.Date,
             day.Status.ToString(),
             day.Synonym,
-            PushTextBuilder.BuildOpenDayPreview(day.Synonym, cutoffLabel),
-            day.OrderCutoffAt,
+            PushTextBuilder.BuildOpenDayPreview(day.Synonym),
             cutoffLabel,
-            isPastCutoff,
             orders.Count,
             pickupNames,
             rows,

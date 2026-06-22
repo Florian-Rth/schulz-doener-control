@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { useFieldArray, useForm, useWatch } from "react-hook-form";
+import { type FieldErrors, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { ApiError } from "@/lib/api";
 import { useSubmitOrder } from "../api";
 import { orderCopy } from "../copy";
@@ -109,19 +109,48 @@ export const useOrderForm = ({ dayId, menu, existing }: UseOrderFormArgs): UseOr
   );
   const submitDisabled = lines.some((line) => line.productId === "");
 
-  const onSubmit = form.handleSubmit(async (values) => {
-    setServerError(null);
-    try {
-      const result = await submitMutation.mutateAsync({ dayId, values });
-      await navigate({ to: "/erledigt", search: { orderId: result.id } });
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 409) {
-        setServerError(orderCopy.cutoffPassed);
-        return;
-      }
-      setServerError(orderCopy.submitFailed);
+  // shouldFocusError (default true) focuses the first focusable invalid input
+  // (Preis / Extra). The selector controls (Fleisch / Pizza / Soße) are not
+  // focusable, so on a blocked submit scroll their first error caption into view
+  // — guarded for jsdom where scrollIntoView is unimplemented.
+  const scrollToFirstError = (errors: FieldErrors<OrderForm>): void => {
+    const lineErrors = errors.lines;
+    if (!Array.isArray(lineErrors)) {
+      return;
     }
-  });
+    for (let index = 0; index < lineErrors.length; index += 1) {
+      const lineError = lineErrors[index];
+      if (lineError === undefined || lineError === null) {
+        continue;
+      }
+      for (const fieldKey of Object.keys(lineError)) {
+        const node = document.getElementById(`lines.${index}.${fieldKey}-error`);
+        if (node !== null && typeof node.scrollIntoView === "function") {
+          node.scrollIntoView({ behavior: "smooth", block: "center" });
+          return;
+        }
+      }
+    }
+  };
+
+  const onSubmit = form.handleSubmit(
+    async (values) => {
+      setServerError(null);
+      try {
+        const result = await submitMutation.mutateAsync({ dayId, values });
+        await navigate({ to: "/erledigt", search: { orderId: result.id } });
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 409) {
+          setServerError(orderCopy.cutoffPassed);
+          return;
+        }
+        setServerError(orderCopy.submitFailed);
+      }
+    },
+    (errors) => {
+      scrollToFirstError(errors);
+    },
+  );
 
   return {
     form,

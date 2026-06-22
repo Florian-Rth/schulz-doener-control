@@ -50,6 +50,8 @@ public sealed class CloseOrderingSuccessTests : DoenerControlTestBase
         Assert.NotNull(body);
         Assert.True(body!.Day.IsOrderingClosed);
         Assert.False(body.Day.ICanStillOrder);
+        // CutoffLabel is now the bare "HH:mm" wall-clock moment ordering was closed (no " Uhr").
+        Assert.Equal(ExpectedCloseLabel(), body.Day.CutoffLabel);
         // Locking ordering does NOT close the day.
         Assert.Equal("Open", body.Day.Status);
 
@@ -60,6 +62,14 @@ public sealed class CloseOrderingSuccessTests : DoenerControlTestBase
             TestContext.Current.CancellationToken
         );
         Assert.NotNull(day.OrderingClosedAt);
+    }
+
+    // OrderingClosedAt is stamped from the fixed clock; render the same bare "HH:mm" label the
+    // projection produces (business timezone, no " Uhr").
+    private static string ExpectedCloseLabel()
+    {
+        var berlin = TimeZoneInfo.FindSystemTimeZoneById("Europe/Berlin");
+        return $"{TimeZoneInfo.ConvertTime(FixedTimeProvider.Instant, berlin):HH\\:mm}";
     }
 }
 
@@ -92,7 +102,8 @@ public sealed class CloseOrderingNoCollectorTests : DoenerControlTestBase
     {
         var chef = await DebtTestHelpers.LoginAsChefAsync(App);
         var dayId = await DebtTestHelpers.OpenTodayAsync(chef);
-        await DebtTestHelpers.PlaceOrderAsync(chef, dayId, priceCents: 950, isPickup: true);
+        // Order as a NON-pickup so auto-designate never fires → the day genuinely has no collector.
+        await DebtTestHelpers.PlaceOrderAsync(chef, dayId, priceCents: 950, isPickup: false);
 
         // No collector designated → close-ordering is forbidden for everyone, even the opener.
         var response = await chef.PostAsync($"/api/order-days/{dayId}/close-ordering");
@@ -138,6 +149,52 @@ public sealed class CloseOrderingBlocksNewOrdersTests : DoenerControlTestBase
         );
 
         Assert.Equal(HttpStatusCode.Conflict, put.StatusCode);
+    }
+}
+
+public sealed class CloseOrderingNoTimeCutoffTests : DoenerControlTestBase
+{
+    public CloseOrderingNoTimeCutoffTests(DoenerControlApp app)
+        : base(app) { }
+
+    [Fact]
+    public async Task Should_Still_Allow_Ordering_When_Past_Old_Time_Cutoff_Until_Collector_Closes()
+    {
+        var (chef, dayId) = await CloseOrderingScenario.WithChefCollectorAsync(App);
+
+        // Advance the day's stored cutoff well past the fixed wall clock — the old 11:30 gate would
+        // have blocked ordering here. With the time gate gone, ordering must remain open.
+        using (var scope = App.Services.CreateScope())
+        {
+            var database = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var day = await database.OrderDays.SingleAsync(
+                d => d.Id == dayId,
+                TestContext.Current.CancellationToken
+            );
+            day.OrderCutoffAt = FixedTimeProvider.Instant.AddHours(-2);
+            await database.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        var before = await chef.GetAsync($"/api/order-days/{dayId}");
+        var beforeBody = await before.Content.ReadFromJsonAsync<GetOrderDayByIdResponse>(
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(HttpStatusCode.OK, before.StatusCode);
+        Assert.NotNull(beforeBody);
+        // Past the old cutoff, but the collector has not closed ordering → still orderable.
+        Assert.True(beforeBody!.Day.ICanStillOrder);
+        Assert.False(beforeBody.Day.IsOrderingClosed);
+        Assert.Null(beforeBody.Day.CutoffLabel);
+
+        // Only the collector closing ordering blocks it.
+        var close = await chef.PostAsync($"/api/order-days/{dayId}/close-ordering");
+        var closeBody = await close.Content.ReadFromJsonAsync<CloseOrderingResponse>(
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(HttpStatusCode.OK, close.StatusCode);
+        Assert.NotNull(closeBody);
+        Assert.False(closeBody!.Day.ICanStillOrder);
+        Assert.True(closeBody.Day.IsOrderingClosed);
     }
 }
 

@@ -21,7 +21,7 @@ export const orderCopy = {
   pickupSubline: "Du wirst Abholer & sammelst das Geld per PayPal ein.",
   submit: "Bestellung abgeben",
   noOpenDay: "Heute ist noch kein Döner-Tag offen, Chef.",
-  cutoffPassed: "Bestellschluss vorbei — heute geht nichts mehr, Chef.",
+  cutoffPassed: "Der Abholer hat die Bestellung geschlossen — heute geht nichts mehr, Chef.",
   submitFailed: "Bestellung konnte nicht gespeichert werden, Chef.",
   insider: "INSIDER",
 } as const;

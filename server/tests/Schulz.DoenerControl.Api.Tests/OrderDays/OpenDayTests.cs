@@ -45,11 +45,11 @@ public sealed class OpenDayTests : DoenerControlTestBase
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.NotNull(body);
 
-        // Day shape: open, with a stored synonym, the German cutoff label, and orderable now.
+        // Day shape: open, with a stored synonym, no cutoff label yet (ordering still open), and
+        // orderable now. The cutoff label only appears once the collector closes ordering.
         Assert.Equal("Open", body!.Day.Status);
         Assert.Contains(body.Day.Synonym, PushTextBuilder.Synonyms);
-        Assert.Equal("11:30 Uhr", body.Day.CutoffLabel);
-        Assert.False(body.Day.IsPastCutoff);
+        Assert.Null(body.Day.CutoffLabel);
         Assert.True(body.Day.ICanStillOrder);
         Assert.Equal(0, body.Day.ParticipantCount);
         Assert.Empty(body.Day.PickupNames);

@@ -14,8 +14,10 @@ public sealed class OrderDayConfiguration : IEntityTypeConfiguration<OrderDay>
         builder.Property(day => day.Status).HasConversion<int>();
         builder.Property(day => day.Synonym).HasMaxLength(64).IsRequired();
 
-        // One OrderDay per calendar day.
-        builder.HasIndex(day => day.Date).IsUnique();
+        // At most one active (non-closed) OrderDay per calendar day. A partial unique index whose
+        // filter excludes OrderDayStatus.Closed (2): closed days don't count, so a new Döner-Tag can
+        // be opened after the previous one is closed, while two simultaneous active days stay blocked.
+        builder.HasIndex(day => day.Date).IsUnique().HasFilter("\"Status\" <> 2");
 
         builder
             .HasOne(day => day.OpenedByUser)

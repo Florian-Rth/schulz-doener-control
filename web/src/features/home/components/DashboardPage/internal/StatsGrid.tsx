@@ -6,7 +6,7 @@ import { StatCard } from "@/components";
 import { homeCopy } from "../../../copy";
 import { useDashboardContext } from "../../../dashboard-context";
 
-// The "Werks-Überwachung" eyebrow + the 2×2 grid of the four dashboard stats.
+// The "Döner-Überwachung" eyebrow + the 2×2 grid of the four dashboard stats.
 export const StatsGrid: FC = () => {
   const { stats } = useDashboardContext();
 
