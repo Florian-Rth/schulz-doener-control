@@ -41,7 +41,9 @@ public static class DependencyInjection
     )
     {
         services.AddDbContext<AppDbContext>(options =>
-            options.UseSqlite(configuration.GetConnectionString(AppDbConnectionName))
+            options
+                .UseSqlite(configuration.GetConnectionString(AppDbConnectionName))
+                .AddInterceptors(new SqliteBusyTimeoutInterceptor())
         );
         services.TryAddSingletonTimeProvider();
         services.AddPasswordHashing(configuration);
