@@ -30,6 +30,16 @@ export default defineConfig({
       "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
   },
+  server: {
+    // Bind all interfaces so the dev app is reachable from other devices on the
+    // same network (e.g. a phone at http://<laptop-lan-ip>:5173). The SPA calls
+    // relative /api paths which are proxied to the API on localhost — keeping it
+    // same-origin, so there is no CORS and the auth cookies stay first-party.
+    host: true,
+    proxy: {
+      "/api": "http://localhost:5176",
+    },
+  },
   optimizeDeps: {
     // Pre-bundle these at startup so the dep optimizer does not discover them
     // mid-session and re-optimize — which changes the hashed chunk filenames
