@@ -40,6 +40,12 @@ export const AdminHubPage: FC = () => {
           description={cards.tiere.description}
           onClick={() => goTo("/admin/tiere")}
         />
+        <AdminNavCard
+          icon={cards.benachrichtigungen.icon}
+          title={cards.benachrichtigungen.title}
+          description={cards.benachrichtigungen.description}
+          onClick={() => goTo("/admin/benachrichtigungen")}
+        />
         <GhostButton onClick={goHome} sx={{ mt: 0.75 }}>
           {adminCopy.back}
         </GhostButton>

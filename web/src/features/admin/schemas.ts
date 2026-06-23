@@ -145,6 +145,47 @@ export const MenuItemFormSchema = z.object({
   isAvailable: z.boolean(),
 });
 
+// --- Notification templates (open-day push texts) ---
+
+// One row of GET /api/admin/notification-templates. `synonym` is the absurd Döner name the text is
+// themed around; `body` is the push/feed message; `isActive` gates whether it is eligible for the
+// random pick when a Döner-Tag opens.
+export const AdminNotificationTemplateSchema = z.object({
+  id: z.string(),
+  synonym: z.string(),
+  body: z.string(),
+  isActive: z.boolean(),
+});
+
+export const AdminNotificationTemplatesResponseSchema = z.object({
+  items: z.array(AdminNotificationTemplateSchema),
+});
+
+// POST / PUT both return the single affected template under `item`.
+export const NotificationTemplateResponseSchema = z.object({
+  item: AdminNotificationTemplateSchema,
+});
+
+// --- Notification template form schema ---
+
+const templateSynonymField = z
+  .string()
+  .trim()
+  .min(1, "Pflichtfeld")
+  .max(64, "Höchstens 64 Zeichen.");
+
+const templateBodyField = z
+  .string()
+  .trim()
+  .min(1, "Pflichtfeld")
+  .max(280, "Höchstens 280 Zeichen.");
+
+export const NotificationTemplateFormSchema = z.object({
+  synonym: templateSynonymField,
+  body: templateBodyField,
+  isActive: z.boolean(),
+});
+
 // --- Döner-Tiere (C4, read-only) ---
 
 // One row of GET /api/admin/tiere. The backend returns the 15 tiers in priority

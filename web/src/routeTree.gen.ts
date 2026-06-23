@@ -25,6 +25,7 @@ import { Route as AuthAdminIndexRouteImport } from './routes/_auth/admin/index'
 import { Route as AuthAdminTiereRouteImport } from './routes/_auth/admin/tiere'
 import { Route as AuthAdminMenueRouteImport } from './routes/_auth/admin/menue'
 import { Route as AuthAdminBenutzerRouteImport } from './routes/_auth/admin/benutzer'
+import { Route as AuthAdminBenachrichtigungenRouteImport } from './routes/_auth/admin/benachrichtigungen'
 
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
@@ -105,6 +106,12 @@ const AuthAdminBenutzerRoute = AuthAdminBenutzerRouteImport.update({
   path: '/benutzer',
   getParentRoute: () => AuthAdminRoute,
 } as any)
+const AuthAdminBenachrichtigungenRoute =
+  AuthAdminBenachrichtigungenRouteImport.update({
+    id: '/benachrichtigungen',
+    path: '/benachrichtigungen',
+    getParentRoute: () => AuthAdminRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthIndexRoute
@@ -118,6 +125,7 @@ export interface FileRoutesByFullPath {
   '/order': typeof AuthOrderRoute
   '/passwort-aendern': typeof AuthPasswortAendernRoute
   '/tiere': typeof AuthTiereRoute
+  '/admin/benachrichtigungen': typeof AuthAdminBenachrichtigungenRoute
   '/admin/benutzer': typeof AuthAdminBenutzerRoute
   '/admin/menue': typeof AuthAdminMenueRoute
   '/admin/tiere': typeof AuthAdminTiereRoute
@@ -134,6 +142,7 @@ export interface FileRoutesByTo {
   '/passwort-aendern': typeof AuthPasswortAendernRoute
   '/tiere': typeof AuthTiereRoute
   '/': typeof AuthIndexRoute
+  '/admin/benachrichtigungen': typeof AuthAdminBenachrichtigungenRoute
   '/admin/benutzer': typeof AuthAdminBenutzerRoute
   '/admin/menue': typeof AuthAdminMenueRoute
   '/admin/tiere': typeof AuthAdminTiereRoute
@@ -153,6 +162,7 @@ export interface FileRoutesById {
   '/_auth/passwort-aendern': typeof AuthPasswortAendernRoute
   '/_auth/tiere': typeof AuthTiereRoute
   '/_auth/': typeof AuthIndexRoute
+  '/_auth/admin/benachrichtigungen': typeof AuthAdminBenachrichtigungenRoute
   '/_auth/admin/benutzer': typeof AuthAdminBenutzerRoute
   '/_auth/admin/menue': typeof AuthAdminMenueRoute
   '/_auth/admin/tiere': typeof AuthAdminTiereRoute
@@ -172,6 +182,7 @@ export interface FileRouteTypes {
     | '/order'
     | '/passwort-aendern'
     | '/tiere'
+    | '/admin/benachrichtigungen'
     | '/admin/benutzer'
     | '/admin/menue'
     | '/admin/tiere'
@@ -188,6 +199,7 @@ export interface FileRouteTypes {
     | '/passwort-aendern'
     | '/tiere'
     | '/'
+    | '/admin/benachrichtigungen'
     | '/admin/benutzer'
     | '/admin/menue'
     | '/admin/tiere'
@@ -206,6 +218,7 @@ export interface FileRouteTypes {
     | '/_auth/passwort-aendern'
     | '/_auth/tiere'
     | '/_auth/'
+    | '/_auth/admin/benachrichtigungen'
     | '/_auth/admin/benutzer'
     | '/_auth/admin/menue'
     | '/_auth/admin/tiere'
@@ -332,10 +345,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthAdminBenutzerRouteImport
       parentRoute: typeof AuthAdminRoute
     }
+    '/_auth/admin/benachrichtigungen': {
+      id: '/_auth/admin/benachrichtigungen'
+      path: '/benachrichtigungen'
+      fullPath: '/admin/benachrichtigungen'
+      preLoaderRoute: typeof AuthAdminBenachrichtigungenRouteImport
+      parentRoute: typeof AuthAdminRoute
+    }
   }
 }
 
 interface AuthAdminRouteChildren {
+  AuthAdminBenachrichtigungenRoute: typeof AuthAdminBenachrichtigungenRoute
   AuthAdminBenutzerRoute: typeof AuthAdminBenutzerRoute
   AuthAdminMenueRoute: typeof AuthAdminMenueRoute
   AuthAdminTiereRoute: typeof AuthAdminTiereRoute
@@ -343,6 +364,7 @@ interface AuthAdminRouteChildren {
 }
 
 const AuthAdminRouteChildren: AuthAdminRouteChildren = {
+  AuthAdminBenachrichtigungenRoute: AuthAdminBenachrichtigungenRoute,
   AuthAdminBenutzerRoute: AuthAdminBenutzerRoute,
   AuthAdminMenueRoute: AuthAdminMenueRoute,
   AuthAdminTiereRoute: AuthAdminTiereRoute,

@@ -71,6 +71,7 @@ public sealed class DoenerControlApp : AppFixture<Program>
         // tests have the named accounts their scenarios act on.
         await Services.MigrateAsync();
         await Services.SeedMenuAsync();
+        await Services.SeedNotificationTemplatesAsync();
         await Services.SeedStandardTestUsersAsync();
     }
 

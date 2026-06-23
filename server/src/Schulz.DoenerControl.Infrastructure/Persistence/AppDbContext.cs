@@ -24,6 +24,8 @@ public sealed class AppDbContext : DbContext
 
     public DbSet<Notification> Notifications => Set<Notification>();
 
+    public DbSet<NotificationTemplate> NotificationTemplates => Set<NotificationTemplate>();
+
     public DbSet<PushSubscription> PushSubscriptions => Set<PushSubscription>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

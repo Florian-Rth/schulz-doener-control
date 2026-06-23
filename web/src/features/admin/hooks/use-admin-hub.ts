@@ -1,7 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 
 export interface AdminHubNavTarget {
-  to: "/admin/benutzer" | "/admin/menue" | "/admin/tiere";
+  to: "/admin/benutzer" | "/admin/menue" | "/admin/tiere" | "/admin/benachrichtigungen";
 }
 
 interface UseAdminHubResult {

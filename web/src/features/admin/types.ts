@@ -1,6 +1,7 @@
 import type { z } from "zod";
 import type {
   AdminMenuItemSchema,
+  AdminNotificationTemplateSchema,
   AdminTiereResponseSchema,
   AdminTierSchema,
   AdminUserSchema,
@@ -8,6 +9,7 @@ import type {
   CreateUserResponseSchema,
   EditUserFormSchema,
   MenuItemFormSchema,
+  NotificationTemplateFormSchema,
   ResetPasswordResponseSchema,
 } from "./schemas";
 
@@ -20,6 +22,9 @@ export type EditUserForm = z.infer<typeof EditUserFormSchema>;
 
 export type AdminMenuItem = z.infer<typeof AdminMenuItemSchema>;
 export type MenuItemForm = z.infer<typeof MenuItemFormSchema>;
+
+export type AdminNotificationTemplate = z.infer<typeof AdminNotificationTemplateSchema>;
+export type NotificationTemplateForm = z.infer<typeof NotificationTemplateFormSchema>;
 
 export type AdminTier = z.infer<typeof AdminTierSchema>;
 export type AdminTiere = z.infer<typeof AdminTiereResponseSchema>;

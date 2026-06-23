@@ -115,31 +115,6 @@ export const DayOpenCard: FC<DayOpenCardProps> = ({ day }) => {
           {statusLine}
         </Typography>
 
-        {day.pushText !== null ? (
-          <Stack
-            direction="row"
-            sx={(theme) => ({
-              gap: 1.25,
-              alignItems: "flex-start",
-              backgroundColor: "subtle.main",
-              border: "1px solid rgba(0,34,48,.08)",
-              borderRadius: `${theme.radii.sm - 1}px`,
-              p: 1.25,
-              mb: 1.5,
-            })}
-          >
-            <MaterialIcon name="notifications_active" sx={{ fontSize: 20, color: "muted.main" }} />
-            <Stack sx={{ minWidth: 0, gap: 0.25 }}>
-              <Typography variant="eyebrow" sx={{ fontSize: "0.625rem", letterSpacing: ".04em" }}>
-                {homeCopy.notifEyebrow}
-              </Typography>
-              <Typography sx={{ fontSize: "0.75rem", color: "navy.main", lineHeight: 1.4 }}>
-                {day.pushText}
-              </Typography>
-            </Stack>
-          </Stack>
-        ) : null}
-
         {hasNoCollector ? (
           <Stack
             role="alert"

@@ -22,13 +22,15 @@ public sealed class DatabaseSeeder
     private readonly AdminSeedOptions options;
     private readonly TimeProvider timeProvider;
     private readonly MenuSeeder menuSeeder;
+    private readonly NotificationTemplateSeeder notificationTemplateSeeder;
 
     public DatabaseSeeder(
         AppDbContext database,
         IPasswordHasher passwordHasher,
         IOptions<AdminSeedOptions> options,
         TimeProvider timeProvider,
-        MenuSeeder menuSeeder
+        MenuSeeder menuSeeder,
+        NotificationTemplateSeeder notificationTemplateSeeder
     )
     {
         this.database = database;
@@ -36,11 +38,13 @@ public sealed class DatabaseSeeder
         this.options = options.Value;
         this.timeProvider = timeProvider;
         this.menuSeeder = menuSeeder;
+        this.notificationTemplateSeeder = notificationTemplateSeeder;
     }
 
     public async Task SeedAsync(CancellationToken ct)
     {
         await menuSeeder.SeedAsync(ct);
+        await notificationTemplateSeeder.SeedAsync(ct);
 
         if (await database.Users.AnyAsync(user => user.Role == UserRole.Admin, ct))
         {

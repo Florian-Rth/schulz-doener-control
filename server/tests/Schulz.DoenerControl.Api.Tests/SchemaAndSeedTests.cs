@@ -46,6 +46,23 @@ public sealed class SchemaAndSeedTests : DoenerControlTestBase
     }
 
     [Fact]
+    public async Task Should_Seed_Standard_NotificationTemplates_When_Migration_Applied()
+    {
+        using var scope = App.Services.CreateScope();
+        var database = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var templates = await database.NotificationTemplates.ToListAsync(Ct);
+
+        Assert.Equal(
+            Infrastructure.Persistence.Seeding.NotificationTemplateSeeder.CanonicalTemplates.Count,
+            templates.Count
+        );
+        Assert.All(templates, template => Assert.True(template.IsActive));
+        Assert.All(templates, template => Assert.False(string.IsNullOrWhiteSpace(template.Body)));
+        Assert.Contains(templates, template => template.Synonym == "Drehspieß-Tasche");
+    }
+
+    [Fact]
     public async Task Should_Seed_Active_TestUsers_With_Real_Credentials()
     {
         using var scope = App.Services.CreateScope();

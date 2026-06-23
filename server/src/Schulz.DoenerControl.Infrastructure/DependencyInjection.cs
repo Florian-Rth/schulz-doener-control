@@ -53,6 +53,7 @@ public static class DependencyInjection
         services.AddRegistration(configuration);
         services.AddScoped<IProfileService, ProfileService>();
         services.AddScoped<IMenuService, MenuService>();
+        services.AddScoped<INotificationTemplateService, NotificationTemplateService>();
         services.AddPush(configuration);
         services.AddOrderDays(configuration);
         services.AddScoped<IOrderService, OrderService>();
@@ -63,6 +64,7 @@ public static class DependencyInjection
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddAdminSeed(configuration);
         services.AddScoped<MenuSeeder>();
+        services.AddScoped<NotificationTemplateSeeder>();
         services.AddScoped<DatabaseSeeder>();
         services.AddScoped<DevHistorySeeder>();
         return services;

@@ -4,8 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Schulz.DoenerControl.Api.Endpoints.OrderDays;
 using Schulz.DoenerControl.Api.Tests.Auth;
-using Schulz.DoenerControl.Application.Calculators;
 using Schulz.DoenerControl.Infrastructure.Persistence;
+using Schulz.DoenerControl.Infrastructure.Persistence.Seeding;
 using Xunit;
 
 namespace Schulz.DoenerControl.Api.Tests.OrderDays;
@@ -48,7 +48,11 @@ public sealed class OpenDayTests : DoenerControlTestBase
         // Day shape: open, with a stored synonym, no cutoff label yet (ordering still open), and
         // orderable now. The cutoff label only appears once the collector closes ordering.
         Assert.Equal("Open", body!.Day.Status);
-        Assert.Contains(body.Day.Synonym, PushTextBuilder.Synonyms);
+        // The day's synonym is one of the seeded notification templates the open flow picks from.
+        Assert.Contains(
+            body.Day.Synonym,
+            NotificationTemplateSeeder.CanonicalTemplates.Select(template => template.Synonym)
+        );
         Assert.Null(body.Day.CutoffLabel);
         Assert.True(body.Day.ICanStillOrder);
         Assert.Equal(0, body.Day.ParticipantCount);
@@ -77,9 +81,10 @@ public sealed class OpenDayTests : DoenerControlTestBase
         Assert.Equal(expected, notifications.Count);
         Assert.DoesNotContain(notifications, n => n.RecipientUserId == chef.Id);
 
-        // The persisted body is the rendered synonym push sentence; unread on creation.
-        var rendered = PushTextBuilder.BuildOpenDayBody(body.Day.Synonym);
-        Assert.All(notifications, n => Assert.Equal(rendered, n.Body));
+        // The persisted body is the day's notification text (one of the editable templates, or the
+        // built-in fallback) — non-empty and unread on creation. The body is free admin-editable
+        // text, so it need not contain the synonym verbatim.
+        Assert.All(notifications, n => Assert.False(string.IsNullOrWhiteSpace(n.Body)));
         Assert.All(notifications, n => Assert.Null(n.ReadAt));
     }
 }

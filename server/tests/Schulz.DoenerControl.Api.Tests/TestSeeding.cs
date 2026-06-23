@@ -58,6 +58,20 @@ internal static class TestSeeding
         await menuSeeder.SeedAsync(ct);
     }
 
+    // Like the menu: the open-day notification texts are seeded at runtime
+    // (NotificationTemplateSeeder) rather than via the migration, so the harness plants the standard
+    // set itself — exactly as production does through DatabaseSeeder.
+    public static async Task SeedNotificationTemplatesAsync(
+        this IServiceProvider services,
+        CancellationToken ct = default
+    )
+    {
+        using var scope = services.CreateScope();
+        var database = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var seeder = new NotificationTemplateSeeder(database);
+        await seeder.SeedAsync(ct);
+    }
+
     public static async Task SeedStandardTestUsersAsync(
         this IServiceProvider services,
         CancellationToken ct = default

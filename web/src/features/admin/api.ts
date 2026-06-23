@@ -2,15 +2,18 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
 import {
   AdminMenuResponseSchema,
+  AdminNotificationTemplatesResponseSchema,
   AdminTiereResponseSchema,
   AdminUsersResponseSchema,
   CreateUserResponseSchema,
   MenuItemResponseSchema,
+  NotificationTemplateResponseSchema,
   ResetPasswordResponseSchema,
   UpdateUserResponseSchema,
 } from "./schemas";
 import type {
   AdminMenuItem,
+  AdminNotificationTemplate,
   AdminTiere,
   AdminUser,
   CreateUserResponse,
@@ -23,6 +26,7 @@ export const adminKeys = {
   users: ["admin", "users"] as const,
   menu: ["admin", "menu"] as const,
   tiere: ["admin", "tiere"] as const,
+  notificationTemplates: ["admin", "notification-templates"] as const,
 };
 
 // Maps the form's PascalCase role to the numeric wire value the backend expects
@@ -221,3 +225,81 @@ export const useAdminTiere = () =>
     queryFn: ({ signal }) => fetchTiere(signal),
     staleTime: 5 * 60 * 1000,
   });
+
+// --- Notification templates (open-day push texts) ---
+
+const fetchNotificationTemplates = async (
+  signal: AbortSignal,
+): Promise<AdminNotificationTemplate[]> => {
+  const data = await apiClient.get("/api/admin/notification-templates", signal);
+  return AdminNotificationTemplatesResponseSchema.parse(data).items;
+};
+
+// Lists every open-day notification text, including disabled ones, so the admin can re-enable them.
+export const useAdminNotificationTemplates = () =>
+  useQuery({
+    queryKey: adminKeys.notificationTemplates,
+    queryFn: ({ signal }) => fetchNotificationTemplates(signal),
+    staleTime: 30 * 1000,
+  });
+
+// The mutation payload. `id` is carried separately on update (in the path, not the body).
+export interface NotificationTemplateBody {
+  synonym: string;
+  body: string;
+  isActive: boolean;
+}
+
+const createNotificationTemplate = async (
+  input: NotificationTemplateBody,
+): Promise<AdminNotificationTemplate> => {
+  const data = await apiClient.post("/api/admin/notification-templates", { ...input });
+  return NotificationTemplateResponseSchema.parse(data).item;
+};
+
+export const useCreateNotificationTemplate = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createNotificationTemplate,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: adminKeys.notificationTemplates });
+    },
+  });
+};
+
+export interface UpdateNotificationTemplateInput extends NotificationTemplateBody {
+  id: string;
+}
+
+const updateNotificationTemplate = async ({
+  id,
+  ...body
+}: UpdateNotificationTemplateInput): Promise<AdminNotificationTemplate> => {
+  const data = await apiClient.put(`/api/admin/notification-templates/${id}`, { ...body });
+  return NotificationTemplateResponseSchema.parse(data).item;
+};
+
+export const useUpdateNotificationTemplate = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: updateNotificationTemplate,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: adminKeys.notificationTemplates });
+    },
+  });
+};
+
+// DELETE hard-deletes the text (the body is copied onto each day, never FK-referenced).
+const deleteNotificationTemplate = async (id: string): Promise<void> => {
+  await apiClient.delete(`/api/admin/notification-templates/${id}`);
+};
+
+export const useDeleteNotificationTemplate = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteNotificationTemplate,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: adminKeys.notificationTemplates });
+    },
+  });
+};

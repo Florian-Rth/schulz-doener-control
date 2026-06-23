@@ -4,8 +4,8 @@
 export const homeCopy = {
   headerTitle: "Döner Control",
   headerSubline: "BÜRO LEIPZIG · L-01",
+  headerLogoAlt: "Schulz Döner Control",
   live: "LIVE",
-  greetingSubline: "Donnerstag · die heilige Döner-Schicht",
   tierEyebrow: "Dein Döner-Tier",
   tierFooter: "Alle Tiere ansehen",
   statsEyebrow: "Döner-Überwachung",
@@ -26,7 +26,6 @@ export const homeCopy = {
   // Sub-header while ordering is still open (no cutoff yet — the collector
   // decides when to close). Swaps to cutoffSentence(...) once closed.
   orderingOpenSubtitle: "Bestellung läuft · noch offen",
-  notifEyebrow: "Gesendete Benachrichtigung",
   abholerLabel: "Abholer heute:",
   goOrder: "Meine Bestellung abgeben",
   // CTA + info line once the collector has closed ordering (FEATURE 4).
@@ -88,6 +87,22 @@ export const homeCopy = {
   loadFailed: "Übersicht konnte nicht geladen werden, Chef.",
   retry: "Nochmal versuchen",
 } as const;
+
+// A funny Döner pun for the greeting subline, keyed by JS weekday (0 = Sonntag … 6 = Samstag).
+// The greeting under the name changes with the actual day — Donnerstag is the holy "Dönerstag".
+const greetingSublinesByWeekday: Readonly<Record<number, string>> = {
+  0: "Spieß-Sonntag · auch sonntags dreht sich was",
+  1: "Mampf-Montag · der Spieß rotiert schon",
+  2: "Drehspieß-Dienstag · die Rotation beginnt",
+  3: "Mampf-Mittwoch · Bergfest mit Fleisch",
+  4: "Dönerstag · die heilige Döner-Schicht",
+  5: "Fladen-Freitag · Wochenende mit extra Soße",
+  6: "Soßen-Samstag · auch am Wochenende wird gedreht",
+};
+
+// The greeting subline for a given JS weekday (Date.getDay()); falls back to the Dönerstag line.
+export const greetingSublineForWeekday = (weekday: number): string =>
+  greetingSublinesByWeekday[weekday] ?? greetingSublinesByWeekday[4];
 
 // "{name} hat kein PayPal hinterlegt — bitte bar bezahlen, Chef." — the cash
 // fallback alert on the open-day card when the Abholer has no handle (item 6).

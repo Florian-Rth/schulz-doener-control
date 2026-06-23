@@ -67,7 +67,7 @@ public sealed class OrderDayService : IOrderDayService
         }
 
         var now = clock.UtcNow();
-        var synonym = PickSynonym();
+        var (synonym, pushBody) = await PickNotificationAsync(ct);
         var day = new OrderDay
         {
             Id = Guid.NewGuid(),
@@ -82,7 +82,6 @@ public sealed class OrderDayService : IOrderDayService
         };
         database.OrderDays.Add(day);
 
-        var pushBody = PushTextBuilder.BuildOpenDayBody(synonym);
         var notifiedCount = await broadcaster.BroadcastDayOpenedAsync(
             day.Id,
             NotificationTitle,
@@ -361,10 +360,27 @@ public sealed class OrderDayService : IOrderDayService
         );
     }
 
-    private static string PickSynonym()
+    // Picks the day's notification text. The standard set lives in the database as editable rows
+    // (NotificationTemplate); an admin can add, edit, disable or delete them. We pick one active row
+    // at random — its synonym is stamped onto the day, its body is the push/feed message. If the
+    // admin has disabled or deleted them all, we fall back to a built-in synonym so a Döner-Tag can
+    // always be opened.
+    private async Task<(string Synonym, string Body)> PickNotificationAsync(CancellationToken ct)
     {
-        var synonyms = PushTextBuilder.Synonyms;
-        var index = Random.Shared.Next(synonyms.Count);
-        return synonyms[index];
+        var templates = await database
+            .NotificationTemplates.AsNoTracking()
+            .Where(template => template.IsActive)
+            .Select(template => new { template.Synonym, template.Body })
+            .ToListAsync(ct);
+
+        if (templates.Count == 0)
+        {
+            var synonyms = PushTextBuilder.Synonyms;
+            var fallback = synonyms[Random.Shared.Next(synonyms.Count)];
+            return (fallback, PushTextBuilder.BuildOpenDayBody(fallback));
+        }
+
+        var picked = templates[Random.Shared.Next(templates.Count)];
+        return (picked.Synonym, picked.Body);
     }
 }

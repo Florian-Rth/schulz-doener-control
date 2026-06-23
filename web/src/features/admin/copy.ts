@@ -22,6 +22,11 @@ export const adminCopy = {
       description: "Die 15 erfassten Exemplare und ihre Bedingungen.",
       icon: "kebab_dining",
     },
+    benachrichtigungen: {
+      title: "Push-Texte",
+      description: "Die Döner-Sprüche pflegen, die beim Öffnen rausgehen.",
+      icon: "campaign",
+    },
   },
 } as const;
 
@@ -143,6 +148,49 @@ export const menuCopy = {
   cancel: "Abbrechen",
   // Server-error mappings
   errorDuplicate: "Diese ID gibt es schon, Chef. Wähl eine andere.",
+  errorValidation: "Die Eingaben passen nicht, Chef. Prüf die Felder.",
+  errorGeneric: "Hat nicht geklappt, Chef. Versuch es nochmal.",
+} as const;
+
+// German UI strings for the notification-text screen (/admin/benachrichtigungen). These are the
+// open-day push messages; one active text is picked at random when a Döner-Tag opens.
+export const templatesCopy = {
+  title: "Push-Texte",
+  subtitle: "Döner-Sprüche pflegen",
+  intro:
+    "Diese Sprüche gehen raus, wenn jemand den Döner-Tag eröffnet, Chef. Beim Öffnen wird einer der aktiven zufällig gewählt.",
+  loading: "Sprüche werden geladen …",
+  loadError: "Die Sprüche konnten nicht geladen werden, Chef. Versuch es nochmal.",
+  empty: "Noch keine Sprüche, Chef. Leg den ersten an.",
+  addButton: "Spruch anlegen",
+  // Status badges
+  active: "Aktiv",
+  inactive: "Inaktiv",
+  // Per-row actions
+  actionEdit: "Bearbeiten",
+  actionDelete: "Entfernen",
+  // Field labels (shared create/edit)
+  synonymLabel: "Döner-Synonym",
+  synonymPlaceholder: "z. B. Drehspieß-Tasche",
+  bodyLabel: "Push-Text",
+  bodyPlaceholder: "z. B. Heute rotiert die Drehspieß-Tasche! Wer ist dabei? 🌯",
+  activeLabel: "Aktiv (wird verschickt)",
+  // Create dialog
+  createTitle: "Neuen Spruch anlegen",
+  createSubmit: "Anlegen",
+  createSubmitting: "Wird angelegt …",
+  // Edit dialog
+  editTitle: "Spruch bearbeiten",
+  editSubmit: "Speichern",
+  editSubmitting: "Speichern …",
+  // Delete confirmation
+  deleteTitle: "Spruch entfernen?",
+  deleteBody: (synonym: string): string =>
+    `Soll der Spruch „${synonym}" wirklich weg, Chef? Das lässt sich nicht rückgängig machen.`,
+  deleteConfirm: "Ja, entfernen",
+  deleting: "Wird entfernt …",
+  cancel: "Abbrechen",
+  // Server-error mappings
   errorValidation: "Die Eingaben passen nicht, Chef. Prüf die Felder.",
   errorGeneric: "Hat nicht geklappt, Chef. Versuch es nochmal.",
 } as const;
