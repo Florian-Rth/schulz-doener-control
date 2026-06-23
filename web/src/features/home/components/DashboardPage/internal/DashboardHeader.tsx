@@ -1,7 +1,9 @@
+import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { FC } from "react";
-import { IconChipBox, LiveDot, MaterialIcon, RedChromeSurface } from "@/components";
+import logoTight from "@/assets/logo-tight.png";
+import { IconChipBox, LiveDot, RedChromeSurface } from "@/components";
 import { UserProfileButton } from "@/features/auth";
 import { homeCopy } from "../../../copy";
 
@@ -10,15 +12,20 @@ interface DashboardHeaderProps {
   isDayOpen: boolean;
 }
 
-// The red chrome app header: kebab icon tile + title block + status pill. The
+// The red chrome app header: brand logo tile + title block + status pill. The
 // pill is honest: it pulses "LIVE" only while a day is open, otherwise it shows
 // a static "Kein Döner-Tag" with no pulsing dot.
 export const DashboardHeader: FC<DashboardHeaderProps> = ({ isDayOpen }) => {
   return (
     <RedChromeSurface
       start={
-        <IconChipBox tint="none" size={5.25} sx={{ backgroundColor: "rgba(255,255,255,.16)" }}>
-          <MaterialIcon name="kebab_dining" sx={{ fontSize: 26, color: "primary.contrastText" }} />
+        <IconChipBox tint="none" size={6} sx={{ backgroundColor: "common.white", px: 0.5 }}>
+          <Box
+            component="img"
+            src={logoTight}
+            alt={homeCopy.headerLogoAlt}
+            sx={{ width: "100%", height: "auto", objectFit: "contain", display: "block" }}
+          />
         </IconChipBox>
       }
       end={
