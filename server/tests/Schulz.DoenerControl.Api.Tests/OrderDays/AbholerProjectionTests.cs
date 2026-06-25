@@ -42,11 +42,8 @@ public sealed class AbholerProjectionForNonPickupPayerTests : DoenerControlTestB
         Assert.NotNull(body.Day.Abholer);
         Assert.Equal(TestSeeding.ChefDisplayName, body.Day.Abholer!.Name);
         Assert.Equal("MW", body.Day.Abholer.Initials);
-        // The link embeds the CALLER's own order total (7,60 €), not the collector's.
-        Assert.Equal(
-            $"https://paypal.me/{TestSeeding.ChefPayPalHandle}/7.60EUR",
-            body.Day.Abholer.PayPalUrl
-        );
+        // The collector's pay link is reconstructed from their handle with the caller's own total.
+        Assert.Equal($"{TestSeeding.ChefPayPalLink}/7.60EUR", body.Day.Abholer.PayPalUrl);
     }
 }
 

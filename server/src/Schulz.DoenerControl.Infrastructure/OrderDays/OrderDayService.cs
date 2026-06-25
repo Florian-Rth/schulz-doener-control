@@ -67,7 +67,9 @@ public sealed class OrderDayService : IOrderDayService
         }
 
         var now = clock.UtcNow();
-        var (synonym, pushBody) = await PickNotificationAsync(ct);
+        var openerName = await ResolveDisplayName(command.CallerUserId, ct);
+        var (synonym, template) = await PickNotificationAsync(ct);
+        var pushBody = SubstituteNotificationTokens(template, openerName);
         var day = new OrderDay
         {
             Id = Guid.NewGuid(),
@@ -167,6 +169,7 @@ public sealed class OrderDayService : IOrderDayService
 
     public async Task<Result<ForceEndDayResult>> ForceEndAsync(
         Guid callerUserId,
+        bool callerIsAdmin,
         Guid orderDayId,
         CancellationToken ct
     )
@@ -175,10 +178,18 @@ public sealed class OrderDayService : IOrderDayService
         if (day is null)
             return Result<ForceEndDayResult>.NotFound("Döner-Tag nicht gefunden.");
 
+        // Scrap-and-end is allowed for an admin OR the day's designated collector (Abholer) — the
+        // pickup person may abort their own Döner-Tag. Anyone else is Forbidden. Enforced server-side;
+        // never trust the client.
+        if (!callerIsAdmin && day.CollectorUserId != callerUserId)
+            return Result<ForceEndDayResult>.Forbidden(
+                "Nur ein Admin oder der Abholer darf den Döner-Tag beenden."
+            );
+
         if (day.Status == OrderDayStatus.Closed)
             return Result<ForceEndDayResult>.Conflict("Der Döner-Tag ist bereits geschlossen.");
 
-        // Admin scrap-and-end: discard every order (and its lines) and close the day WITHOUT creating
+        // Scrap-and-end: discard every order (and its lines) and close the day WITHOUT creating
         // debts — an aborted day leaves nobody owing anything. Vacate the collector designation too.
         // Lines are removed explicitly before the orders so the required FK never dangles mid-save.
         var orders = await database.Orders.Where(o => o.OrderDayId == orderDayId).ToListAsync(ct);
@@ -265,8 +276,11 @@ public sealed class OrderDayService : IOrderDayService
         var orders = (day.Orders ?? new List<Order>()).OrderBy(order => order.CreatedAt).ToList();
 
         var productNames = await LoadProductNames(orders, ct);
+        var pizzaVariantNames = await LoadPizzaVariantNames(orders, ct);
 
-        var rows = orders.Select(order => MapRow(order, callerId, productNames)).ToList();
+        var rows = orders
+            .Select(order => MapRow(order, callerId, productNames, pizzaVariantNames))
+            .ToList();
         var pickupNames = orders
             .Where(order => order.IsPickup)
             .Select(order => order.User?.DisplayName ?? string.Empty)
@@ -357,10 +371,34 @@ public sealed class OrderDayService : IOrderDayService
             .ToDictionaryAsync(item => item.Id, item => item.Name, ct);
     }
 
+    private async Task<IReadOnlyDictionary<Guid, string>> LoadPizzaVariantNames(
+        IReadOnlyCollection<Order> orders,
+        CancellationToken ct
+    )
+    {
+        if (orders.Count == 0)
+            return new Dictionary<Guid, string>();
+
+        var variantIds = orders
+            .SelectMany(order => order.Lines)
+            .Where(line => line.PizzaVariantId is not null)
+            .Select(line => line.PizzaVariantId!.Value)
+            .Distinct()
+            .ToList();
+        if (variantIds.Count == 0)
+            return new Dictionary<Guid, string>();
+
+        return await database
+            .PizzaVariants.AsNoTracking()
+            .Where(variant => variantIds.Contains(variant.Id))
+            .ToDictionaryAsync(variant => variant.Id, variant => variant.Name, ct);
+    }
+
     private static OrderRowSummary MapRow(
         Order order,
         Guid callerId,
-        IReadOnlyDictionary<string, string> productNames
+        IReadOnlyDictionary<string, string> productNames,
+        IReadOnlyDictionary<Guid, string> pizzaVariantNames
     )
     {
         var displayName = order.User?.DisplayName ?? string.Empty;
@@ -370,11 +408,14 @@ public sealed class OrderDayService : IOrderDayService
         var lines = order.Lines.OrderBy(line => line.ProductId).ThenBy(line => line.Id).ToList();
         var lead = lines[0];
         var leadName = productNames.GetValueOrDefault(lead.ProductId, lead.ProductId);
+        var leadVariantName = lead.PizzaVariantId is { } leadVariantId
+            ? pizzaVariantNames.GetValueOrDefault(leadVariantId)
+            : null;
         var leadLabel = OrderLabelBuilder.BuildProductLabel(
             lead.Kind,
             leadName,
             lead.Meat,
-            lead.PizzaVariant
+            leadVariantName
         );
         var productLabel = lines.Count == 1 ? leadLabel : $"{leadLabel} +{lines.Count - 1}";
         var description = string.Join(
@@ -397,11 +438,27 @@ public sealed class OrderDayService : IOrderDayService
         );
     }
 
+    // Resolves the opener's display name for the day-opened notification. Falls back to an empty
+    // string when the user can't be found, so a missing opener never breaks the open flow.
+    private async Task<string> ResolveDisplayName(Guid userId, CancellationToken ct) =>
+        await database
+            .Users.AsNoTracking()
+            .Where(user => user.Id == userId)
+            .Select(user => user.DisplayName)
+            .FirstOrDefaultAsync(ct)
+        ?? string.Empty;
+
+    // Renders the runtime tokens in a notification template. Benign when a token is absent: a
+    // template that never mentions {OPENER_NAME} passes through unchanged.
+    [System.Diagnostics.Contracts.Pure]
+    private static string SubstituteNotificationTokens(string template, string openerName) =>
+        template.Replace("{OPENER_NAME}", openerName, StringComparison.Ordinal);
+
     // Picks the day's notification text. The standard set lives in the database as editable rows
     // (NotificationTemplate); an admin can add, edit, disable or delete them. We pick one active row
-    // at random — its synonym is stamped onto the day, its body is the push/feed message. If the
-    // admin has disabled or deleted them all, we fall back to a built-in synonym so a Döner-Tag can
-    // always be opened.
+    // at random — its synonym is stamped onto the day, its body is the push/feed message template
+    // (it may carry {OPENER_NAME}, substituted by the caller). If the admin has disabled or deleted
+    // them all, we fall back to a built-in synonym so a Döner-Tag can always be opened.
     private async Task<(string Synonym, string Body)> PickNotificationAsync(CancellationToken ct)
     {
         var templates = await database

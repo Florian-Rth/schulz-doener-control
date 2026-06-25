@@ -82,7 +82,7 @@ public sealed class GetTierTests : DoenerControlTestBase
     }
 
     [Fact]
-    public async Task Should_Return_All_Fifteen_With_IsMine_On_Caller_Tier()
+    public async Task Should_Return_The_Full_Catalogue_With_IsMine_On_Caller_Tier()
     {
         var chefId = await UserIdAsync("m.wagner");
         // A distinct date base so this test's OrderDay.Date rows never collide with the mine test's
@@ -99,12 +99,14 @@ public sealed class GetTierTests : DoenerControlTestBase
         );
         Assert.NotNull(body);
 
-        // All 15 Tiere in priority order, first = Bürowaffe, last = solider Döner-Bürger.
-        Assert.Equal(15, body!.Count);
-        Assert.Equal("Die Bürowaffe", body[0].Name);
-        Assert.Equal("Der solide Döner-Bürger", body[14].Name);
+        // The Packesel superlative leads, then the 15 pattern Tiere; last = solider Döner-Bürger.
+        Assert.Equal(16, body!.Count);
+        Assert.Equal("Der Packesel", body[0].Name);
+        Assert.Equal("Die Bürowaffe", body[1].Name);
+        Assert.Equal("Der solide Döner-Bürger", body[15].Name);
 
-        // Exactly one entry flagged IsMine, and it is the caller's computed tier.
+        // Exactly one entry flagged IsMine, and it is the caller's computed tier. The chef seeded no
+        // pickups here, so the Packesel is not theirs — it is their order-pattern tier.
         var mine = Assert.Single(body, tier => tier.IsMine);
         Assert.Equal("Der Knoblauch-Wolf", mine.Name);
         Assert.Equal("🐺", mine.Emoji);

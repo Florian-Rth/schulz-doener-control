@@ -55,9 +55,15 @@ const menuResponse = {
       sortOrder: 6,
     },
   ],
-  pizzaVariants: ["Salami", "Margherita", "Funghi", "Tonno", "Hawaii"],
+  pizzaVariants: [
+    { value: "salami", label: "Salami" },
+    { value: "margherita", label: "Margherita" },
+    { value: "funghi", label: "Funghi" },
+    { value: "tonno", label: "Tonno" },
+    { value: "hawaii", label: "Hawaii" },
+  ],
   sauceOptions: ["Kraeuter", "Knoblauch", "Scharf"],
-  meatOptions: ["Kalb", "Haehnchen"],
+  meatOptions: ["Kalb", "Haehnchen", "Gemischt"],
 };
 
 interface OrderHandlerOptions {

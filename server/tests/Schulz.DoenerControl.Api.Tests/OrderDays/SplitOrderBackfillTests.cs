@@ -50,6 +50,11 @@ public sealed class SplitOrderBackfillTests
 
             // Apply the split: the backfill INSERT...SELECT must fire before the column-drop rebuild.
             await migrator.MigrateAsync(SplitMigration, Ct);
+
+            // Then migrate the rest of the chain to latest so the schema the live OrderLine entity
+            // expects exists (EditablePizzaVariants replaces the int PizzaVariant column with the
+            // PizzaVariantId FK). The split-era line had no pizza variant, so it stays null.
+            await migrator.MigrateAsync(targetMigration: null, Ct);
         }
 
         await using (var database = new AppDbContext(options))
@@ -65,7 +70,7 @@ public sealed class SplitOrderBackfillTests
             Assert.Equal("doener", line.ProductId);
             Assert.Equal(ProductKind.Doener, line.Kind);
             Assert.Equal(MeatType.Kalb, line.Meat);
-            Assert.Null(line.PizzaVariant);
+            Assert.Null(line.PizzaVariantId);
             Assert.Equal(Sauce.Knoblauch | Sauce.Scharf, line.Sauces);
             Assert.Equal(750, line.PriceCents);
             Assert.Equal("ohne Zwiebeln", line.Extra);

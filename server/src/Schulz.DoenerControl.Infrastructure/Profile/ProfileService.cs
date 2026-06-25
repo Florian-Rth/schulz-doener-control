@@ -34,7 +34,7 @@ public sealed class ProfileService : IProfileService
         if (user is null)
             return Result<ProfileDetails>.NotFound("Benutzer nicht gefunden.");
 
-        user.PayPalHandle = Normalize(command.Handle);
+        user.PayPalHandle = PayPalHandleParsing.FromLink(command.Handle);
         await database.SaveChangesAsync(ct);
 
         return Result<ProfileDetails>.Success(Map(user));
@@ -55,11 +55,6 @@ public sealed class ProfileService : IProfileService
         return Result<ProfileDetails>.Success(Map(user));
     }
 
-    // A blank handle is the user clearing it; store null so PayPalHandleSet is false and the
-    // payment buttons disable. A real handle is stored trimmed.
-    private static string? Normalize(string? handle) =>
-        string.IsNullOrWhiteSpace(handle) ? null : handle.Trim();
-
     private static ProfileDetails Map(User user) =>
         new(
             user.Id,
@@ -68,7 +63,8 @@ public sealed class ProfileService : IProfileService
             NameFormatter.InitialsOf(user.DisplayName),
             user.AvatarColorHex,
             user.Role,
-            user.PayPalHandle,
+            // The stored value is the bare handle; the user only ever sees a link, so reconstruct it.
+            PayPalLinkBuilder.BuildLink(user.PayPalHandle, null),
             !string.IsNullOrWhiteSpace(user.PayPalHandle)
         );
 

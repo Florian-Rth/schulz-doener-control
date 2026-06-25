@@ -15,9 +15,11 @@ public sealed record MenuItemSummaryDto(
     int SortOrder
 );
 
+public sealed record PizzaVariantOptionDto(string Value, string Label);
+
 public sealed record GetMenuResponse(
     IReadOnlyList<MenuItemSummaryDto> Items,
-    IReadOnlyList<string> PizzaVariants,
+    IReadOnlyList<PizzaVariantOptionDto> PizzaVariants,
     IReadOnlyList<string> SauceOptions,
     IReadOnlyList<string> MeatOptions
 );
@@ -53,10 +55,13 @@ public sealed class GetMenu : EndpointWithoutRequest<GetMenuResponse>
     private static GetMenuResponse MapToResponse(MenuDetails details) =>
         new(
             details.Items.Select(MapItem).ToList(),
-            details.PizzaVariants,
+            details.PizzaVariants.Select(MapPizzaVariant).ToList(),
             details.SauceOptions,
             details.MeatOptions
         );
+
+    private static PizzaVariantOptionDto MapPizzaVariant(PizzaVariantOption option) =>
+        new(option.Value, option.Label);
 
     private static MenuItemSummaryDto MapItem(MenuItemSummary item) =>
         new(

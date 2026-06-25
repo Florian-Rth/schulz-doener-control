@@ -46,6 +46,26 @@ public sealed class SchemaAndSeedTests : DoenerControlTestBase
     }
 
     [Fact]
+    public async Task Should_Seed_Five_Canonical_PizzaVariants_When_Migration_Applied()
+    {
+        using var scope = App.Services.CreateScope();
+        var database = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var variants = await database
+            .PizzaVariants.OrderBy(variant => variant.SortOrder)
+            .ToListAsync(Ct);
+
+        Assert.Equal(
+            new[] { "Salami", "Margherita", "Funghi", "Tonno", "Hawaii" },
+            variants.Select(variant => variant.Name).ToArray()
+        );
+        Assert.All(variants, variant => Assert.True(variant.IsAvailable));
+
+        // The Salami id is fixed by the migration (the stable wire value a pizza line carries).
+        Assert.Equal(new Guid("b1a7c0de-0001-4a01-9a01-000000000001"), variants[0].Id);
+    }
+
+    [Fact]
     public async Task Should_Seed_Standard_NotificationTemplates_When_Migration_Applied()
     {
         using var scope = App.Services.CreateScope();

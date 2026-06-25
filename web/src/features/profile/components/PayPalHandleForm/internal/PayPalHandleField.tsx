@@ -1,9 +1,6 @@
-import InputAdornment from "@mui/material/InputAdornment";
 import TextField from "@mui/material/TextField";
-import Typography from "@mui/material/Typography";
 import type { FC } from "react";
 import { type Control, Controller } from "react-hook-form";
-import { profileCopy } from "../../../copy";
 import type { PayPalHandleForm } from "../../../types";
 
 interface PayPalHandleFieldProps {
@@ -12,8 +9,8 @@ interface PayPalHandleFieldProps {
   placeholder: string;
 }
 
-// Presentational RHF-controlled handle input with the `paypal.me/` prefix
-// adornment, mirroring how the link is built.
+// Presentational RHF-controlled input for the full PayPal link (the user pastes
+// the complete URL — no prefix adornment).
 export const PayPalHandleField: FC<PayPalHandleFieldProps> = ({ control, label, placeholder }) => {
   return (
     <Controller
@@ -29,15 +26,6 @@ export const PayPalHandleField: FC<PayPalHandleFieldProps> = ({ control, label, 
           helperText={fieldState.error?.message ?? " "}
           slotProps={{
             htmlInput: { autoCapitalize: "none", autoComplete: "off", spellCheck: false },
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Typography sx={{ fontWeight: 600, color: "muted.main" }}>
-                    {profileCopy.prefix}
-                  </Typography>
-                </InputAdornment>
-              ),
-            },
           }}
         />
       )}

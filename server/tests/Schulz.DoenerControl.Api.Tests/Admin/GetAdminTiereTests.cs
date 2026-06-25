@@ -6,10 +6,11 @@ using Xunit;
 
 namespace Schulz.DoenerControl.Api.Tests.Admin;
 
-// The read-only admin Döner-Tier inspector (B4): GET /api/admin/tiere returns all 15 tier
-// definitions in priority order, each with its emoji/name/tagline/tags plus a human-readable
-// German trigger-condition derived from the calculator's own thresholds, and the 90-day window
-// length that forms the basis. Asserted against the real host as the seeded Admin "Chef".
+// The read-only admin Döner-Tier inspector (B4): GET /api/admin/tiere returns all tier definitions
+// in priority order (the 🐎 Packesel superlative leads, then the 15 order-pattern tiers), each with
+// its emoji/name/tagline/tags plus a human-readable German trigger-condition derived from the
+// calculator's own thresholds, and the 90-day window length that forms the basis. Asserted against
+// the real host as the seeded Admin "Chef".
 public sealed class GetAdminTiereTests : DoenerControlTestBase
 {
     private const string TiereUrl = "/api/admin/tiere";
@@ -18,7 +19,7 @@ public sealed class GetAdminTiereTests : DoenerControlTestBase
         : base(app) { }
 
     [Fact]
-    public async Task Should_Return_All_Fifteen_Tiers_In_Priority_Order()
+    public async Task Should_Return_All_Tiers_In_Priority_Order_Led_By_The_Packesel()
     {
         var admin = await AdminUserTestHelpers.LoginAsAdminAsync(App);
 
@@ -29,11 +30,13 @@ public sealed class GetAdminTiereTests : DoenerControlTestBase
             TestContext.Current.CancellationToken
         );
         Assert.NotNull(body);
-        Assert.Equal(15, body!.Tiers.Count);
-        Assert.Equal("Die Bürowaffe", body.Tiers[0].Name);
-        Assert.Equal("Der Knoblauch-Wolf", body.Tiers[1].Name);
-        Assert.Equal("Der Schärfe-Drache", body.Tiers[2].Name);
-        Assert.Equal("Der solide Döner-Bürger", body.Tiers[14].Name);
+        // The Packesel superlative leads, then the 15 order-pattern tiers in priority order.
+        Assert.Equal(16, body!.Tiers.Count);
+        Assert.Equal("Der Packesel", body.Tiers[0].Name);
+        Assert.Equal("Die Bürowaffe", body.Tiers[1].Name);
+        Assert.Equal("Der Knoblauch-Wolf", body.Tiers[2].Name);
+        Assert.Equal("Der Schärfe-Drache", body.Tiers[3].Name);
+        Assert.Equal("Der solide Döner-Bürger", body.Tiers[15].Name);
     }
 
     [Fact]
@@ -70,10 +73,11 @@ public sealed class GetAdminTiereTests : DoenerControlTestBase
         Assert.NotNull(body);
         // The Knoblauch-Wolf threshold (garlic >= 0.7) must surface as a real percentage so an admin
         // can read the basis without consulting the code. The "70 %" is rendered from the same
-        // constant the calculator compares against, never a hand-typed literal in the DTO.
-        Assert.Equal("Knoblauch-Anteil ≥ 70 %", body!.Tiers[1].Condition);
-        Assert.Contains("60 %", body.Tiers[0].Condition);
-        Assert.Equal("Wenn keine andere Regel zutrifft", body.Tiers[14].Condition);
+        // constant the calculator compares against, never a hand-typed literal in the DTO. Indices
+        // are offset by one: the Packesel superlative leads the catalogue at index 0.
+        Assert.Equal("Knoblauch-Anteil ≥ 70 %", body!.Tiers[2].Condition);
+        Assert.Contains("60 %", body.Tiers[1].Condition);
+        Assert.Equal("Wenn keine andere Regel zutrifft", body.Tiers[15].Condition);
     }
 
     [Fact]

@@ -13,41 +13,59 @@ namespace Schulz.DoenerControl.Infrastructure.Persistence.Seeding;
 // admin who has since edited the set is never overwritten.
 public sealed class NotificationTemplateSeeder
 {
+    // Each body opens with the {OPENER_NAME} token: at open time the service substitutes the
+    // opener's display name (and leaves the rest of the playful synonym pitch intact). A template
+    // without the token still works — the substitution is a no-op when the token is absent.
     public static readonly IReadOnlyList<(string Synonym, string Body)> CanonicalTemplates = new[]
     {
         (
             "Drehspieß-Tasche",
-            "Wer hat Bock auf 'ne Drehspieß-Tasche? Heute wird bestellt – jetzt einchecken!"
+            "{OPENER_NAME} hat den Döner-Tag eröffnet — wer hat Bock auf 'ne Drehspieß-Tasche? Jetzt einchecken!"
         ),
         (
             "Osmanischer Fleischeimer",
-            "Heute gibt's den Osmanischen Fleischeimer. Wer ist dabei? Jetzt eintragen!"
+            "{OPENER_NAME} hat den Döner-Tag eröffnet — heute gibt's den Osmanischen Fleischeimer. Wer ist dabei?"
         ),
-        ("Fleisch-Rucksack", "Döner-Tag! Wer schnürt den Fleisch-Rucksack mit? Jetzt einchecken."),
-        ("Donatello", "Heute holen wir uns 'nen Donatello. Jemand dabei? Schnell eintragen!"),
+        (
+            "Fleisch-Rucksack",
+            "{OPENER_NAME} hat den Döner-Tag eröffnet — wer schnürt den Fleisch-Rucksack mit? Jetzt einchecken."
+        ),
+        (
+            "Donatello",
+            "{OPENER_NAME} hat den Döner-Tag eröffnet — heute holen wir uns 'nen Donatello. Jemand dabei?"
+        ),
         (
             "Rindfleisch-Knoppers",
-            "Hab Hunger, Kollegen. Heute gibt's ein Rindfleisch-Knoppers – jemand dabei?"
+            "{OPENER_NAME} hat den Döner-Tag eröffnet — heute gibt's ein Rindfleisch-Knoppers. Jemand dabei?"
         ),
         (
             "Drehmoment-Mäppchen",
-            "Döner-Tag läuft! Wer will ein Drehmoment-Mäppchen? Jetzt einchecken."
+            "{OPENER_NAME} hat den Döner-Tag eröffnet — wer will ein Drehmoment-Mäppchen? Jetzt einchecken."
         ),
         (
             "Anatolische Fleischbombe",
-            "Heute zündet die Anatolische Fleischbombe. Wer ist am Start? Jetzt eintragen!"
+            "{OPENER_NAME} hat den Döner-Tag eröffnet — heute zündet die Anatolische Fleischbombe. Wer ist am Start?"
         ),
-        ("Klappkatze", "Wer hat Bock auf Klappkatze? Heute wird bestellt – jetzt einchecken!"),
+        (
+            "Klappkatze",
+            "{OPENER_NAME} hat den Döner-Tag eröffnet — wer hat Bock auf Klappkatze? Jetzt einchecken!"
+        ),
         (
             "Alu-Banane",
-            "Krummes Ding gefällig? Heute rollen die Alu-Bananen (ja, Dürüm). Wer ist dabei?"
+            "{OPENER_NAME} hat den Döner-Tag eröffnet — krummes Ding gefällig? Heute rollen die Alu-Bananen (ja, Dürüm)."
         ),
         (
             "Gehacktes-Tasche",
-            "Heute wird die Gehacktes-Tasche gepackt. Jemand am Start? Jetzt eintragen!"
+            "{OPENER_NAME} hat den Döner-Tag eröffnet — heute wird die Gehacktes-Tasche gepackt. Jemand am Start?"
         ),
-        ("Türkische Maultasche", "Döner-Tag! Wer will 'ne Türkische Maultasche? Jetzt einchecken."),
-        ("Gulasch Kanister", "Hunger? Heute zapfen wir 'nen Gulasch Kanister. Jemand dabei?"),
+        (
+            "Türkische Maultasche",
+            "{OPENER_NAME} hat den Döner-Tag eröffnet — wer will 'ne Türkische Maultasche? Jetzt einchecken."
+        ),
+        (
+            "Gulasch Kanister",
+            "{OPENER_NAME} hat den Döner-Tag eröffnet — heute zapfen wir 'nen Gulasch Kanister. Jemand dabei?"
+        ),
     };
 
     private readonly AppDbContext database;

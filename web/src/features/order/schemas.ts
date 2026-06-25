@@ -15,13 +15,22 @@ export const MenuItemSchema = z.object({
   sortOrder: z.number().int(),
 });
 
-// GET /api/menu — the products plus the static order vocabularies so the SPA
-// never hardcodes enum strings.
+// One pizza variant in the menu vocabulary. `value` is the stable variant id the order line
+// carries on the wire; `label` is the German display name. The set is admin-editable, so this is an
+// open list of {value,label} pairs (no closed enum).
+export const PizzaVariantOptionSchema = z.object({
+  value: z.string(),
+  label: z.string(),
+});
+
+// GET /api/menu — the products plus the order vocabularies so the SPA never hardcodes choice
+// strings. `pizzaVariants` is the dynamic, admin-managed catalog ({value,label}); sauces and meats
+// stay closed enums.
 export const MenuSchema = z.object({
   items: z.array(MenuItemSchema),
-  pizzaVariants: z.array(z.enum(["Salami", "Margherita", "Funghi", "Tonno", "Hawaii"])),
+  pizzaVariants: z.array(PizzaVariantOptionSchema),
   sauceOptions: z.array(z.enum(["Kraeuter", "Knoblauch", "Scharf"])),
-  meatOptions: z.array(z.enum(["Kalb", "Haehnchen"])),
+  meatOptions: z.array(z.enum(["Kalb", "Haehnchen", "Gemischt"])),
 });
 
 // One line of an order in the shared order DTO. priceCents/priceLabel are PER
@@ -30,8 +39,9 @@ export const OrderLineSchema = z.object({
   productId: z.string(),
   productLabel: z.string(),
   kind: z.enum(["doener", "pizza"]),
-  meat: z.enum(["Kalb", "Haehnchen"]).nullable(),
-  pizzaVariant: z.enum(["Salami", "Margherita", "Funghi", "Tonno", "Hawaii"]).nullable(),
+  meat: z.enum(["Kalb", "Haehnchen", "Gemischt"]).nullable(),
+  // The chosen pizza variant `value` (a stable id from the admin-managed catalog), null for döner.
+  pizzaVariant: z.string().nullable(),
   sauces: z.array(z.enum(["Kraeuter", "Knoblauch", "Scharf"])),
   priceCents: z.number().int(),
   priceLabel: z.string(),
@@ -77,7 +87,6 @@ export const TodayOrderDaySchema = z.object({
 // --- Form schema (RHF + zodResolver) ---
 
 const SAUCE_VALUES = ["Kraeuter", "Knoblauch", "Scharf"] as const;
-const PIZZA_VALUES = ["Salami", "Margherita", "Funghi", "Tonno", "Hawaii"] as const;
 
 // One editable line in the order form. The per-line pizza/döner consistency is
 // enforced in a superRefine so the issue paths point at the exact line field.
@@ -85,8 +94,10 @@ export const OrderLineFormSchema = z
   .object({
     productId: z.string().min(1, "Wähl erst ein Produkt, Chef."),
     kind: z.enum(["doener", "pizza"]),
-    meat: z.enum(["Kalb", "Haehnchen"]).nullable(),
-    pizzaVariant: z.enum(PIZZA_VALUES).nullable(),
+    meat: z.enum(["Kalb", "Haehnchen", "Gemischt"]).nullable(),
+    // The chosen pizza variant `value` from the dynamic catalog; the superRefine below requires it
+    // for a pizza line and forbids it for a döner line, so a plain nullable string suffices here.
+    pizzaVariant: z.string().nullable(),
     sauces: z.array(z.enum(SAUCE_VALUES)),
     extra: z.string().max(300).optional(),
     priceCents: z.number().int().positive(),

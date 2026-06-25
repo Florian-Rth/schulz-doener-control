@@ -2,6 +2,8 @@ import type { z } from "zod";
 import type {
   AdminMenuItemSchema,
   AdminNotificationTemplateSchema,
+  AdminPizzaVariantSchema,
+  AdminRegistrationModeResponseSchema,
   AdminTiereResponseSchema,
   AdminTierSchema,
   AdminUserSchema,
@@ -10,6 +12,8 @@ import type {
   EditUserFormSchema,
   MenuItemFormSchema,
   NotificationTemplateFormSchema,
+  PizzaVariantFormSchema,
+  RegistrationModeFormSchema,
   ResetPasswordResponseSchema,
 } from "./schemas";
 
@@ -26,8 +30,17 @@ export type MenuItemForm = z.infer<typeof MenuItemFormSchema>;
 export type AdminNotificationTemplate = z.infer<typeof AdminNotificationTemplateSchema>;
 export type NotificationTemplateForm = z.infer<typeof NotificationTemplateFormSchema>;
 
+export type AdminPizzaVariant = z.infer<typeof AdminPizzaVariantSchema>;
+export type PizzaVariantForm = z.infer<typeof PizzaVariantFormSchema>;
+
 export type AdminTier = z.infer<typeof AdminTierSchema>;
 export type AdminTiere = z.infer<typeof AdminTiereResponseSchema>;
+
+export type AdminRegistrationMode = z.infer<typeof AdminRegistrationModeResponseSchema>;
+export type RegistrationModeForm = z.infer<typeof RegistrationModeFormSchema>;
+
+// The wire value of the registration policy: 1 = Enabled, 2 = Disabled, 3 = SecretKeyOnly.
+export type RegistrationModeNumber = 1 | 2 | 3;
 
 // The wire value of `kind` on menu requests/responses.
 export type MenuKind = "doener" | "pizza";

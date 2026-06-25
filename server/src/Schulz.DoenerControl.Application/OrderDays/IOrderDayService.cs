@@ -11,10 +11,12 @@ public interface IOrderDayService
 
     Task<Result<CloseDayResult>> CloseAsync(CloseDayCommand command, CancellationToken ct);
 
-    // Admin scrap-and-end: discards every order and closes the day, in any open state, WITHOUT
-    // creating debts. Authorization (admin-only) is enforced at the endpoint.
+    // Scrap-and-end: discards every order and closes the day, in any open state, WITHOUT creating
+    // debts. Allowed for an admin OR the day's designated collector (Abholer); anyone else is
+    // Forbidden. Enforced here (server-side) — the endpoint passes the caller's admin-ness.
     Task<Result<ForceEndDayResult>> ForceEndAsync(
         Guid callerUserId,
+        bool callerIsAdmin,
         Guid orderDayId,
         CancellationToken ct
     );

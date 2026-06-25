@@ -113,7 +113,7 @@ public sealed class PutMyOrderValidationTests : DoenerControlTestBase
                 {
                     ProductId = "pizza",
                     Meat = (string?)"Kalb",
-                    PizzaVariant = (string?)"Salami",
+                    PizzaVariant = (string?)Admin.AdminPizzaVariantTestHelpers.SalamiId,
                     Sauces = Array.Empty<string>(),
                     PriceCents = 900,
                     Extra = (string?)null,
@@ -152,7 +152,7 @@ public sealed class PutMyOrderValidationTests : DoenerControlTestBase
                     {
                         ProductId = "pizza",
                         Meat = (string?)"Kalb",
-                        PizzaVariant = (string?)"Salami",
+                        PizzaVariant = (string?)Admin.AdminPizzaVariantTestHelpers.SalamiId,
                         Sauces = Array.Empty<string>(),
                         PriceCents = 900,
                         Extra = (string?)null,
@@ -179,7 +179,7 @@ public sealed class PutMyOrderValidationTests : DoenerControlTestBase
                 {
                     ProductId = "pizza",
                     Meat = (string?)null,
-                    PizzaVariant = (string?)"Salami",
+                    PizzaVariant = (string?)Admin.AdminPizzaVariantTestHelpers.SalamiId,
                     Sauces = Array.Empty<string>(),
                     PriceCents = 900,
                     Extra = (string?)null,

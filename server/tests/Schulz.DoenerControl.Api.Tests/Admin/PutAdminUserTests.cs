@@ -22,7 +22,7 @@ public sealed class PutAdminUserTests : DoenerControlTestBase
             new
             {
                 DisplayName = "Tobias Klein-Neu",
-                PayPalHandle = "TobiNeu",
+                PayPalHandle = "https://paypal.me/TobiNeu",
                 Role = (int)UserRole.Employee,
                 IsActive = true,
             }
@@ -33,10 +33,12 @@ public sealed class PutAdminUserTests : DoenerControlTestBase
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("Tobias Klein-Neu", body!.User.DisplayName);
-        Assert.Equal("TobiNeu", body.User.PayPalHandle);
+        // The response DTO surfaces the reconstructed base link the admin entered...
+        Assert.Equal("https://paypal.me/TobiNeu", body.User.PayPalHandle);
 
         var persisted = await AdminUserTestHelpers.FindUserAsync(App, "t.klein");
         Assert.Equal("Tobias Klein-Neu", persisted!.DisplayName);
+        // ...while the DB stores only the bare handle parsed out of that link.
         Assert.Equal("TobiNeu", persisted.PayPalHandle);
     }
 

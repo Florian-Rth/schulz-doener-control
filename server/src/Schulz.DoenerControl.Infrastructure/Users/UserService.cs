@@ -2,8 +2,8 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using Schulz.DoenerControl.Application.Calculators;
+using Schulz.DoenerControl.Application.Config;
 using Schulz.DoenerControl.Application.Security;
 using Schulz.DoenerControl.Application.Users;
 using Schulz.DoenerControl.Core;
@@ -19,24 +19,25 @@ public sealed class UserService : IUserService
     private const string UsernameTaken = "Dieser Benutzername ist bereits vergeben.";
     private const string LastAdminGuard =
         "Der letzte aktive Administrator kann nicht herabgestuft oder deaktiviert werden.";
-    private const string InvalidInviteCode = "Ungültiger Registrierungscode, Chef.";
+    private const string RegistrationClosed = "Registrierung ist derzeit geschlossen.";
+    private const string InvalidSecretKey = "Ungültiger Registrierungscode, Chef.";
 
     private readonly AppDbContext database;
     private readonly IPasswordHasher passwordHasher;
     private readonly TimeProvider timeProvider;
-    private readonly RegistrationOptions registrationOptions;
+    private readonly IRegistrationModeService registrationModeService;
 
     public UserService(
         AppDbContext database,
         IPasswordHasher passwordHasher,
         TimeProvider timeProvider,
-        IOptions<RegistrationOptions> registrationOptions
+        IRegistrationModeService registrationModeService
     )
     {
         this.database = database;
         this.passwordHasher = passwordHasher;
         this.timeProvider = timeProvider;
-        this.registrationOptions = registrationOptions.Value;
+        this.registrationModeService = registrationModeService;
     }
 
     public async Task<Result<CurrentUserDetails>> GetMeAsync(Guid callerId, CancellationToken ct)
@@ -84,7 +85,7 @@ public sealed class UserService : IUserService
             Username = username,
             NormalizedUserName = normalized,
             DisplayName = command.DisplayName.Trim(),
-            PayPalHandle = NormalizeHandle(command.PayPalHandle),
+            PayPalHandle = HandleFromLink(command.PayPalHandle),
             PasswordHash = hashed.Hash,
             PasswordSalt = hashed.Salt,
             Role = command.Role,
@@ -107,14 +108,12 @@ public sealed class UserService : IUserService
         CancellationToken ct
     )
     {
-        // Optional invite-code gate: only enforced when one is configured (open registration
-        // otherwise). Checked before any uniqueness/hash work so a bad code never touches the DB.
-        if (
-            !string.IsNullOrWhiteSpace(registrationOptions.InviteCode)
-            && !MatchesInviteCode(registrationOptions.InviteCode, command.InviteCode)
-        )
+        // Runtime registration gate, driven by the DB-backed RegistrationMode singleton. Checked
+        // before any uniqueness/hash work so a closed/mismatched attempt never touches the DB.
+        var gate = await EvaluateRegistrationGateAsync(command.SecretKey, ct);
+        if (!gate.IsSuccess)
         {
-            return Result<RegisteredUserDetails>.Forbidden(InvalidInviteCode);
+            return Result<RegisteredUserDetails>.Forbidden(gate.Error ?? RegistrationClosed);
         }
 
         var username = command.Username.Trim();
@@ -136,7 +135,7 @@ public sealed class UserService : IUserService
             Username = username,
             NormalizedUserName = normalized,
             DisplayName = command.DisplayName.Trim(),
-            PayPalHandle = NormalizeHandle(command.PayPalHandle),
+            PayPalHandle = HandleFromLink(command.PayPalHandle),
             PasswordHash = hashed.Hash,
             PasswordSalt = hashed.Salt,
             // Self-registration always yields a plain Employee: the role is never client-selectable.
@@ -187,7 +186,7 @@ public sealed class UserService : IUserService
         var revokeTokens = user.Role != command.Role || (user.IsActive && !command.IsActive);
 
         user.DisplayName = command.DisplayName.Trim();
-        user.PayPalHandle = NormalizeHandle(command.PayPalHandle);
+        user.PayPalHandle = HandleFromLink(command.PayPalHandle);
         user.Role = command.Role;
         user.IsActive = command.IsActive;
 
@@ -277,12 +276,33 @@ public sealed class UserService : IUserService
             token.RevokedAt = now;
     }
 
-    // Constant-time comparison of the configured invite code against the supplied one. A
-    // missing/empty supplied code is a clean mismatch (never compared against the secret), and
-    // FixedTimeEquals keeps the comparison resistant to timing side channels.
-    private static bool MatchesInviteCode(string configured, string? supplied)
+    // Decides whether a self-registration attempt is allowed under the current runtime policy:
+    //  Enabled       — always allowed.
+    //  Disabled      — closed; forbidden.
+    //  SecretKeyOnly — allowed only when the supplied secret matches the stored one (constant-time).
+    private async Task<Result> EvaluateRegistrationGateAsync(
+        string? suppliedSecret,
+        CancellationToken ct
+    )
     {
-        if (string.IsNullOrEmpty(supplied))
+        var details = await registrationModeService.GetModeAsync(ct);
+
+        return details.Mode switch
+        {
+            RegistrationModeType.Enabled => Result.Success(),
+            RegistrationModeType.Disabled => Result.Conflict(RegistrationClosed),
+            RegistrationModeType.SecretKeyOnly
+                when MatchesSecretKey(details.SecretKey, suppliedSecret) => Result.Success(),
+            _ => Result.Conflict(InvalidSecretKey),
+        };
+    }
+
+    // Constant-time comparison of the configured secret key against the supplied one. A missing/empty
+    // stored or supplied secret is a clean mismatch (never compared), and FixedTimeEquals keeps the
+    // comparison resistant to timing side channels.
+    private static bool MatchesSecretKey(string? configured, string? supplied)
+    {
+        if (string.IsNullOrEmpty(configured) || string.IsNullOrEmpty(supplied))
             return false;
 
         var expected = Encoding.UTF8.GetBytes(configured);
@@ -290,8 +310,8 @@ public sealed class UserService : IUserService
         return CryptographicOperations.FixedTimeEquals(expected, actual);
     }
 
-    private static string? NormalizeHandle(string? handle) =>
-        string.IsNullOrWhiteSpace(handle) ? null : handle.Trim();
+    // The request carries the user's full PayPal LINK; parse out and store only the bare handle.
+    private static string? HandleFromLink(string? link) => PayPalHandleParsing.FromLink(link);
 
     private static bool IsUniqueViolation(DbUpdateException ex) =>
         ex.InnerException is SqliteException { SqliteErrorCode: 19 };
@@ -304,7 +324,8 @@ public sealed class UserService : IUserService
             NameFormatter.InitialsOf(user.DisplayName),
             user.AvatarColorHex,
             user.Role,
-            user.PayPalHandle,
+            // The stored value is the bare handle; surface the reconstructed link the user entered.
+            PayPalLinkBuilder.BuildLink(user.PayPalHandle, null),
             !string.IsNullOrWhiteSpace(user.PayPalHandle),
             user.MustChangePassword
         );
@@ -317,7 +338,8 @@ public sealed class UserService : IUserService
             user.Role,
             user.IsActive,
             user.MustChangePassword,
-            user.PayPalHandle,
+            // The stored value is the bare handle; the admin screen shows/edits the reconstructed link.
+            PayPalLinkBuilder.BuildLink(user.PayPalHandle, null),
             user.CreatedAt
         );
 }

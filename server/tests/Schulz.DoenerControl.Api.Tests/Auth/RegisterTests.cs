@@ -30,7 +30,7 @@ public sealed class RegisterTests : DoenerControlTestBase
             {
                 Username = "c.lehmann",
                 DisplayName = "Carla Lehmann",
-                PayPalHandle = "CarlaL",
+                PayPalHandle = "https://paypal.me/CarlaL",
                 Password = "Doener1234",
             }
         );
@@ -47,6 +47,7 @@ public sealed class RegisterTests : DoenerControlTestBase
         var persisted = await AdminUserTestHelpers.FindUserAsync(App, "c.lehmann");
         Assert.NotNull(persisted);
         Assert.True(persisted!.IsActive);
+        // The submitted link is parsed down to the bare handle for storage.
         Assert.Equal("CarlaL", persisted.PayPalHandle);
     }
 

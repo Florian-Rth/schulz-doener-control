@@ -9,15 +9,17 @@ import { GhostButton, PrimaryButton } from "@/components";
 import { homeCopy } from "../../../copy";
 import { useDashboardContext } from "../../../dashboard-context";
 
-// Admin-only "Döner-Tag beenden" — scrap-and-end the running day (discards all orders, no debts).
-// Self-gates on isAdmin + an open day, so the card can render it unconditionally. Destructive, so it
-// opens a confirm dialog before firing. Consumes the dashboard context; owns only the dialog state.
+// "Döner-Tag beenden" — scrap-and-end the running day (discards all orders, no debts).
+// Visible to an admin OR the day's own Abholer (the backend authorizes both); self-gates on an
+// open day, so the card can render it unconditionally. The collector still keeps their normal close
+// controls — normal close creates debts, this force-end discards. Destructive, so it opens a confirm
+// dialog before firing. Consumes the dashboard context; owns only the dialog state.
 export const AdminEndDayButton: FC = () => {
   const { isAdmin, day, forceEndDay, isForceEndingDay } = useDashboardContext();
   const [open, setOpen] = useState(false);
 
   const dayId = day.id;
-  if (!isAdmin || dayId === null) {
+  if (!(isAdmin || day.amICollector) || dayId === null) {
     return null;
   }
 

@@ -140,7 +140,7 @@ const useDashboardHandlers = (dashboard: Dashboard): void => {
 describe("PrintListPage", () => {
   it("rendert die Bestellzeilen, den Abholer und die korrekte Gesamtsumme", async () => {
     useDashboardHandlers(buildDashboard());
-    const { findByText, findByRole, getByText, getAllByText } = renderApp({
+    const { findByText, findByRole, getByText, getAllByText, queryByText } = renderApp({
       initialPath: "/druck",
     });
 
@@ -148,6 +148,11 @@ describe("PrintListPage", () => {
     expect(await findByText(/Döner-Tag/)).toBeInTheDocument();
     const abholer = getByText(/Abholer:/);
     expect(abholer.parentElement?.textContent).toContain("Lukas Brandt");
+
+    // the printed subline shows only the order count — the playful synonym is
+    // dropped on the printed sheet (it stays on the dashboard screen).
+    expect(getByText("3 Bestellungen")).toBeInTheDocument();
+    expect(queryByText(/Drehspieß-Tasche/)).not.toBeInTheDocument();
 
     // one row per order — person, product and detail all present. "Lukas Brandt"
     // also appears in the Abholer line, so it resolves to two nodes.

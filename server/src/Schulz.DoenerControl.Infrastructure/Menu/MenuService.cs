@@ -27,9 +27,23 @@ public sealed class MenuService : IMenuService
             .OrderBy(item => item.SortOrder)
             .ToListAsync(ct);
 
+        // Pizza variants are admin-managed reference data: only available ones, by SortOrder, as the
+        // {value,label} pairs the SPA renders (value = the stable variant id string a pizza line
+        // submits on the wire). The id is formatted in memory (not in SQL) so it is the canonical
+        // lowercase Guid string, matching how the admin DTO serializes the same id.
+        var variantRows = await database
+            .PizzaVariants.AsNoTracking()
+            .Where(variant => variant.IsAvailable)
+            .OrderBy(variant => variant.SortOrder)
+            .Select(variant => new { variant.Id, variant.Name })
+            .ToListAsync(ct);
+        var pizzaVariants = variantRows
+            .Select(variant => new PizzaVariantOption(variant.Id.ToString(), variant.Name))
+            .ToList();
+
         var details = new MenuDetails(
             items.Select(MapSummary).ToList(),
-            OrderVocabulary.PizzaVariants,
+            pizzaVariants,
             OrderVocabulary.SauceOptions,
             OrderVocabulary.MeatOptions
         );

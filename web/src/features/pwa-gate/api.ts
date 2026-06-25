@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
-import { ClientConfigSchema } from "./schemas";
-import type { ClientConfig } from "./types";
+import { ClientConfigSchema, RegistrationMode } from "./schemas";
+import type { ClientConfig, RegistrationModeValue } from "./types";
 
 export const configKeys = {
   client: ["config", "client"] as const,
@@ -20,4 +20,13 @@ export const useClientConfig = () => {
     queryFn: ({ signal }) => fetchClientConfig(signal),
     staleTime: Number.POSITIVE_INFINITY,
   });
+};
+
+// The self-registration policy lifted from the client config. The login/register screens read this
+// to hide the register link (Disabled) or require the secret key (SecretKeyOnly). It fails open to
+// Enabled while the config is loading or unavailable (e.g. an anonymous 401), so the register flow
+// is never accidentally locked out by a config hiccup.
+export const useRegistrationMode = (): RegistrationModeValue => {
+  const config = useClientConfig();
+  return config.data?.registrationMode ?? RegistrationMode.Enabled;
 };

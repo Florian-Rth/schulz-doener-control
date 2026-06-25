@@ -10,6 +10,7 @@ using Schulz.DoenerControl.Application.Menu;
 using Schulz.DoenerControl.Application.Notifications;
 using Schulz.DoenerControl.Application.OrderDays;
 using Schulz.DoenerControl.Application.Orders;
+using Schulz.DoenerControl.Application.PizzaVariants;
 using Schulz.DoenerControl.Application.Profile;
 using Schulz.DoenerControl.Application.Push;
 using Schulz.DoenerControl.Application.Security;
@@ -25,6 +26,7 @@ using Schulz.DoenerControl.Infrastructure.OrderDays;
 using Schulz.DoenerControl.Infrastructure.Orders;
 using Schulz.DoenerControl.Infrastructure.Persistence;
 using Schulz.DoenerControl.Infrastructure.Persistence.Seeding;
+using Schulz.DoenerControl.Infrastructure.PizzaVariants;
 using Schulz.DoenerControl.Infrastructure.Profile;
 using Schulz.DoenerControl.Infrastructure.Push;
 using Schulz.DoenerControl.Infrastructure.Security;
@@ -52,11 +54,12 @@ public static class DependencyInjection
         services.AddSingleton<ILoginLockout, LoginLockout>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IUserService, UserService>();
-        services.AddRegistration(configuration);
         services.AddClientConfig(configuration);
         services.AddScoped<IProfileService, ProfileService>();
         services.AddScoped<IMenuService, MenuService>();
+        services.AddScoped<IPizzaVariantService, PizzaVariantService>();
         services.AddScoped<INotificationTemplateService, NotificationTemplateService>();
+        services.AddScoped<IRegistrationModeService, RegistrationModeService>();
         services.AddPush(configuration);
         services.AddOrderDays(configuration);
         services.AddScoped<IOrderService, OrderService>();
@@ -125,28 +128,6 @@ public static class DependencyInjection
                 configuration[ClientConfigOptions.PwaGateEnabledConfigKey],
                 out var enabled
             ) && enabled;
-    }
-
-    private static void AddRegistration(
-        this IServiceCollection services,
-        IConfiguration configuration
-    )
-    {
-        services
-            .AddOptions<RegistrationOptions>()
-            .Configure(options => BindRegistrationOptions(configuration, options));
-    }
-
-    private static void BindRegistrationOptions(
-        IConfiguration configuration,
-        RegistrationOptions options
-    )
-    {
-        var inviteCode = configuration[RegistrationOptions.InviteCodeConfigKey];
-        if (!string.IsNullOrWhiteSpace(inviteCode))
-        {
-            options.InviteCode = inviteCode;
-        }
     }
 
     private static void AddPush(this IServiceCollection services, IConfiguration configuration)

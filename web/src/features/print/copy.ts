@@ -27,8 +27,8 @@ export const printCopy = {
 // of the day being printed (the open day is always today).
 export const dayTitle = (date: string): string => `Döner-Tag ${date}`;
 
-// "Drehspieß-Tasche · 3 Bestellungen" — the synonym + order-count subline.
-export const synonymSubline = (synonym: string | null, orderCount: number): string => {
-  const orders = orderCount === 1 ? "1 Bestellung" : `${orderCount} Bestellungen`;
-  return synonym !== null ? `${synonym} · ${orders}` : orders;
-};
+// "3 Bestellungen" — order-count subline for the printed sheet. The playful
+// Döner synonym stays on the dashboard screen but is deliberately dropped here
+// to keep the handed-over sheet clean for the Döner-Laden.
+export const orderCountSubline = (orderCount: number): string =>
+  orderCount === 1 ? "1 Bestellung" : `${orderCount} Bestellungen`;

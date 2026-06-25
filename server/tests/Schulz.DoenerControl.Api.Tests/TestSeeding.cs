@@ -18,11 +18,13 @@ namespace Schulz.DoenerControl.Api.Tests;
 internal static class TestSeeding
 {
     // The verified admin "Chef": MustChangePassword=false so tests act immediately, with a PayPal
-    // handle so the PayPal-deep-link assertions have a handle to render.
+    // handle seeded so the pay-button assertions have a link to reconstruct. The DB stores the bare
+    // handle; ChefPayPalLink is the user-facing base link the read-paths reconstruct from it.
     public const string ChefUsername = "m.wagner";
     public const string ChefPassword = "doener-dev-2026";
     public const string ChefDisplayName = "Markus Wagner";
     public const string ChefPayPalHandle = "MarkusWagnerHB";
+    public const string ChefPayPalLink = "https://paypal.me/" + ChefPayPalHandle;
 
     // Every freshly-provisioned colleague gets this initial password and is forced to change it on
     // first login (MustChangePassword=true), exactly as a real account would be.

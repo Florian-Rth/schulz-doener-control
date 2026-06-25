@@ -16,6 +16,7 @@ import { Route as AuthIndexRouteImport } from './routes/_auth/index'
 import { Route as AuthTiereRouteImport } from './routes/_auth/tiere'
 import { Route as AuthPasswortAendernRouteImport } from './routes/_auth/passwort-aendern'
 import { Route as AuthOrderRouteImport } from './routes/_auth/order'
+import { Route as AuthImpressumRouteImport } from './routes/_auth/impressum'
 import { Route as AuthErledigtRouteImport } from './routes/_auth/erledigt'
 import { Route as AuthEinstellungenRouteImport } from './routes/_auth/einstellungen'
 import { Route as AuthDruckRouteImport } from './routes/_auth/druck'
@@ -23,6 +24,8 @@ import { Route as AuthBenachrichtigungenRouteImport } from './routes/_auth/benac
 import { Route as AuthAdminRouteImport } from './routes/_auth/admin'
 import { Route as AuthAdminIndexRouteImport } from './routes/_auth/admin/index'
 import { Route as AuthAdminTiereRouteImport } from './routes/_auth/admin/tiere'
+import { Route as AuthAdminRegistrierungRouteImport } from './routes/_auth/admin/registrierung'
+import { Route as AuthAdminPizzaVariantsRouteImport } from './routes/_auth/admin/pizza-variants'
 import { Route as AuthAdminMenueRouteImport } from './routes/_auth/admin/menue'
 import { Route as AuthAdminBenutzerRouteImport } from './routes/_auth/admin/benutzer'
 import { Route as AuthAdminBenachrichtigungenRouteImport } from './routes/_auth/admin/benachrichtigungen'
@@ -61,6 +64,11 @@ const AuthOrderRoute = AuthOrderRouteImport.update({
   path: '/order',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthImpressumRoute = AuthImpressumRouteImport.update({
+  id: '/impressum',
+  path: '/impressum',
+  getParentRoute: () => AuthRoute,
+} as any)
 const AuthErledigtRoute = AuthErledigtRouteImport.update({
   id: '/erledigt',
   path: '/erledigt',
@@ -96,6 +104,16 @@ const AuthAdminTiereRoute = AuthAdminTiereRouteImport.update({
   path: '/tiere',
   getParentRoute: () => AuthAdminRoute,
 } as any)
+const AuthAdminRegistrierungRoute = AuthAdminRegistrierungRouteImport.update({
+  id: '/registrierung',
+  path: '/registrierung',
+  getParentRoute: () => AuthAdminRoute,
+} as any)
+const AuthAdminPizzaVariantsRoute = AuthAdminPizzaVariantsRouteImport.update({
+  id: '/pizza-variants',
+  path: '/pizza-variants',
+  getParentRoute: () => AuthAdminRoute,
+} as any)
 const AuthAdminMenueRoute = AuthAdminMenueRouteImport.update({
   id: '/menue',
   path: '/menue',
@@ -122,12 +140,15 @@ export interface FileRoutesByFullPath {
   '/druck': typeof AuthDruckRoute
   '/einstellungen': typeof AuthEinstellungenRoute
   '/erledigt': typeof AuthErledigtRoute
+  '/impressum': typeof AuthImpressumRoute
   '/order': typeof AuthOrderRoute
   '/passwort-aendern': typeof AuthPasswortAendernRoute
   '/tiere': typeof AuthTiereRoute
   '/admin/benachrichtigungen': typeof AuthAdminBenachrichtigungenRoute
   '/admin/benutzer': typeof AuthAdminBenutzerRoute
   '/admin/menue': typeof AuthAdminMenueRoute
+  '/admin/pizza-variants': typeof AuthAdminPizzaVariantsRoute
+  '/admin/registrierung': typeof AuthAdminRegistrierungRoute
   '/admin/tiere': typeof AuthAdminTiereRoute
   '/admin/': typeof AuthAdminIndexRoute
 }
@@ -138,6 +159,7 @@ export interface FileRoutesByTo {
   '/druck': typeof AuthDruckRoute
   '/einstellungen': typeof AuthEinstellungenRoute
   '/erledigt': typeof AuthErledigtRoute
+  '/impressum': typeof AuthImpressumRoute
   '/order': typeof AuthOrderRoute
   '/passwort-aendern': typeof AuthPasswortAendernRoute
   '/tiere': typeof AuthTiereRoute
@@ -145,6 +167,8 @@ export interface FileRoutesByTo {
   '/admin/benachrichtigungen': typeof AuthAdminBenachrichtigungenRoute
   '/admin/benutzer': typeof AuthAdminBenutzerRoute
   '/admin/menue': typeof AuthAdminMenueRoute
+  '/admin/pizza-variants': typeof AuthAdminPizzaVariantsRoute
+  '/admin/registrierung': typeof AuthAdminRegistrierungRoute
   '/admin/tiere': typeof AuthAdminTiereRoute
   '/admin': typeof AuthAdminIndexRoute
 }
@@ -158,6 +182,7 @@ export interface FileRoutesById {
   '/_auth/druck': typeof AuthDruckRoute
   '/_auth/einstellungen': typeof AuthEinstellungenRoute
   '/_auth/erledigt': typeof AuthErledigtRoute
+  '/_auth/impressum': typeof AuthImpressumRoute
   '/_auth/order': typeof AuthOrderRoute
   '/_auth/passwort-aendern': typeof AuthPasswortAendernRoute
   '/_auth/tiere': typeof AuthTiereRoute
@@ -165,6 +190,8 @@ export interface FileRoutesById {
   '/_auth/admin/benachrichtigungen': typeof AuthAdminBenachrichtigungenRoute
   '/_auth/admin/benutzer': typeof AuthAdminBenutzerRoute
   '/_auth/admin/menue': typeof AuthAdminMenueRoute
+  '/_auth/admin/pizza-variants': typeof AuthAdminPizzaVariantsRoute
+  '/_auth/admin/registrierung': typeof AuthAdminRegistrierungRoute
   '/_auth/admin/tiere': typeof AuthAdminTiereRoute
   '/_auth/admin/': typeof AuthAdminIndexRoute
 }
@@ -179,12 +206,15 @@ export interface FileRouteTypes {
     | '/druck'
     | '/einstellungen'
     | '/erledigt'
+    | '/impressum'
     | '/order'
     | '/passwort-aendern'
     | '/tiere'
     | '/admin/benachrichtigungen'
     | '/admin/benutzer'
     | '/admin/menue'
+    | '/admin/pizza-variants'
+    | '/admin/registrierung'
     | '/admin/tiere'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
@@ -195,6 +225,7 @@ export interface FileRouteTypes {
     | '/druck'
     | '/einstellungen'
     | '/erledigt'
+    | '/impressum'
     | '/order'
     | '/passwort-aendern'
     | '/tiere'
@@ -202,6 +233,8 @@ export interface FileRouteTypes {
     | '/admin/benachrichtigungen'
     | '/admin/benutzer'
     | '/admin/menue'
+    | '/admin/pizza-variants'
+    | '/admin/registrierung'
     | '/admin/tiere'
     | '/admin'
   id:
@@ -214,6 +247,7 @@ export interface FileRouteTypes {
     | '/_auth/druck'
     | '/_auth/einstellungen'
     | '/_auth/erledigt'
+    | '/_auth/impressum'
     | '/_auth/order'
     | '/_auth/passwort-aendern'
     | '/_auth/tiere'
@@ -221,6 +255,8 @@ export interface FileRouteTypes {
     | '/_auth/admin/benachrichtigungen'
     | '/_auth/admin/benutzer'
     | '/_auth/admin/menue'
+    | '/_auth/admin/pizza-variants'
+    | '/_auth/admin/registrierung'
     | '/_auth/admin/tiere'
     | '/_auth/admin/'
   fileRoutesById: FileRoutesById
@@ -282,6 +318,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthOrderRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_auth/impressum': {
+      id: '/_auth/impressum'
+      path: '/impressum'
+      fullPath: '/impressum'
+      preLoaderRoute: typeof AuthImpressumRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/_auth/erledigt': {
       id: '/_auth/erledigt'
       path: '/erledigt'
@@ -331,6 +374,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthAdminTiereRouteImport
       parentRoute: typeof AuthAdminRoute
     }
+    '/_auth/admin/registrierung': {
+      id: '/_auth/admin/registrierung'
+      path: '/registrierung'
+      fullPath: '/admin/registrierung'
+      preLoaderRoute: typeof AuthAdminRegistrierungRouteImport
+      parentRoute: typeof AuthAdminRoute
+    }
+    '/_auth/admin/pizza-variants': {
+      id: '/_auth/admin/pizza-variants'
+      path: '/pizza-variants'
+      fullPath: '/admin/pizza-variants'
+      preLoaderRoute: typeof AuthAdminPizzaVariantsRouteImport
+      parentRoute: typeof AuthAdminRoute
+    }
     '/_auth/admin/menue': {
       id: '/_auth/admin/menue'
       path: '/menue'
@@ -359,6 +416,8 @@ interface AuthAdminRouteChildren {
   AuthAdminBenachrichtigungenRoute: typeof AuthAdminBenachrichtigungenRoute
   AuthAdminBenutzerRoute: typeof AuthAdminBenutzerRoute
   AuthAdminMenueRoute: typeof AuthAdminMenueRoute
+  AuthAdminPizzaVariantsRoute: typeof AuthAdminPizzaVariantsRoute
+  AuthAdminRegistrierungRoute: typeof AuthAdminRegistrierungRoute
   AuthAdminTiereRoute: typeof AuthAdminTiereRoute
   AuthAdminIndexRoute: typeof AuthAdminIndexRoute
 }
@@ -367,6 +426,8 @@ const AuthAdminRouteChildren: AuthAdminRouteChildren = {
   AuthAdminBenachrichtigungenRoute: AuthAdminBenachrichtigungenRoute,
   AuthAdminBenutzerRoute: AuthAdminBenutzerRoute,
   AuthAdminMenueRoute: AuthAdminMenueRoute,
+  AuthAdminPizzaVariantsRoute: AuthAdminPizzaVariantsRoute,
+  AuthAdminRegistrierungRoute: AuthAdminRegistrierungRoute,
   AuthAdminTiereRoute: AuthAdminTiereRoute,
   AuthAdminIndexRoute: AuthAdminIndexRoute,
 }
@@ -381,6 +442,7 @@ interface AuthRouteChildren {
   AuthDruckRoute: typeof AuthDruckRoute
   AuthEinstellungenRoute: typeof AuthEinstellungenRoute
   AuthErledigtRoute: typeof AuthErledigtRoute
+  AuthImpressumRoute: typeof AuthImpressumRoute
   AuthOrderRoute: typeof AuthOrderRoute
   AuthPasswortAendernRoute: typeof AuthPasswortAendernRoute
   AuthTiereRoute: typeof AuthTiereRoute
@@ -393,6 +455,7 @@ const AuthRouteChildren: AuthRouteChildren = {
   AuthDruckRoute: AuthDruckRoute,
   AuthEinstellungenRoute: AuthEinstellungenRoute,
   AuthErledigtRoute: AuthErledigtRoute,
+  AuthImpressumRoute: AuthImpressumRoute,
   AuthOrderRoute: AuthOrderRoute,
   AuthPasswortAendernRoute: AuthPasswortAendernRoute,
   AuthTiereRoute: AuthTiereRoute,

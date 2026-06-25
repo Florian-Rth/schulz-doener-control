@@ -38,17 +38,17 @@ describe("SettingsPage", () => {
     expect(await findByDisplayValue("Markus Wagner")).toBeInTheDocument();
   });
 
-  it("bietet 'PayPal-Name entfernen' nur an, wenn ein Handle gesetzt ist", async () => {
+  it("bietet 'PayPal-Link entfernen' nur an, wenn ein Handle gesetzt ist", async () => {
     mswServer.use(http.get("*/api/auth/me", () => HttpResponse.json(sessionCashOnly)));
 
     const { findByText, queryByRole } = renderApp({ initialPath: "/einstellungen" });
 
     // Wait for the page to render before asserting the action's absence.
     await findByText("Geld kassieren");
-    expect(queryByRole("button", { name: "PayPal-Name entfernen" })).toBeNull();
+    expect(queryByRole("button", { name: "PayPal-Link entfernen" })).toBeNull();
   });
 
-  it("entfernt den PayPal-Namen nach Bestätigung (leerer Body) und schließt den Dialog", async () => {
+  it("entfernt den PayPal-Link nach Bestätigung (leerer Body) und schließt den Dialog", async () => {
     seedXsrfCookie();
     let receivedBody: unknown = null;
     mswServer.use(
@@ -61,7 +61,7 @@ describe("SettingsPage", () => {
     const user = userEvent.setup();
     const { findByRole, findByText } = renderApp({ initialPath: "/einstellungen" });
 
-    await user.click(await findByRole("button", { name: "PayPal-Name entfernen" }));
+    await user.click(await findByRole("button", { name: "PayPal-Link entfernen" }));
     // Confirm dialog spells out the cash-only consequence.
     expect(await findByText(/in bar bezahlt/i)).toBeInTheDocument();
     await user.click(await findByRole("button", { name: "Entfernen" }));

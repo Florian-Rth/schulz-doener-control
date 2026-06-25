@@ -7,17 +7,10 @@ namespace Schulz.DoenerControl.Application.Menu;
 // (Kraeuter/Haehnchen…, not the umlaut display forms). These are the exact strings the SPA's order
 // schema enumerates and the PutMyOrder request carries, so the menu vocabulary, the validator and
 // the frontend all agree on one wire form. The German display labels are a presentation concern the
-// SPA maps locally.
+// SPA maps locally. Pizza variants are NOT here: they are admin-managed reference data sourced from
+// the PizzaVariants catalog at request time, not a closed enum.
 public static class OrderVocabulary
 {
-    public static readonly IReadOnlyList<string> PizzaVariants = new ReadOnlyCollection<string>([
-        nameof(PizzaVariant.Salami),
-        nameof(PizzaVariant.Margherita),
-        nameof(PizzaVariant.Funghi),
-        nameof(PizzaVariant.Tonno),
-        nameof(PizzaVariant.Hawaii),
-    ]);
-
     public static readonly IReadOnlyList<string> SauceOptions = new ReadOnlyCollection<string>([
         nameof(Sauce.Kraeuter),
         nameof(Sauce.Knoblauch),
@@ -27,5 +20,6 @@ public static class OrderVocabulary
     public static readonly IReadOnlyList<string> MeatOptions = new ReadOnlyCollection<string>([
         nameof(MeatType.Kalb),
         nameof(MeatType.Haehnchen),
+        nameof(MeatType.Gemischt),
     ]);
 }

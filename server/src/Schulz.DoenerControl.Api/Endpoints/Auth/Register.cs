@@ -1,16 +1,23 @@
 using System.Text.RegularExpressions;
 using FastEndpoints;
 using FluentValidation;
+using Schulz.DoenerControl.Api.Validation;
 using Schulz.DoenerControl.Application.Users;
 using Schulz.DoenerControl.Core;
 
 namespace Schulz.DoenerControl.Api.Endpoints.Auth;
 
+// SecretKey is the shared secret the SecretKeyOnly registration mode requires (carried in the
+// QR-code URL). Code and InviteCode are backward-compat aliases for the same value — older clients
+// (and the printed QR links) send those field names; the endpoint coalesces all three. No URL
+// change.
 public sealed record RegisterRequest(
     string Username,
     string DisplayName,
     string? PayPalHandle,
     string Password,
+    string? SecretKey,
+    string? Code,
     string? InviteCode
 );
 
@@ -22,9 +29,6 @@ public sealed partial class RegisterRequestValidator : Validator<RegisterRequest
     // separators . _ - only. Uniqueness is enforced case-insensitively by the service.
     [GeneratedRegex("^[A-Za-z0-9._-]+$")]
     private static partial Regex UsernamePattern();
-
-    [GeneratedRegex("^[A-Za-z0-9]+$")]
-    private static partial Regex HandlePattern();
 
     public RegisterRequestValidator()
     {
@@ -43,11 +47,7 @@ public sealed partial class RegisterRequestValidator : Validator<RegisterRequest
 
         When(
             request => !string.IsNullOrWhiteSpace(request.PayPalHandle),
-            () =>
-                RuleFor(request => request.PayPalHandle)
-                    .MaximumLength(40)
-                    .Must(handle => HandlePattern().IsMatch(handle!))
-                    .WithMessage("Der PayPal.Me-Name darf nur Buchstaben und Ziffern enthalten.")
+            () => RuleFor(request => request.PayPalHandle).PayPalLink()
         );
 
         // Same rules as the self-service password change: minimum length plus at least one letter
@@ -61,8 +61,10 @@ public sealed partial class RegisterRequestValidator : Validator<RegisterRequest
                 "Das Passwort muss mindestens einen Buchstaben und eine Ziffer enthalten."
             );
 
-        // The invite code is optional: only required (and matched) when one is configured
-        // server-side. Length-bounded purely to reject obviously malformed input.
+        // The secret key (and its aliases) is optional: only required and matched when the runtime
+        // registration mode is SecretKeyOnly. Length-bounded purely to reject malformed input.
+        RuleFor(request => request.SecretKey).MaximumLength(128);
+        RuleFor(request => request.Code).MaximumLength(128);
         RuleFor(request => request.InviteCode).MaximumLength(128);
     }
 
@@ -70,12 +72,13 @@ public sealed partial class RegisterRequestValidator : Validator<RegisterRequest
         password.Any(char.IsLetter) && password.Any(char.IsDigit);
 }
 
-// Public self-registration for the printed QR-code flow: anonymous, per-IP throttled, and (when a
-// shared code is configured server-side) gated by the invite code embedded in the QR-code URL — a
-// mismatch is a 403. The colleague picks their own username, display name and password; the account
-// is always created as an active Employee with no forced password change (they already chose the
-// password). A case-insensitively duplicate username is a 409. No auth cookies are issued here —
-// the colleague logs in afterward with the credentials they just chose.
+// Public self-registration for the printed QR-code flow: anonymous, per-IP throttled, and gated by
+// the runtime registration mode (Enabled/Disabled/SecretKeyOnly). When SecretKeyOnly is active the
+// shared secret from the QR-code URL must match — a mismatch (or a Disabled mode) is a 403. The
+// colleague picks their own username, display name and password; the account is always created as an
+// active Employee with no forced password change (they already chose the password). A
+// case-insensitively duplicate username is a 409. No auth cookies are issued here — the colleague
+// logs in afterward with the credentials they just chose.
 public sealed class Register : Endpoint<RegisterRequest, RegisterResponse>
 {
     private readonly IUserService userService;
@@ -99,7 +102,7 @@ public sealed class Register : Endpoint<RegisterRequest, RegisterResponse>
             req.DisplayName,
             req.PayPalHandle,
             req.Password,
-            req.InviteCode
+            CoalesceSecretKey(req)
         );
 
         var result = await userService.SelfRegisterAsync(command, ct);
@@ -118,6 +121,19 @@ public sealed class Register : Endpoint<RegisterRequest, RegisterResponse>
             StatusCodes.Status201Created,
             ct
         );
+    }
+
+    // Accepts the shared secret under its current name or either legacy alias, preferring the first
+    // non-blank one so old clients (code/inviteCode) and the new field (secretKey) all work.
+    private static string? CoalesceSecretKey(RegisterRequest req)
+    {
+        if (!string.IsNullOrWhiteSpace(req.SecretKey))
+            return req.SecretKey;
+        if (!string.IsNullOrWhiteSpace(req.Code))
+            return req.Code;
+        if (!string.IsNullOrWhiteSpace(req.InviteCode))
+            return req.InviteCode;
+        return null;
     }
 
     private async Task SendFailureAsync(ResultStatus status, CancellationToken ct)

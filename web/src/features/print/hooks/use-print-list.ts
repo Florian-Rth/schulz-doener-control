@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import type { DashboardDay } from "@/features/home";
-import { dayTitle, synonymSubline } from "../copy";
+import { dayTitle, orderCountSubline } from "../copy";
 import { formatGermanDate } from "../format";
 import { formatEur } from "../money";
 import type { PrintListContextValue } from "../print-context";
@@ -20,7 +20,7 @@ export const usePrintList = ({ day }: UsePrintListArgs): PrintListContextValue =
 
   return {
     title: dayTitle(formatGermanDate(new Date())),
-    subline: synonymSubline(day.synonym, day.orders.length),
+    subline: orderCountSubline(day.orders.length),
     abholerNames: day.pickupNames.join(", "),
     orders: day.orders,
     totalLabel: formatEur(totalCents),

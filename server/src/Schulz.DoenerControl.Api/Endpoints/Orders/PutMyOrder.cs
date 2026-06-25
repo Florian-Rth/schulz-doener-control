@@ -40,20 +40,13 @@ public sealed class PutMyOrderLineValidator : Validator<PutMyOrderLineDto>
     [
         nameof(MeatType.Kalb),
         nameof(MeatType.Haehnchen),
+        nameof(MeatType.Gemischt),
     ];
     private static readonly string[] SauceNames =
     [
         nameof(Sauce.Kraeuter),
         nameof(Sauce.Knoblauch),
         nameof(Sauce.Scharf),
-    ];
-    private static readonly string[] PizzaNames =
-    [
-        nameof(Core.Enums.PizzaVariant.Salami),
-        nameof(Core.Enums.PizzaVariant.Margherita),
-        nameof(Core.Enums.PizzaVariant.Funghi),
-        nameof(Core.Enums.PizzaVariant.Tonno),
-        nameof(Core.Enums.PizzaVariant.Hawaii),
     ];
 
     public PutMyOrderLineValidator()
@@ -67,8 +60,10 @@ public sealed class PutMyOrderLineValidator : Validator<PutMyOrderLineDto>
             .Must(meat => meat is null || MeatNames.Contains(meat))
             .WithMessage("Unbekannte Fleischsorte.");
 
+        // The pizza variant is an admin-managed catalog id: only shape-check it here (a non-null
+        // value must parse as a Guid); the order service validates it against the available catalog.
         RuleFor(line => line.PizzaVariant)
-            .Must(variant => variant is null || PizzaNames.Contains(variant))
+            .Must(variant => variant is null || Guid.TryParse(variant, out _))
             .WithMessage("Unbekannte Pizza-Sorte.");
 
         RuleFor(line => line.Sauces)

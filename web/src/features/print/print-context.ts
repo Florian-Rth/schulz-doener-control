@@ -6,7 +6,7 @@ import type { OrderRow } from "@/features/home";
 export interface PrintListContextValue {
   /** "Döner-Tag Donnerstag, 18. Juni 2026". */
   title: string;
-  /** "Drehspieß-Tasche · 3 Bestellungen". */
+  /** "3 Bestellungen" — order count for the printed sheet (no synonym). */
   subline: string;
   /** Comma-joined Abholer names; empty string when none designated. */
   abholerNames: string;

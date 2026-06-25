@@ -75,6 +75,34 @@ describe("LoginPage", () => {
       expect(router.state.location.pathname).toBe("/");
     });
   });
+
+  it("shows the register link when registration is open", async () => {
+    useAuthHandlers(false);
+    mswServer.use(
+      http.get("*/api/config", () =>
+        HttpResponse.json({ pwaGateEnabled: false, registrationMode: 1 }),
+      ),
+    );
+    const { findByText } = renderApp({ initialPath: "/login" });
+
+    expect(await findByText("Noch kein Konto? Jetzt registrieren")).toBeInTheDocument();
+  });
+
+  it("hides the register link when registration is disabled", async () => {
+    useAuthHandlers(false);
+    mswServer.use(
+      http.get("*/api/config", () =>
+        HttpResponse.json({ pwaGateEnabled: false, registrationMode: 2 }),
+      ),
+    );
+    const { findByRole, queryByText } = renderApp({ initialPath: "/login" });
+
+    // Wait for the login form to render, then assert the register link is gone.
+    await findByRole("button", { name: "Anmelden" });
+    await waitFor(() => {
+      expect(queryByText("Noch kein Konto? Jetzt registrieren")).toBeNull();
+    });
+  });
 });
 
 describe("auth route guard", () => {

@@ -47,7 +47,6 @@ export const CreateUserDialog: FC<CreateUserDialogProps> = ({ open, onClose, onC
             name="payPalHandle"
             label={usersCopy.payPalLabel}
             placeholder={usersCopy.payPalPlaceholder}
-            prefix={usersCopy.payPalPrefix}
           />
           <RoleField control={form.control} name="role" />
 

@@ -42,7 +42,8 @@ public sealed class AutoCollectorDesignationOnOrderTests : DoenerControlTestBase
         Assert.NotNull(chefBody.Day.Abholer);
         Assert.Equal(TestSeeding.ChefDisplayName, chefBody.Day.Abholer!.Name);
 
-        // The non-pickup colleague sees the Abholer + their own PayPal deep-link (7,60 €).
+        // The non-pickup colleague sees the Abholer + the collector's pay link, reconstructed from
+        // the collector's handle with the colleague's own 7,60 € order total.
         var lukasToday = await lukas.GetAsync(TodayUrl);
         var lukasBody = await lukasToday.Content.ReadFromJsonAsync<GetTodayOrderDayResponse>(
             TestContext.Current.CancellationToken
@@ -50,10 +51,7 @@ public sealed class AutoCollectorDesignationOnOrderTests : DoenerControlTestBase
         Assert.Equal(HttpStatusCode.OK, lukasToday.StatusCode);
         Assert.False(lukasBody!.Day!.AmICollector);
         Assert.NotNull(lukasBody.Day.Abholer);
-        Assert.Equal(
-            $"https://paypal.me/{TestSeeding.ChefPayPalHandle}/7.60EUR",
-            lukasBody.Day.Abholer!.PayPalUrl
-        );
+        Assert.Equal($"{TestSeeding.ChefPayPalLink}/7.60EUR", lukasBody.Day.Abholer!.PayPalUrl);
     }
 }
 

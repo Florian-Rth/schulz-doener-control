@@ -147,7 +147,6 @@ public sealed class DebtService : IDebtService
     private DebtSummary MapRow(Debt debt, User? otherParty)
     {
         var name = otherParty?.DisplayName ?? string.Empty;
-        var handle = otherParty?.PayPalHandle;
         var dayLabel = debt.OrderDay is null
             ? null
             : DebtDayLabelBuilder.Build(debt.OrderDay.Date, clock.Today());
@@ -161,7 +160,8 @@ public sealed class DebtService : IDebtService
             dayLabel,
             debt.AmountCents,
             MoneyFormatter.ToGermanString(debt.AmountCents),
-            PayPalLinkBuilder.BuildLink(handle, debt.AmountCents),
+            // Reconstruct the creditor's pay link from their stored handle, with this debt's amount.
+            PayPalLinkBuilder.BuildLink(otherParty?.PayPalHandle, debt.AmountCents),
             debt.CreatedAt
         );
     }

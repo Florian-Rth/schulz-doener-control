@@ -1,6 +1,6 @@
-using System.Text.RegularExpressions;
 using FastEndpoints;
 using FluentValidation;
+using Schulz.DoenerControl.Api.Validation;
 using Schulz.DoenerControl.Application.Profile;
 using Schulz.DoenerControl.Application.Security;
 using Schulz.DoenerControl.Core;
@@ -11,29 +11,20 @@ public sealed record PutPayPalHandleRequest(string? PayPalHandle);
 
 public sealed record PutPayPalHandleResponse(string? PayPalHandle, bool PayPalHandleSet);
 
-public sealed partial class PutPayPalHandleRequestValidator : Validator<PutPayPalHandleRequest>
+public sealed class PutPayPalHandleRequestValidator : Validator<PutPayPalHandleRequest>
 {
-    // PayPal.Me handle charset: letters and digits only, so the
-    // https://paypal.me/{handle}/{amount}EUR link stays valid (no spaces/slashes).
-    [GeneratedRegex("^[A-Za-z0-9]+$")]
-    private static partial Regex HandlePattern();
-
     public PutPayPalHandleRequestValidator()
     {
-        // A null or blank handle clears it; the charset/length rules apply only to a real value.
+        // A null or blank link clears it; the URL rule applies only to a real value.
         When(
             request => !string.IsNullOrWhiteSpace(request.PayPalHandle),
-            () =>
-                RuleFor(request => request.PayPalHandle)
-                    .MaximumLength(40)
-                    .Must(handle => HandlePattern().IsMatch(handle!))
-                    .WithMessage("Der PayPal-Name darf nur Buchstaben und Ziffern enthalten.")
+            () => RuleFor(request => request.PayPalHandle).PayPalLink()
         );
     }
 }
 
-// Captures, updates, or clears the caller's PayPal.Me handle (the product gap that drives every
-// payment link). A null or blank handle clears it. Authenticated.
+// Captures, updates, or clears the caller's full PayPal account link (the product gap that drives
+// every payment button). A null or blank value clears it. Authenticated.
 public sealed class PutPayPalHandle : Endpoint<PutPayPalHandleRequest, PutPayPalHandleResponse>
 {
     private readonly IProfileService profileService;

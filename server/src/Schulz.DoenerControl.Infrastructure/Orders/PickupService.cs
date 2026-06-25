@@ -63,6 +63,16 @@ public sealed class PickupService : IPickupService
             );
         }
 
+        // Single-pickup invariant: the designated collector must be the sole pickup. Clear any stray
+        // pickup flags on other orders so they can't slip out of the close-day debtor set.
+        var dayOrders = await LoadDayOrders(command.OrderDayId, ct);
+        await SinglePickupDesignator.DesignateAsync(
+            database,
+            dayOrders,
+            command.CollectorUserId,
+            clock.UtcNow(),
+            ct
+        );
         day.CollectorUserId = command.CollectorUserId;
         await database.SaveChangesAsync(ct);
 
@@ -91,30 +101,18 @@ public sealed class PickupService : IPickupService
         if (callerOrder is null)
             return Result<OrderDayDetails>.Validation("Erst bestellen, dann abholen, Chef.");
 
-        // Take-over path: clear the previous collector's pickup flag so they become a regular debtor
-        // again. Without this they keep IsPickup=true and slip out of the close-day debtor set (a free
-        // Döner) and double-up the open-day "Abholer heute:" list.
-        if (
-            day.CollectorUserId is { } previousCollectorId
-            && previousCollectorId != command.CallerUserId
-        )
-        {
-            var previousCollectorOrder = await database.Orders.FirstOrDefaultAsync(
-                order =>
-                    order.OrderDayId == command.OrderDayId && order.UserId == previousCollectorId,
-                ct
-            );
-            if (previousCollectorOrder is not null)
-            {
-                previousCollectorOrder.IsPickup = false;
-                previousCollectorOrder.UpdatedAt = clock.UtcNow();
-            }
-        }
-
-        // Force both the pickup flag and the collector to the caller. Unconditional: this is also the
-        // take-over path, so it must override whoever is currently designated.
-        callerOrder.IsPickup = true;
-        callerOrder.UpdatedAt = clock.UtcNow();
+        // Force both the pickup flag and the collector to the caller — unconditional take-over.
+        // Single-pickup invariant: clear EVERY other order's pickup flag (not just the previous
+        // collector's) so strays can't slip out of the close-day debtor set or double-up the
+        // open-day "Abholer heute:" list, and so the filtered unique index holds.
+        var dayOrders = await LoadDayOrders(command.OrderDayId, ct);
+        await SinglePickupDesignator.DesignateAsync(
+            database,
+            dayOrders,
+            command.CallerUserId,
+            clock.UtcNow(),
+            ct
+        );
         day.CollectorUserId = command.CallerUserId;
         await database.SaveChangesAsync(ct);
 
@@ -144,8 +142,19 @@ public sealed class PickupService : IPickupService
         if (order is null)
             return Result<PickupResult>.Validation("Erst bestellen, dann abholen.");
 
-        order.IsPickup = isPickup;
-        order.UpdatedAt = clock.UtcNow();
+        var now = clock.UtcNow();
+        if (isPickup)
+        {
+            // Single-pickup invariant: claiming pickup makes the caller the sole pickup — the
+            // designator demotes every other order first, then flips the caller on.
+            var dayOrders = await LoadDayOrders(orderDayId, ct);
+            await SinglePickupDesignator.DesignateAsync(database, dayOrders, callerUserId, now, ct);
+        }
+        else
+        {
+            order.IsPickup = false;
+            order.UpdatedAt = now;
+        }
 
         // Auto-designate: a pickup with no collector becomes it; releasing vacates only if self was it.
         day.CollectorUserId = CollectorDesignation.Reconcile(
@@ -157,12 +166,21 @@ public sealed class PickupService : IPickupService
         await database.SaveChangesAsync(ct);
 
         var productNames = await ResolveProductNames(order, ct);
+        var pizzaVariantNames = await ResolvePizzaVariantNames(order, ct);
         var pickupNames = await ResolvePickupNames(orderDayId, ct);
 
         return Result<PickupResult>.Success(
-            new PickupResult(OrderDetailsFactory.Build(order, productNames), pickupNames)
+            new PickupResult(
+                OrderDetailsFactory.Build(order, productNames, pizzaVariantNames),
+                pickupNames
+            )
         );
     }
+
+    // Tracked load of every order of the day for the SinglePickupDesignator. All callers operate on
+    // already-persisted orders (claim/set-collector require an existing order), so a DB query sees them.
+    private async Task<IReadOnlyList<Order>> LoadDayOrders(Guid orderDayId, CancellationToken ct) =>
+        await database.Orders.Where(order => order.OrderDayId == orderDayId).ToListAsync(ct);
 
     private async Task<IReadOnlyList<string>> ResolvePickupNames(
         Guid orderDayId,
@@ -193,5 +211,24 @@ public sealed class PickupService : IPickupService
             .MenuItems.AsNoTracking()
             .Where(item => productIds.Contains(item.Id))
             .ToDictionaryAsync(item => item.Id, item => item.Name, ct);
+    }
+
+    private async Task<IReadOnlyDictionary<Guid, string>> ResolvePizzaVariantNames(
+        Order order,
+        CancellationToken ct
+    )
+    {
+        var variantIds = order
+            .Lines.Where(line => line.PizzaVariantId is not null)
+            .Select(line => line.PizzaVariantId!.Value)
+            .Distinct()
+            .ToList();
+        if (variantIds.Count == 0)
+            return new Dictionary<Guid, string>();
+
+        return await database
+            .PizzaVariants.AsNoTracking()
+            .Where(variant => variantIds.Contains(variant.Id))
+            .ToDictionaryAsync(variant => variant.Id, variant => variant.Name, ct);
     }
 }

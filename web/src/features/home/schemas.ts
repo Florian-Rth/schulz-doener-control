@@ -25,7 +25,8 @@ const DashboardTierSchema = z.object({
 });
 
 // One leaderboard row. `medal` carries the 🥇/🥈/🥉 glyph for the top 3, null
-// otherwise; `isMe` highlights the caller's row.
+// otherwise; `isMe` highlights the caller's row. `tierEmoji` is the person's
+// Döner-Tier glyph (🐺/🐎/…), null when they have no tier yet.
 const LeaderboardRowSchema = z.object({
   rank: z.number().int(),
   userId: z.string(),
@@ -34,6 +35,7 @@ const LeaderboardRowSchema = z.object({
   count: z.number().int(),
   isMe: z.boolean(),
   medal: z.string().nullable(),
+  tierEmoji: z.string().nullable(),
 });
 
 const DashboardLeaderboardSchema = z.object({

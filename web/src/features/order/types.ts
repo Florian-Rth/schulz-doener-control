@@ -7,11 +7,13 @@ import type {
   OrderFormSchema,
   OrderLineFormSchema,
   OrderLineSchema,
+  PizzaVariantOptionSchema,
   TodayOrderDaySchema,
 } from "./schemas";
 
 export type MenuItem = z.infer<typeof MenuItemSchema>;
 export type Menu = z.infer<typeof MenuSchema>;
+export type PizzaVariantOption = z.infer<typeof PizzaVariantOptionSchema>;
 export type OrderLine = z.infer<typeof OrderLineSchema>;
 export type OrderDetails = z.infer<typeof OrderDetailsSchema>;
 export type MyOrder = z.infer<typeof MyOrderSchema>;

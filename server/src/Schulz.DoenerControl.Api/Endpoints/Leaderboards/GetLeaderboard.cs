@@ -20,7 +20,8 @@ public sealed record LeaderboardEntrySummaryDto(
     string AvatarColorHex,
     int Count,
     bool IsMe,
-    string? Medal
+    string? Medal,
+    string? TierEmoji
 );
 
 public sealed record GetLeaderboardResponse(
@@ -106,7 +107,8 @@ public sealed class GetLeaderboard : Endpoint<GetLeaderboardRequest, GetLeaderbo
             entry.AvatarColorHex,
             entry.Count,
             entry.IsCurrentUser,
-            MedalFor(entry.Rank)
+            MedalFor(entry.Rank),
+            entry.TierEmoji
         );
 
     private static string? MedalFor(int rank) =>

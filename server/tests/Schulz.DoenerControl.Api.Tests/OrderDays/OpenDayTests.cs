@@ -86,5 +86,10 @@ public sealed class OpenDayTests : DoenerControlTestBase
         // text, so it need not contain the synonym verbatim.
         Assert.All(notifications, n => Assert.False(string.IsNullOrWhiteSpace(n.Body)));
         Assert.All(notifications, n => Assert.Null(n.ReadAt));
+
+        // The {OPENER_NAME} token in the seeded templates is substituted with the opener's display
+        // name, so every broadcast body names who opened the Döner-Tag.
+        Assert.All(notifications, n => Assert.Contains(chef.DisplayName, n.Body));
+        Assert.All(notifications, n => Assert.DoesNotContain("{OPENER_NAME}", n.Body));
     }
 }

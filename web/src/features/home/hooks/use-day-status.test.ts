@@ -84,21 +84,39 @@ describe("useDayStatus", () => {
   });
 
   describe("canTakeOver", () => {
-    it("ist true, wenn ein fremder Abholer feststeht und man nicht selbst abholt", () => {
-      const { result } = renderHook(() => useDayStatus(buildDay({ amICollector: false })));
+    it("ist true, wenn ein fremder Abholer feststeht, man selbst bestellt hat und nicht abholt", () => {
+      const { result } = renderHook(() =>
+        useDayStatus(buildDay({ amICollector: false, orders: [buildOrder({ isMine: true })] })),
+      );
 
       expect(result.current.canTakeOver).toBe(true);
     });
 
     it("ist false, wenn man selbst der Abholer ist", () => {
-      const { result } = renderHook(() => useDayStatus(buildDay({ amICollector: true })));
+      const { result } = renderHook(() =>
+        useDayStatus(buildDay({ amICollector: true, orders: [buildOrder({ isMine: true })] })),
+      );
 
       expect(result.current.canTakeOver).toBe(false);
     });
 
     it("ist false, wenn noch kein Abholer feststeht", () => {
       const { result } = renderHook(() =>
-        useDayStatus(buildDay({ abholer: null, amICollector: false })),
+        useDayStatus(
+          buildDay({
+            abholer: null,
+            amICollector: false,
+            orders: [buildOrder({ isMine: true })],
+          }),
+        ),
+      );
+
+      expect(result.current.canTakeOver).toBe(false);
+    });
+
+    it("ist false, wenn man selbst nicht bestellt hat (man schuldet dem Abholer nichts) — Bug #5", () => {
+      const { result } = renderHook(() =>
+        useDayStatus(buildDay({ amICollector: false, orders: [buildOrder({ isMine: false })] })),
       );
 
       expect(result.current.canTakeOver).toBe(false);

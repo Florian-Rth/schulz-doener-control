@@ -8,13 +8,24 @@ import { PrimaryButton } from "@/components/buttons";
 import { authCopy } from "../../copy";
 import { useRegisterForm } from "../../hooks/use-register-form";
 import { RegisterField } from "./internal/RegisterField";
+import { RegisterSecretRequired } from "./internal/RegisterSecretRequired";
 import { RegisterSuccess } from "./internal/RegisterSuccess";
+
+interface RegisterPageProps {
+  /**
+   * The self-registration mode from the client config (1 Enabled / 2 Disabled /
+   * 3 SecretKeyOnly), supplied by the route. Drives the secret-key-only hint.
+   */
+  registrationMode?: number;
+}
 
 // Layout shell for the registration screen: a centered column on the login
 // background, mirroring LoginPage. Logic lives in `useRegisterForm`; this body
-// only composes the hook with the form / success panel.
-export const RegisterPage: FC = () => {
-  const { form, onSubmit, isPending, serverError, registered } = useRegisterForm();
+// only composes the hook with the form / success / secret-required panel.
+export const RegisterPage: FC<RegisterPageProps> = ({ registrationMode }) => {
+  const { form, onSubmit, isPending, serverError, registered, secretKeyMissing } = useRegisterForm({
+    registrationMode,
+  });
 
   return (
     <Stack
@@ -43,7 +54,9 @@ export const RegisterPage: FC = () => {
           sx={{ width: 248, maxWidth: "100%", height: "auto", display: "block", mb: 0.75 }}
         />
 
-        {registered ? (
+        {secretKeyMissing ? (
+          <RegisterSecretRequired />
+        ) : registered ? (
           <RegisterSuccess />
         ) : (
           <>

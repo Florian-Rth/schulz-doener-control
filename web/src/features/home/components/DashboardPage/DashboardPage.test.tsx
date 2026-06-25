@@ -46,6 +46,7 @@ const baseLeaderboard = {
       count: 142,
       isMe: false,
       medal: "🥇",
+      tierEmoji: "🐺",
     },
     {
       rank: 2,
@@ -55,6 +56,7 @@ const baseLeaderboard = {
       count: 119,
       isMe: false,
       medal: "🥈",
+      tierEmoji: "🦅",
     },
     {
       rank: 3,
@@ -64,6 +66,7 @@ const baseLeaderboard = {
       count: 97,
       isMe: false,
       medal: "🥉",
+      tierEmoji: null,
     },
     {
       rank: 4,
@@ -73,6 +76,7 @@ const baseLeaderboard = {
       count: 91,
       isMe: true,
       medal: null,
+      tierEmoji: "🐎",
     },
   ],
   doenerToNextRank: 6,
@@ -284,6 +288,9 @@ describe("DashboardPage", () => {
 
     expect(await findByText("Döner-Bestenliste")).toBeInTheDocument();
     expect(await findByText("Tobias Klein")).toBeInTheDocument();
+    // each person's Döner-Tier glyph renders next to their name (🐎 Packesel
+    // for the caller — distinct from the 🐺 on the tier card above).
+    expect(await findByText("🐎")).toBeInTheDocument();
     // current-user highlight: name + "· du"
     expect(await findByText("Markus Wagner")).toBeInTheDocument();
     expect(await findByText("· du")).toBeInTheDocument();
@@ -303,8 +310,13 @@ describe("DashboardPage", () => {
     expect(hrefs).toContain("https://paypal.me/SaraYHB/3.00EUR");
   });
 
-  it("zeigt auf der offenen Tag-Karte einen PayPal-Link an den Abholer, wenn man nicht selbst abholt", async () => {
-    useDashboardHandlers(buildDashboard());
+  it("zeigt auf der offenen Tag-Karte einen PayPal-Link an den Abholer, wenn man selbst bestellt hat und nicht abholt", async () => {
+    // Caller has an own order (isMine) → they owe the Abholer → the pay link shows.
+    useDashboardHandlers(
+      buildDashboard({
+        day: { ...openDay, orders: [{ ...openDay.orders[1], isMine: true }, ...openDay.orders] },
+      }),
+    );
     const { findByRole } = renderApp({ initialPath: "/" });
 
     const payLink = await findByRole("link", { name: /Jetzt an Lukas Brandt zahlen/ });
@@ -322,9 +334,14 @@ describe("DashboardPage", () => {
   });
 
   it("zeigt statt eines toten PayPal-Buttons einen Bar-zahlen-Hinweis, wenn der Abholer kein PayPal hat", async () => {
+    // Caller has an own order (isMine) → they owe the Abholer → the cash hint shows.
     useDashboardHandlers(
       buildDashboard({
-        day: { ...openDay, abholer: { ...openDay.abholer, payPalUrl: null } },
+        day: {
+          ...openDay,
+          abholer: { ...openDay.abholer, payPalUrl: null },
+          orders: [{ ...openDay.orders[1], isMine: true }, ...openDay.orders],
+        },
       }),
     );
     const { findByText, queryByRole } = renderApp({ initialPath: "/" });
@@ -335,6 +352,25 @@ describe("DashboardPage", () => {
     ).toBeInTheDocument();
     expect(queryByRole("button", { name: /Jetzt an Lukas Brandt zahlen/ })).not.toBeInTheDocument();
     expect(queryByRole("link", { name: /Jetzt an Lukas Brandt zahlen/ })).not.toBeInTheDocument();
+  });
+
+  it("zeigt einem Kollegen ohne eigene Bestellung KEINEN Bar-zahlen-Hinweis (er schuldet nichts)", async () => {
+    // Bug #5: a non-orderer owes the Abholer nothing → neither the cash hint nor the
+    // pay link nor the take-over button may show. All seed orders are isMine: false.
+    useDashboardHandlers(
+      buildDashboard({
+        day: { ...openDay, abholer: { ...openDay.abholer, payPalUrl: null } },
+      }),
+    );
+    const { findByText, queryByText, queryByRole } = renderApp({ initialPath: "/" });
+
+    expect(await findByText("Döner-Tag läuft")).toBeInTheDocument();
+    expect(
+      queryByText("Lukas Brandt hat kein PayPal hinterlegt — bitte bar bezahlen, Chef."),
+    ).not.toBeInTheDocument();
+    expect(queryByRole("button", { name: /zahlen/ })).not.toBeInTheDocument();
+    expect(queryByRole("link", { name: /zahlen/ })).not.toBeInTheDocument();
+    expect(queryByRole("button", { name: /übernehmen/i })).not.toBeInTheDocument();
   });
 
   it("zeigt dem Abholer selbst keinen Zahllink", async () => {
@@ -377,6 +413,33 @@ describe("DashboardPage", () => {
     const user = userEvent.setup();
 
     // The destructive action confirms before firing.
+    await user.click(await findByRole("button", { name: "Döner-Tag beenden" }));
+    await user.click(await findByRole("button", { name: "Ja, beenden" }));
+
+    await waitFor(() => {
+      expect(forceEndHit).toBe(true);
+    });
+  });
+
+  it("lässt auch den Abholer (Nicht-Admin) den Döner-Tag nach Bestätigung force-enden", async () => {
+    // Item #13: the day's collector sees the force-end button too — the backend authorizes
+    // admin OR collector. The session here is a plain employee (non-admin) who is amICollector.
+    let forceEndHit = false;
+    mswServer.use(
+      http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
+      http.get("*/api/debts/history", () => HttpResponse.json({ payments: [] })),
+      http.get("*/api/dashboard", () =>
+        HttpResponse.json(buildDashboard({ day: { ...openDay, amICollector: true } })),
+      ),
+      http.post("*/api/order-days/day-1/force-end", () => {
+        forceEndHit = true;
+        return HttpResponse.json({ day: {}, removedOrders: 2 });
+      }),
+    );
+
+    const { findByRole } = renderApp({ initialPath: "/" });
+    const user = userEvent.setup();
+
     await user.click(await findByRole("button", { name: "Döner-Tag beenden" }));
     await user.click(await findByRole("button", { name: "Ja, beenden" }));
 

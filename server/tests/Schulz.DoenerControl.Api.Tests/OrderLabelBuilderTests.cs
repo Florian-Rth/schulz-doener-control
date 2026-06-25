@@ -22,16 +22,32 @@ public sealed class OrderLabelBuilderTests
     }
 
     [Fact]
-    public void Should_Build_Pizza_Label_With_Variant_When_Pizza_Kind()
+    public void Should_Build_Doener_Label_With_Gemischt_When_Mixed_Meat()
     {
         var label = OrderLabelBuilder.BuildProductLabel(
-            ProductKind.Pizza,
-            "Pizza",
-            null,
-            PizzaVariant.Salami
+            ProductKind.Doener,
+            "Döner",
+            MeatType.Gemischt,
+            null
         );
 
+        Assert.Equal("Döner Gemischt", label);
+    }
+
+    [Fact]
+    public void Should_Build_Pizza_Label_With_Variant_When_Pizza_Kind()
+    {
+        var label = OrderLabelBuilder.BuildProductLabel(ProductKind.Pizza, "Pizza", null, "Salami");
+
         Assert.Equal("Pizza Salami", label);
+    }
+
+    [Fact]
+    public void Should_Build_Bare_Pizza_Label_When_Variant_Name_Missing()
+    {
+        var label = OrderLabelBuilder.BuildProductLabel(ProductKind.Pizza, "Pizza", null, null);
+
+        Assert.Equal("Pizza", label);
     }
 
     [Fact]

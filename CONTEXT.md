@@ -91,6 +91,11 @@ product counts (`pizza`/`danny`/`big`/`box`/`duerum`); `uniq` = distinct product
 | 14 | 🦥 Das Gewohnheits-Faultier | `uniq ≤ 1 && n ≥ 5` |
 | 15 | 🌯 Der solide Döner-Bürger | **fallback** |
 
+Plus one **global superlative** that overrides the per-user pattern tier above:
+
+- 🐎 **Der Packesel** — der/die mit den meisten Abholungen (letzte 90 Tage); mindestens
+  2 Abholungen, bei Gleichstand teilen sich alle Spitzenreiter den Titel.
+
 Each Tier carries a German tagline + ~3 tag chips (exact text lives in the mock's
 `TIER_CATALOG`).
 

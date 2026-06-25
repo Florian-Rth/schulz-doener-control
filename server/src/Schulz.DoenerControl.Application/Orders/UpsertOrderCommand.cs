@@ -13,10 +13,12 @@ public sealed record UpsertOrderCommand(
     bool IsPickup
 );
 
+// PizzaVariantId is the catalog variant id a pizza line carries; it is validated against the
+// available PizzaVariants catalog at write time (an unknown id rejects the upsert). Null for döner.
 public sealed record UpsertOrderLineCommand(
     string ProductId,
     MeatType? Meat,
-    PizzaVariant? Pizza,
+    Guid? PizzaVariantId,
     Sauce Sauces,
     int PriceCents,
     string? Extra,

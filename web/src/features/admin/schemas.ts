@@ -51,13 +51,25 @@ const usernameField = z
 
 const displayNameField = z.string().trim().min(1, "Pflichtfeld").max(128, "Höchstens 128 Zeichen.");
 
-// PayPal handle is optional; when present it must match the same charset the
-// profile form enforces (no slashes/spaces so the paypal.me link stays valid).
+// PayPal is optional; when present the admin pastes the colleague's full PayPal
+// link (paypal.me / paypal.com) and the backend parses the handle out of it.
+const PAYPAL_LINK_MESSAGE =
+  "Bitte gib einen gültigen PayPal-Link ein (z. B. https://paypal.me/name).";
+const PAYPAL_HOSTS = new Set(["paypal.me", "www.paypal.me", "paypal.com", "www.paypal.com"]);
+const isPayPalLink = (value: string): boolean => {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return false;
+  }
+  return url.protocol === "https:" && PAYPAL_HOSTS.has(url.hostname.toLowerCase());
+};
 const payPalHandleField = z
   .string()
   .trim()
-  .max(40, "Höchstens 40 Zeichen.")
-  .regex(/^[A-Za-z0-9]*$/, "Nur Buchstaben und Zahlen erlaubt (kein /, keine Leerzeichen).");
+  .max(256, "Höchstens 256 Zeichen.")
+  .refine((value) => value === "" || isPayPalLink(value), PAYPAL_LINK_MESSAGE);
 
 const roleField = z.enum(["Admin", "Employee"]);
 
@@ -184,6 +196,79 @@ export const NotificationTemplateFormSchema = z.object({
   synonym: templateSynonymField,
   body: templateBodyField,
   isActive: z.boolean(),
+});
+
+// --- Registration mode (self-registration policy) ---
+
+// GET /api/admin/registration-mode → the current policy and the configured secret key. `mode` is
+// the wire value (1 Enabled / 2 Disabled / 3 SecretKeyOnly); `secretKey` is null when none is set.
+export const AdminRegistrationModeResponseSchema = z.object({
+  mode: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  secretKey: z.string().nullable(),
+});
+
+// PUT /api/admin/registration-mode body. `mode` is the chosen policy; `secretKey` is only sent
+// (and only required) for SecretKeyOnly — the page enforces that before submit.
+export const UpdateRegistrationModeSchema = z.object({
+  mode: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  secretKey: z.string().optional(),
+});
+
+// --- Registration-mode form schema ---
+
+// The form mirrors the screen: a 3-way mode selector and an optional secret-key text field that is
+// only meaningful (and required) when SecretKeyOnly is chosen. The cross-field rule is enforced in
+// the page hook before submit; the field-level rule only bounds the length so the input stays sane.
+const secretKeyField = z.string().trim().max(128, "Höchstens 128 Zeichen.");
+
+export const RegistrationModeFormSchema = z.object({
+  mode: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  secretKey: secretKeyField,
+});
+
+// --- Pizza variants (admin-managed order vocabulary) ---
+
+// One row of GET /api/admin/pizza-variants. `name` is the display label shown on the order chips;
+// `icon` is an optional Material symbol (null when none chosen); `sortOrder` drives the chip order;
+// `isAvailable` gates whether the variant is offered on the order form.
+export const AdminPizzaVariantSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  icon: z.string().nullable(),
+  sortOrder: z.number().int(),
+  isAvailable: z.boolean(),
+});
+
+export const AdminPizzaVariantsResponseSchema = z.object({
+  items: z.array(AdminPizzaVariantSchema),
+});
+
+// POST / PUT both return the single affected variant under `item`.
+export const PizzaVariantResponseSchema = z.object({
+  item: AdminPizzaVariantSchema,
+});
+
+// --- Pizza variant form schema ---
+
+const pizzaVariantNameField = z
+  .string()
+  .trim()
+  .min(1, "Pflichtfeld")
+  .max(64, "Höchstens 64 Zeichen.");
+
+// The icon is optional; an empty string means "no symbol" and is omitted on the wire.
+const pizzaVariantIconField = z.string().trim().max(64, "Höchstens 64 Zeichen.");
+
+const pizzaVariantSortOrderField = z
+  .number({ error: "Gib eine gültige Reihenfolge ein, Chef." })
+  .int()
+  .min(0, "Darf nicht negativ sein.");
+
+export const PizzaVariantFormSchema = z.object({
+  name: pizzaVariantNameField,
+  icon: pizzaVariantIconField,
+  sortOrder: pizzaVariantSortOrderField,
+  isAvailable: z.boolean(),
 });
 
 // --- Döner-Tiere (C4, read-only) ---

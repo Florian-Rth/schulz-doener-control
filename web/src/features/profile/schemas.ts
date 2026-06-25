@@ -22,16 +22,30 @@ export const DisplayNameFormSchema = z.object({
 
 // --- Form schema ---
 
-// Mirrors the backend validator: PayPal.Me handle charset is `[A-Za-z0-9]`
-// (no spaces/slashes so the paypal.me/{handle}/{amount}EUR URL stays valid),
-// max 40 chars. Empty input is rejected here — clearing is a separate action.
+// The PayPal link is now stored as a full URL (the backend persists/returns it
+// verbatim — no more `paypal.me/` prefixing). We accept a valid https URL on a
+// PayPal host (paypal.me / paypal.com), max 256 chars. Empty input is rejected
+// here — clearing is a separate action.
+const PAYPAL_LINK_MESSAGE =
+  "Bitte gib einen gültigen PayPal-Link ein (z. B. https://paypal.me/deinname).";
+const PAYPAL_HOSTS = new Set(["paypal.me", "www.paypal.me", "paypal.com", "www.paypal.com"]);
+
 export const PayPalHandleFormSchema = z.object({
   handle: z
     .string()
     .trim()
     .min(1, "Pflichtfeld")
-    .max(40, "Höchstens 40 Zeichen.")
-    .regex(/^[A-Za-z0-9]+$/, "Nur Buchstaben und Zahlen erlaubt (kein /, keine Leerzeichen)."),
+    .max(256, "Höchstens 256 Zeichen.")
+    .url(PAYPAL_LINK_MESSAGE)
+    .refine((value) => {
+      let url: URL;
+      try {
+        url = new URL(value);
+      } catch {
+        return false;
+      }
+      return url.protocol === "https:" && PAYPAL_HOSTS.has(url.hostname.toLowerCase());
+    }, PAYPAL_LINK_MESSAGE),
 });
 
 // The newPassword rules shared by both change-password variants, mirroring the

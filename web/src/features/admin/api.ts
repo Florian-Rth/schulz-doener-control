@@ -3,21 +3,27 @@ import { apiClient } from "@/lib/api";
 import {
   AdminMenuResponseSchema,
   AdminNotificationTemplatesResponseSchema,
+  AdminPizzaVariantsResponseSchema,
+  AdminRegistrationModeResponseSchema,
   AdminTiereResponseSchema,
   AdminUsersResponseSchema,
   CreateUserResponseSchema,
   MenuItemResponseSchema,
   NotificationTemplateResponseSchema,
+  PizzaVariantResponseSchema,
   ResetPasswordResponseSchema,
   UpdateUserResponseSchema,
 } from "./schemas";
 import type {
   AdminMenuItem,
   AdminNotificationTemplate,
+  AdminPizzaVariant,
+  AdminRegistrationMode,
   AdminTiere,
   AdminUser,
   CreateUserResponse,
   MenuKind,
+  RegistrationModeNumber,
   ResetPasswordResponse,
   RoleNumber,
 } from "./types";
@@ -25,9 +31,21 @@ import type {
 export const adminKeys = {
   users: ["admin", "users"] as const,
   menu: ["admin", "menu"] as const,
+  pizzaVariants: ["admin", "pizza-variants"] as const,
   tiere: ["admin", "tiere"] as const,
   notificationTemplates: ["admin", "notification-templates"] as const,
+  registrationMode: ["admin", "registration-mode"] as const,
 };
+
+// The pwa-gate feature's client-config query key. Duplicated here (rather than imported, since
+// features never import other features) so updating the registration mode can invalidate the
+// client config the login/register screens read, keeping that policy in sync without a reload.
+const clientConfigKey = ["config", "client"] as const;
+
+// The order feature's public menu query key (`orderKeys.menu`). Duplicated here (features never
+// import other features) so a pizza-variant mutation can invalidate the order form's menu
+// vocabulary, surfacing added / edited / removed variants without a reload.
+const orderMenuKey = ["order", "menu"] as const;
 
 // Maps the form's PascalCase role to the numeric wire value the backend expects
 // on create/update requests (1 = Employee, 2 = Admin).
@@ -300,6 +318,134 @@ export const useDeleteNotificationTemplate = () => {
     mutationFn: deleteNotificationTemplate,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: adminKeys.notificationTemplates });
+    },
+  });
+};
+
+// --- Pizza variants (admin-managed order vocabulary) ---
+
+const fetchPizzaVariants = async (signal: AbortSignal): Promise<AdminPizzaVariant[]> => {
+  const data = await apiClient.get("/api/admin/pizza-variants", signal);
+  return AdminPizzaVariantsResponseSchema.parse(data).items;
+};
+
+// Lists every pizza variant including unavailable ones, so the admin can see and re-enable them.
+export const useAdminPizzaVariants = () =>
+  useQuery({
+    queryKey: adminKeys.pizzaVariants,
+    queryFn: ({ signal }) => fetchPizzaVariants(signal),
+    staleTime: 30 * 1000,
+  });
+
+// The mutation payload. `icon` is optional (omitted when no symbol is chosen); `id` is carried
+// separately on update (in the path, not the body).
+export interface PizzaVariantBody {
+  name: string;
+  icon?: string;
+  sortOrder: number;
+  isAvailable: boolean;
+}
+
+const createPizzaVariant = async (input: PizzaVariantBody): Promise<AdminPizzaVariant> => {
+  const data = await apiClient.post("/api/admin/pizza-variants", { ...input });
+  return PizzaVariantResponseSchema.parse(data).item;
+};
+
+// On success invalidates the admin list and the public order menu so the new variant appears on the
+// order form without a reload.
+export const useCreatePizzaVariant = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createPizzaVariant,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: adminKeys.pizzaVariants });
+      void queryClient.invalidateQueries({ queryKey: orderMenuKey });
+    },
+  });
+};
+
+export interface UpdatePizzaVariantInput extends PizzaVariantBody {
+  id: string;
+}
+
+const updatePizzaVariant = async ({
+  id,
+  ...body
+}: UpdatePizzaVariantInput): Promise<AdminPizzaVariant> => {
+  const data = await apiClient.put(`/api/admin/pizza-variants/${id}`, { ...body });
+  return PizzaVariantResponseSchema.parse(data).item;
+};
+
+export const useUpdatePizzaVariant = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: updatePizzaVariant,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: adminKeys.pizzaVariants });
+      void queryClient.invalidateQueries({ queryKey: orderMenuKey });
+    },
+  });
+};
+
+// DELETE: the backend hard-deletes an unreferenced variant, else soft-retires it (so past orders
+// keep their reference). Either way the admin list and the order menu are invalidated.
+const deletePizzaVariant = async (id: string): Promise<void> => {
+  await apiClient.delete(`/api/admin/pizza-variants/${id}`);
+};
+
+export const useDeletePizzaVariant = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deletePizzaVariant,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: adminKeys.pizzaVariants });
+      void queryClient.invalidateQueries({ queryKey: orderMenuKey });
+    },
+  });
+};
+
+// --- Registration mode (self-registration policy) ---
+
+const fetchRegistrationMode = async (signal: AbortSignal): Promise<AdminRegistrationMode> => {
+  const data = await apiClient.get("/api/admin/registration-mode", signal);
+  return AdminRegistrationModeResponseSchema.parse(data);
+};
+
+// The current self-registration policy and the configured secret key. Short staleTime since an
+// admin may toggle it and expect the screen to reflect the change on revisit.
+export const useAdminRegistrationMode = () =>
+  useQuery({
+    queryKey: adminKeys.registrationMode,
+    queryFn: ({ signal }) => fetchRegistrationMode(signal),
+    staleTime: 30 * 1000,
+  });
+
+export interface UpdateRegistrationModeInput {
+  mode: RegistrationModeNumber;
+  /** Only sent for SecretKeyOnly; omitted for Enabled / Disabled. */
+  secretKey?: string;
+}
+
+const updateRegistrationMode = async (
+  input: UpdateRegistrationModeInput,
+): Promise<AdminRegistrationMode> => {
+  const body =
+    input.secretKey !== undefined
+      ? { mode: input.mode, secretKey: input.secretKey }
+      : { mode: input.mode };
+  const data = await apiClient.put("/api/admin/registration-mode", body);
+  return AdminRegistrationModeResponseSchema.parse(data);
+};
+
+// Persists the policy. On success it invalidates both its own query and the pwa-gate client config
+// so the login/register screens pick up the new mode without a reload.
+export const useUpdateAdminRegistrationMode = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: updateRegistrationMode,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: adminKeys.registrationMode });
+      void queryClient.invalidateQueries({ queryKey: clientConfigKey });
     },
   });
 };

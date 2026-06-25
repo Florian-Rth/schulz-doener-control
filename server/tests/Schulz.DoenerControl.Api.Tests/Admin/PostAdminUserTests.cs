@@ -24,7 +24,7 @@ public sealed class PostAdminUserTests : DoenerControlTestBase
             {
                 Username = "k.neumann",
                 DisplayName = "Klara Neumann",
-                PayPalHandle = "KlaraN",
+                PayPalHandle = "https://paypal.me/KlaraN",
             }
         );
         var body = await response.Content.ReadFromJsonAsync<PostAdminUserResponse>(
@@ -41,6 +41,7 @@ public sealed class PostAdminUserTests : DoenerControlTestBase
         Assert.True(persisted!.IsActive);
         Assert.True(persisted.MustChangePassword);
         Assert.Equal(UserRole.Employee, persisted.Role);
+        // The link is parsed down to the bare handle for storage.
         Assert.Equal("KlaraN", persisted.PayPalHandle);
     }
 

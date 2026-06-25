@@ -1,6 +1,6 @@
-using System.Text.RegularExpressions;
 using FastEndpoints;
 using FluentValidation;
+using Schulz.DoenerControl.Api.Validation;
 using Schulz.DoenerControl.Application.Users;
 using Schulz.DoenerControl.Core;
 using Schulz.DoenerControl.Core.Enums;
@@ -23,11 +23,8 @@ public sealed class PutAdminUserRequest
 
 public sealed record PutAdminUserResponse(AdminUserSummaryDto User);
 
-public sealed partial class PutAdminUserRequestValidator : Validator<PutAdminUserRequest>
+public sealed class PutAdminUserRequestValidator : Validator<PutAdminUserRequest>
 {
-    [GeneratedRegex("^[A-Za-z0-9]+$")]
-    private static partial Regex HandlePattern();
-
     public PutAdminUserRequestValidator()
     {
         RuleFor(request => request.Id).NotEmpty();
@@ -41,11 +38,7 @@ public sealed partial class PutAdminUserRequestValidator : Validator<PutAdminUse
 
         When(
             request => !string.IsNullOrWhiteSpace(request.PayPalHandle),
-            () =>
-                RuleFor(request => request.PayPalHandle)
-                    .MaximumLength(40)
-                    .Must(handle => HandlePattern().IsMatch(handle!))
-                    .WithMessage("Der PayPal-Name darf nur Buchstaben und Ziffern enthalten.")
+            () => RuleFor(request => request.PayPalHandle).PayPalLink()
         );
     }
 }

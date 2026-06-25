@@ -5,10 +5,12 @@ using Schulz.DoenerControl.Core.Enums;
 
 namespace Schulz.DoenerControl.Application.Calculators;
 
-// Ported from the mock's computeTier(MY_HISTORY): 15 Döner-Tiere in priority order, first match
-// wins, computed over the user's recent orders. Sauce shares are derived from the [Flags] enum
-// rather than German strings (PLAN correction #12). The canonical Markus fixture (garlic ~0.92,
-// spicy ~0.42) resolves to 🐺 Der Knoblauch-Wolf.
+// Ported from the mock's computeTier(MY_HISTORY): 15 order-pattern Döner-Tiere in priority order,
+// first match wins, computed over the user's recent orders. Sauce shares are derived from the
+// [Flags] enum rather than German strings (PLAN correction #12). The canonical Markus fixture
+// (garlic ~0.92, spicy ~0.42) resolves to 🐺 Der Knoblauch-Wolf. The catalogue additionally leads
+// with the 🐎 Packesel superlative — a global pickup-leader award the TierService layers on top of
+// the pattern tier; ComputeTier itself only ever returns a pattern tier.
 public static class TierCalculator
 {
     private const string PizzaProductId = "pizza";
@@ -16,6 +18,11 @@ public static class TierCalculator
     private const string BigProductId = "big";
     private const string BoxProductId = "box";
     private const string DuerumProductId = "duerum";
+
+    // The Packesel name — the global pickup-leader superlative. It sits at the top of the catalogue
+    // but is never returned by ComputeTier (it is awarded across users by the TierService, not from a
+    // single user's order pattern); pattern resolution starts at the first pattern tier after it.
+    public const string PackeselName = "Der Packesel";
 
     // Trigger thresholds — the single source of truth. ComputeTier compares against these constants
     // and the catalogue renders each tier's German Condition from the same values, so no magic
@@ -36,11 +43,19 @@ public static class TierCalculator
     private const int MinOrdersForHabit = 5;
     private const int MaxDistinctForHabit = 1;
 
-    // Presentation copy, not relational data: emoji/name/tagline/tags in priority order, exactly
-    // as the mock's TIER_CATALOG.
+    // The catalogue leads with the global Packesel superlative, so the per-user order-pattern tiers
+    // begin at this offset; ComputeTier indexes its branches relative to it.
+    private const int PatternTierOffset = 1;
+
+    // Presentation copy, not relational data: emoji/name/tagline/tags in priority order. The Packesel
+    // superlative leads; the 15 order-pattern tiers follow exactly as the mock's TIER_CATALOG.
     private static readonly ReadOnlyCollection<DoenerTier> CatalogValue = BuildCatalog();
 
     public static ReadOnlyCollection<DoenerTier> Catalog => CatalogValue;
+
+    // The Packesel catalogue entry (Count zero) for callers that override a pattern tier with the
+    // global pickup-leader award.
+    public static DoenerTier Packesel => CatalogValue[0];
 
     [Pure]
     public static DoenerTier ComputeTier(IReadOnlyList<TierOrderInput> history)
@@ -69,39 +84,45 @@ public static class TierCalculator
         var count = history.Count;
 
         if (garlic >= BothHighShare && spicy >= BothHighShare)
-            return CatalogValue[0] with { Count = count };
+            return PatternTier(0, count);
         if (garlic >= GarlicHighShare)
-            return CatalogValue[1] with { Count = count };
+            return PatternTier(1, count);
         if (spicy >= SpicyHighShare)
-            return CatalogValue[2] with { Count = count };
+            return PatternTier(2, count);
         if (pizza >= MinPizza)
-            return CatalogValue[3] with { Count = count };
+            return PatternTier(3, count);
         if (danny >= MinDanny)
-            return CatalogValue[4] with { Count = count };
+            return PatternTier(4, count);
         if (big >= Math.Max(MinPortionCount, n * BigShare))
-            return CatalogValue[5] with { Count = count };
+            return PatternTier(5, count);
         if (kalbR == 1 && meated >= MinMeatedForLoyalty)
-            return CatalogValue[6] with { Count = count };
+            return PatternTier(6, count);
         if (haehnR == 1 && meated >= MinMeatedForLoyalty)
-            return CatalogValue[7] with { Count = count };
+            return PatternTier(7, count);
         if (allThree >= AllThreeSauceShare)
-            return CatalogValue[8] with { Count = count };
+            return PatternTier(8, count);
         if (noSauce >= NoSauceShare)
-            return CatalogValue[9] with { Count = count };
+            return PatternTier(9, count);
         if (duerum >= Math.Max(MinPortionCount, n * DuerumShare))
-            return CatalogValue[10] with { Count = count };
+            return PatternTier(10, count);
         if (box >= Math.Max(MinPortionCount, n * BoxShare))
-            return CatalogValue[11] with { Count = count };
+            return PatternTier(11, count);
         if (uniq >= MinDistinctProducts)
-            return CatalogValue[12] with { Count = count };
+            return PatternTier(12, count);
         if (uniq <= MaxDistinctForHabit && n >= MinOrdersForHabit)
-            return CatalogValue[13] with { Count = count };
+            return PatternTier(13, count);
 
-        return CatalogValue[14] with
+        return PatternTier(14, count);
+    }
+
+    // The order-pattern tier at the given priority position, counted over the supplied history size.
+    // The position is relative to the first pattern tier, skipping the leading Packesel superlative.
+    [Pure]
+    private static DoenerTier PatternTier(int patternIndex, int count) =>
+        CatalogValue[PatternTierOffset + patternIndex] with
         {
             Count = count,
         };
-    }
 
     [Pure]
     private static double ShareWith(IReadOnlyList<TierOrderInput> history, Sauce sauce, int n) =>
@@ -118,6 +139,15 @@ public static class TierCalculator
     {
         var tiers = new[]
         {
+            Tier(
+                "🐎",
+                PackeselName,
+                "Schleppt Woche für Woche die Tüten der ganzen Werkstatt. Die meisten Abholungen der letzten 90 Tage – ein Lastentier mit Ehre.",
+                $"Die meisten Abholungen der letzten 90 Tage (mindestens {PickupLeaderCalculator.MinPickupsToQualify})",
+                "Abholer",
+                "Lastenträger",
+                "Held"
+            ),
             Tier(
                 "🦨",
                 "Die Bürowaffe",

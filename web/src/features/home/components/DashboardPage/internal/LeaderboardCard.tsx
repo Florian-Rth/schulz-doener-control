@@ -53,6 +53,7 @@ export const LeaderboardCard: FC = () => {
             avatarColorHex={row.avatarColorHex}
             count={row.count}
             medal={row.medal ?? undefined}
+            tierEmoji={row.tierEmoji ?? undefined}
             isMe={row.isMe}
           />
         ))}

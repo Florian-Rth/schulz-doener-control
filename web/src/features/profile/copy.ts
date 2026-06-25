@@ -1,21 +1,20 @@
 // German UI strings for the profile / PayPal-handle UI. Single-locale app.
 export const profileCopy = {
   eyebrow: "Geld kassieren",
-  title: "Dein PayPal.Me-Name",
+  title: "Dein PayPal-Link",
   intro:
-    "Hinterlege deinen PayPal.Me-Namen, Chef. Erst dann können Kollegen dir per Klick Geld senden.",
-  fieldLabel: "PayPal.Me-Name",
-  fieldPlaceholder: "z. B. MarkusW",
-  prefix: "paypal.me/",
+    "Füge deinen PayPal-Link ein, Chef (z. B. https://paypal.me/deinname) — wir lesen deinen Namen automatisch heraus. Erst dann können Kollegen dir per Klick Geld senden.",
+  fieldLabel: "PayPal-Link",
+  fieldPlaceholder: "https://paypal.me/deinname",
   submit: "Speichern",
   saving: "Speichern …",
   saved: "Gespeichert ✓",
   errorGeneric: "Konnte nicht gespeichert werden, Chef. Versuch es nochmal.",
-  gatedNotice: "PayPal-Buttons bleiben deaktiviert, bis du deinen Namen hinterlegt hast.",
+  gatedNotice: "PayPal-Buttons bleiben deaktiviert, bis du deinen Link hinterlegt hast.",
   // Clear-to-cash action — only offered when a handle is currently set.
-  clearAction: "PayPal-Name entfernen",
-  clearConfirmTitle: "PayPal-Name entfernen?",
-  clearConfirmBody: "Ohne PayPal-Name wirst du in bar bezahlt, Chef.",
+  clearAction: "PayPal-Link entfernen",
+  clearConfirmTitle: "PayPal-Link entfernen?",
+  clearConfirmBody: "Ohne PayPal-Link wirst du in bar bezahlt, Chef.",
   clearConfirm: "Entfernen",
   clearPending: "Entfernen …",
   clearCancel: "Abbrechen",
@@ -47,6 +46,39 @@ export const settingsCopy = {
   securitySectionTitle: "Passwort",
   securityIntro: "Zeit für ein frisches Passwort, Chef?",
   changePasswordLink: "Passwort ändern",
+} as const;
+
+// German legal-notice (Impressum) per §5 DDG / §18 MStV. The body values are
+// PLACEHOLDERS and MUST be replaced with the operator's real legal details
+// before this app is exposed to anyone outside the office.
+export const impressumCopy = {
+  eyebrow: "Rechtliches",
+  title: "Impressum",
+  backIconLabel: "Zurück zur Übersicht",
+  intro: "Angaben gemäß §5 DDG.",
+  // Anbieter / Firmenname + Anschrift.
+  providerEyebrow: "Diensteanbieter",
+  providerTitle: "Anschrift",
+  // TODO: echte Angaben eintragen.
+  companyName: "TODO: Firmenname eintragen",
+  streetLine: "TODO: Straße und Hausnummer eintragen",
+  cityLine: "TODO: PLZ und Ort eintragen",
+  // Kontakt.
+  contactEyebrow: "Kontakt",
+  contactTitle: "So erreichst du uns",
+  emailLabel: "E-Mail",
+  emailValue: "TODO: E-Mail-Adresse eintragen",
+  phoneLabel: "Telefon",
+  phoneValue: "TODO: Telefonnummer eintragen",
+  // Vertretung + Verantwortlichkeit.
+  representationEyebrow: "Verantwortung",
+  representationTitle: "Wer steckt dahinter",
+  representativeLabel: "Vertretungsberechtigte Person",
+  representativeValue: "TODO: Name der vertretungsberechtigten Person eintragen",
+  vatLabel: "USt-IdNr.",
+  vatValue: "TODO: Umsatzsteuer-Identifikationsnummer eintragen (falls vorhanden)",
+  responsibleLabel: "Verantwortlich für den Inhalt",
+  responsibleValue: "TODO: Name der inhaltlich verantwortlichen Person eintragen",
 } as const;
 
 // German UI strings for the change-password screen. Reached as a forced step for

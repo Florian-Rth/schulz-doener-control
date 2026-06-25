@@ -42,11 +42,17 @@ public sealed class GetMenuTests : DoenerControlTestBase
         Assert.NotNull(body);
         Assert.Equal(6, body!.Items.Count);
 
-        // Vocabularies arrive in one round-trip as the canonical ASCII enum tokens (the exact strings
-        // the SPA's order schema enumerates and PutMyOrder accepts) so the SPA never hardcodes them.
-        Assert.Equal(["Salami", "Margherita", "Funghi", "Tonno", "Hawaii"], body.PizzaVariants);
+        // Pizza variants arrive from the admin-managed catalog as {value,label} pairs (value = the
+        // stable variant id string a pizza line submits, label = the German display name), ordered by
+        // SortOrder. Sauces and meats stay the canonical ASCII enum tokens.
+        Assert.Equal(
+            ["Salami", "Margherita", "Funghi", "Tonno", "Hawaii"],
+            body.PizzaVariants.Select(variant => variant.Label).ToArray()
+        );
+        Assert.All(body.PizzaVariants, variant => Assert.True(Guid.TryParse(variant.Value, out _)));
+        Assert.Equal("b1a7c0de-0001-4a01-9a01-000000000001", body.PizzaVariants[0].Value);
         Assert.Equal(["Kraeuter", "Knoblauch", "Scharf"], body.SauceOptions);
-        Assert.Equal(["Kalb", "Haehnchen"], body.MeatOptions);
+        Assert.Equal(["Kalb", "Haehnchen", "Gemischt"], body.MeatOptions);
     }
 
     [Fact]

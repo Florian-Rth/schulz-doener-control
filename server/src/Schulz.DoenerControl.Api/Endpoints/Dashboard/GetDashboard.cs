@@ -36,7 +36,8 @@ public sealed record DashboardLeaderboardRowDto(
     string AvatarColorHex,
     int Count,
     bool IsMe,
-    string? Medal
+    string? Medal,
+    string? TierEmoji
 );
 
 public sealed record DashboardLeaderboardDto(
@@ -195,7 +196,8 @@ public sealed class GetDashboard : EndpointWithoutRequest<GetDashboardResponse>
             entry.AvatarColorHex,
             entry.Count,
             entry.IsCurrentUser,
-            MedalFor(entry.Rank)
+            MedalFor(entry.Rank),
+            entry.TierEmoji
         );
 
     private static DashboardDayDto MapDay(OrderDayDetails? day)

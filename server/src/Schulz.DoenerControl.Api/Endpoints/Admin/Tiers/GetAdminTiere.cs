@@ -17,9 +17,10 @@ public sealed record GetAdminTiereResponse(
     IReadOnlyList<AdminTierDefinitionDto> Tiers
 );
 
-// Read-only admin inspector for the 15 Döner-Tier definitions (B4): lists every tier in priority
-// order with its calculator-derived German trigger condition and the rolling window length the
-// tiers are computed over. Nothing is editable — the thresholds stay in code. Admin-only.
+// Read-only admin inspector for the Döner-Tier definitions (B4): lists every tier in priority order
+// (the 🐎 Packesel superlative leads, then the 15 order-pattern tiers) with its calculator-derived
+// German trigger condition and the rolling window length the tiers are computed over. Nothing is
+// editable — the thresholds stay in code. Admin-only.
 public sealed class GetAdminTiere : EndpointWithoutRequest<GetAdminTiereResponse>
 {
     private readonly ITierService tierService;

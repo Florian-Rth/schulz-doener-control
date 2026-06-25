@@ -38,6 +38,12 @@ public sealed class OrderService : IOrderService
         if (menuItems is null)
             return Result<OrderDetails>.NotFound("Produkt nicht gefunden.");
 
+        // Pizza lines carry a catalog variant id; validate every referenced id against the available
+        // PizzaVariants catalog (an unknown / retired id rejects the whole upsert).
+        var pizzaVariantNames = await LoadPizzaVariantNames(command.Lines, ct);
+        if (pizzaVariantNames is null)
+            return Result<OrderDetails>.NotFound("Pizza-Sorte nicht gefunden.");
+
         var now = clock.UtcNow();
         var existing = await database.Orders.FirstOrDefaultAsync(
             order => order.OrderDayId == command.OrderDayId && order.UserId == command.CallerUserId,
@@ -51,7 +57,10 @@ public sealed class OrderService : IOrderService
                 Id = Guid.NewGuid(),
                 OrderDayId = command.OrderDayId,
                 UserId = command.CallerUserId,
-                IsPickup = command.IsPickup,
+                // When claiming pickup the flag starts OFF; the designator turns it on AFTER it has
+                // demoted every other row (SQLite checks the filtered unique index per statement, so a
+                // momentary two-pickup state would trip it).
+                IsPickup = false,
                 OccurredOn = day.OpenedAt,
                 CreatedAt = now,
                 UpdatedAt = now,
@@ -60,7 +69,8 @@ public sealed class OrderService : IOrderService
         }
         else
         {
-            existing.IsPickup = command.IsPickup;
+            // Same staging as the insert path: never flip the caller ON before the others are cleared.
+            existing.IsPickup = command.IsPickup ? existing.IsPickup : false;
             existing.UpdatedAt = now;
 
             // Multi-line contract: the upsert REPLACES the order's whole line set. Delete the old
@@ -71,6 +81,21 @@ public sealed class OrderService : IOrderService
                 .ToListAsync(ct);
             database.OrderLines.RemoveRange(oldLines);
             await database.SaveChangesAsync(ct);
+        }
+
+        // Single-pickup invariant: when the caller toggles pickup on, they become the sole pickup —
+        // every other order of the day is demoted FIRST, then the caller is flipped on (see the
+        // designator's two-phase persist). Releasing leaves the others untouched.
+        if (command.IsPickup)
+        {
+            var dayOrders = await LoadDayOrdersForPickup(command.OrderDayId, existing, ct);
+            await SinglePickupDesignator.DesignateAsync(
+                database,
+                dayOrders,
+                command.CallerUserId,
+                now,
+                ct
+            );
         }
 
         // Auto-designate: the order-form pickup toggle reconciles the day's single collector (the
@@ -87,7 +112,25 @@ public sealed class OrderService : IOrderService
 
         existing.Lines = newLines;
         var productNames = ProductNamesFrom(menuItems);
-        return Result<OrderDetails>.Success(OrderDetailsFactory.Build(existing, productNames));
+        return Result<OrderDetails>.Success(
+            OrderDetailsFactory.Build(existing, productNames, pizzaVariantNames)
+        );
+    }
+
+    // Loads every OTHER tracked order of the day and appends the caller's own order so the designator
+    // sees the full set. The caller's order may be brand-new (Add'd, not yet saved), so it can't be
+    // pulled from the DB query — it's spliced in explicitly.
+    private async Task<IReadOnlyList<Order>> LoadDayOrdersForPickup(
+        Guid orderDayId,
+        Order own,
+        CancellationToken ct
+    )
+    {
+        var others = await database
+            .Orders.Where(order => order.OrderDayId == orderDayId && order.Id != own.Id)
+            .ToListAsync(ct);
+        others.Add(own);
+        return others;
     }
 
     public async Task<Result<OrderDetails?>> GetMineAsync(
@@ -106,7 +149,10 @@ public sealed class OrderService : IOrderService
             return Result<OrderDetails?>.Success(null);
 
         var productNames = await ResolveProductNames(order, ct);
-        return Result<OrderDetails?>.Success(OrderDetailsFactory.Build(order, productNames));
+        var pizzaVariantNames = await ResolvePizzaVariantNames(order, ct);
+        return Result<OrderDetails?>.Success(
+            OrderDetailsFactory.Build(order, productNames, pizzaVariantNames)
+        );
     }
 
     public async Task<Result> DeleteMineAsync(DeleteOrderCommand command, CancellationToken ct)
@@ -160,18 +206,19 @@ public sealed class OrderService : IOrderService
             return Result<OrderResultDetails>.NotFound("Döner-Tag nicht gefunden.");
 
         var productNames = await ResolveProductNames(order, ct);
+        var pizzaVariantNames = await ResolvePizzaVariantNames(order, ct);
         var lines = order
             .Lines.OrderBy(line => line.ProductId)
             .ThenBy(line => line.Id)
-            .Select(line => BuildResultLine(line, productNames))
+            .Select(line => BuildResultLine(line, productNames, pizzaVariantNames))
             .ToList();
         var orderTotal = order.TotalCents;
 
         var collector = await ResolveCollector(day, ct);
         var abholer = collector is null ? null : BuildAbholer(collector);
 
-        // The caller's PayPal deep-link to the collector for their own order total — only when the
-        // caller is a non-pickup payer and there is a collector with a handle.
+        // The collector's pay link, reconstructed from their handle with the caller's own order total
+        // as the amount — only when the caller is a non-pickup payer and the collector set a handle.
         var myPayPalUrl =
             order.IsPickup || collector is null
                 ? null
@@ -195,17 +242,16 @@ public sealed class OrderService : IOrderService
 
     private static OrderResultLineDetails BuildResultLine(
         OrderLine line,
-        IReadOnlyDictionary<string, string> productNames
+        IReadOnlyDictionary<string, string> productNames,
+        IReadOnlyDictionary<Guid, string> pizzaVariantNames
     )
     {
         var productName = productNames.GetValueOrDefault(line.ProductId, line.ProductId);
+        var variantName = line.PizzaVariantId is { } id
+            ? pizzaVariantNames.GetValueOrDefault(id)
+            : null;
         return new OrderResultLineDetails(
-            OrderLabelBuilder.BuildProductLabel(
-                line.Kind,
-                productName,
-                line.Meat,
-                line.PizzaVariant
-            ),
+            OrderLabelBuilder.BuildProductLabel(line.Kind, productName, line.Meat, variantName),
             OrderLabelBuilder.BuildDescription(line.Kind, line.Sauces, line.Extra),
             line.Quantity,
             line.PriceCents,
@@ -248,7 +294,8 @@ public sealed class OrderService : IOrderService
             collector.DisplayName,
             NameFormatter.InitialsOf(collector.DisplayName),
             collector.AvatarColorHex,
-            collector.PayPalHandle
+            // Display field: surface the collector's reconstructed base link, never the bare handle.
+            PayPalLinkBuilder.BuildLink(collector.PayPalHandle, null)
         );
 
     // Loads the menu items for every distinct product the command references; returns null when any
@@ -281,6 +328,52 @@ public sealed class OrderService : IOrderService
             .ToDictionaryAsync(item => item.Id, item => item.Name, ct);
     }
 
+    // Resolves the catalog Name for every pizza-variant id the command references, but only among the
+    // AVAILABLE variants. Returns null when any referenced id is unknown / retired, so the caller can
+    // reject the upsert (the parser only shapes the id string; the catalog is authoritative here).
+    private async Task<IReadOnlyDictionary<Guid, string>?> LoadPizzaVariantNames(
+        IReadOnlyList<UpsertOrderLineCommand> lines,
+        CancellationToken ct
+    )
+    {
+        var variantIds = lines
+            .Where(line => line.PizzaVariantId is not null)
+            .Select(line => line.PizzaVariantId!.Value)
+            .Distinct()
+            .ToList();
+        if (variantIds.Count == 0)
+            return new Dictionary<Guid, string>();
+
+        var names = await database
+            .PizzaVariants.AsNoTracking()
+            .Where(variant => variant.IsAvailable && variantIds.Contains(variant.Id))
+            .ToDictionaryAsync(variant => variant.Id, variant => variant.Name, ct);
+
+        return variantIds.All(names.ContainsKey) ? names : null;
+    }
+
+    // Resolves the catalog Name for an already-persisted order's pizza-variant ids (read path). Unlike
+    // the write path this includes retired variants, so a past order whose variant was later retired
+    // still renders its label.
+    private async Task<IReadOnlyDictionary<Guid, string>> ResolvePizzaVariantNames(
+        Order order,
+        CancellationToken ct
+    )
+    {
+        var variantIds = order
+            .Lines.Where(line => line.PizzaVariantId is not null)
+            .Select(line => line.PizzaVariantId!.Value)
+            .Distinct()
+            .ToList();
+        if (variantIds.Count == 0)
+            return new Dictionary<Guid, string>();
+
+        return await database
+            .PizzaVariants.AsNoTracking()
+            .Where(variant => variantIds.Contains(variant.Id))
+            .ToDictionaryAsync(variant => variant.Id, variant => variant.Name, ct);
+    }
+
     private static IReadOnlyDictionary<string, string> ProductNamesFrom(
         IReadOnlyDictionary<string, MenuItem> menuItems
     ) => menuItems.ToDictionary(pair => pair.Key, pair => pair.Value.Name);
@@ -291,12 +384,12 @@ public sealed class OrderService : IOrderService
         Guid orderId
     ) => lines.Select(line => BuildLine(line, menuItems[line.ProductId].Kind, orderId));
 
-    private static (MeatType? Meat, PizzaVariant? Pizza, Sauce Sauces) NormalizeForKind(
+    private static (MeatType? Meat, Guid? PizzaVariantId, Sauce Sauces) NormalizeForKind(
         ProductKind kind,
         MeatType? meat,
-        PizzaVariant? pizza,
+        Guid? pizzaVariantId,
         Sauce sauces
-    ) => kind == ProductKind.Pizza ? (null, pizza, Sauce.None) : (meat, null, sauces);
+    ) => kind == ProductKind.Pizza ? (null, pizzaVariantId, Sauce.None) : (meat, null, sauces);
 
     private static OrderLine BuildLine(
         UpsertOrderLineCommand command,
@@ -304,10 +397,10 @@ public sealed class OrderService : IOrderService
         Guid orderId
     )
     {
-        var (meat, pizza, sauces) = NormalizeForKind(
+        var (meat, pizzaVariantId, sauces) = NormalizeForKind(
             kind,
             command.Meat,
-            command.Pizza,
+            command.PizzaVariantId,
             command.Sauces
         );
         return new OrderLine
@@ -317,7 +410,7 @@ public sealed class OrderService : IOrderService
             ProductId = command.ProductId,
             Kind = kind,
             Meat = meat,
-            PizzaVariant = pizza,
+            PizzaVariantId = pizzaVariantId,
             Sauces = sauces,
             PriceCents = command.PriceCents,
             Extra = command.Extra,

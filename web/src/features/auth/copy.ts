@@ -18,6 +18,7 @@ export const authCopy = {
   notifications: "Benachrichtigungen",
   adminArea: "Admin-Bereich",
   changePassword: "Passwort ändern",
+  impressum: "Impressum",
   logout: "Abmelden",
   logoutFailed: "Abmelden fehlgeschlagen, Chef. Bitte gleich nochmal versuchen.",
   // --- Register page ---
@@ -30,8 +31,8 @@ export const authCopy = {
   registerUsernamePlaceholder: "z. B. m.wagner",
   registerDisplayNameLabel: "Anzeigename",
   registerDisplayNamePlaceholder: "z. B. Markus Wagner",
-  registerPayPalHandleLabel: "PayPal.Me-Name (optional)",
-  registerPayPalHandlePlaceholder: "z. B. MarkusW",
+  registerPayPalHandleLabel: "PayPal-Link (optional)",
+  registerPayPalHandlePlaceholder: "https://paypal.me/deinname",
   registerPasswordLabel: "Passwort",
   registerPasswordPlaceholder: "Mindestens 10 Zeichen",
   registerConfirmPasswordLabel: "Passwort bestätigen",
@@ -41,6 +42,12 @@ export const authCopy = {
   registerFailed: "Konto konnte nicht angelegt werden, Chef. Bitte gleich nochmal versuchen.",
   registerDuplicate: "Dieser Benutzername ist bereits vergeben, Chef.",
   registerCodeInvalid: "Falscher oder fehlender Registrierungscode, Chef.",
+  // Shown when registration is set to secret-key-only and the visitor arrived without a key in the
+  // QR-link — there is no form to fill, only this hint.
+  registerSecretRequiredTitle: "Registrierung nur mit Code",
+  registerSecretRequiredBody:
+    "Die Türen sind zu, Chef. Zum Anlegen eines Kontos brauchst du den Registrierungs-Link mit gültigem Code. Frag im Büro nach dem QR-Code.",
+  // Login screen: the register link is hidden when registration is switched off server-side.
   registerSuccessTitle: "Konto erstellt, Chef!",
   registerSuccessBody:
     "Dein Zugang steht. Melde dich jetzt an und reih dich in den Döner-Trupp ein.",
@@ -51,8 +58,9 @@ export const authCopy = {
   registerUsernamePattern: "Nur Buchstaben, Ziffern sowie . _ - sind erlaubt (keine Leerzeichen).",
   registerDisplayNameRequired: "Pflichtfeld",
   registerDisplayNameLength: "Anzeigename darf höchstens 128 Zeichen lang sein.",
-  registerPayPalHandlePattern: "Nur Buchstaben und Ziffern sind erlaubt.",
-  registerPayPalHandleLength: "PayPal.Me-Name darf höchstens 40 Zeichen lang sein.",
+  registerPayPalHandlePattern:
+    "Bitte gib deinen PayPal-Link ein (z. B. https://paypal.me/deinname) — daraus lesen wir deinen Namen.",
+  registerPayPalHandleLength: "Der PayPal-Link darf höchstens 256 Zeichen lang sein.",
   registerPasswordLength: "Passwort muss mindestens 10 Zeichen lang sein.",
   registerPasswordComplexity: "Passwort braucht mindestens einen Buchstaben und eine Ziffer.",
   registerConfirmPasswordRequired: "Pflichtfeld",

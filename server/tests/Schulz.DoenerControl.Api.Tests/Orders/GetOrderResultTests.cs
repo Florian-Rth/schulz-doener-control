@@ -85,8 +85,9 @@ public sealed class GetOrderResultTests : DoenerControlTestBase
         Assert.Equal(800, pay.PriceCents);
         Assert.NotNull(pay.Abholer);
         Assert.Equal("Markus Wagner", pay.Abholer!.Name);
-        Assert.Equal("MarkusWagnerHB", pay.Abholer.PayPalHandle);
-        Assert.Equal("https://paypal.me/MarkusWagnerHB/8.00EUR", pay.MyPayPalUrl);
+        // Abholer.PayPalHandle is the reconstructed base link; MyPayPalUrl carries the 8,00 € amount.
+        Assert.Equal(TestSeeding.ChefPayPalLink, pay.Abholer.PayPalHandle);
+        Assert.Equal($"{TestSeeding.ChefPayPalLink}/8.00EUR", pay.MyPayPalUrl);
         Assert.Equal(0, pay.CollectCents);
 
         // COLLECT branch: the chef collects the colleague's 8,00 € from one non-pickup payer.

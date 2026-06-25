@@ -43,7 +43,6 @@ export const EditUserDialog: FC<EditUserDialogProps> = ({ open, user, onClose, o
             name="payPalHandle"
             label={usersCopy.payPalLabel}
             placeholder={usersCopy.payPalPlaceholder}
-            prefix={usersCopy.payPalPrefix}
           />
           <RoleField control={form.control} name="role" />
           <ActiveField control={form.control} />

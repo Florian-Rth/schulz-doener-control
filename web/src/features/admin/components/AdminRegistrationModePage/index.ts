@@ -1,0 +1,1 @@
+export { AdminRegistrationModePage } from "./AdminRegistrationModePage";

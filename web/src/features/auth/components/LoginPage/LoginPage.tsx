@@ -7,18 +7,29 @@ import logoUrl from "@/assets/logo.png";
 import { PrimaryButton } from "@/components/buttons";
 import { authCopy } from "../../copy";
 import { useLoginForm } from "../../hooks/use-login-form";
+import { AuthRegistrationMode } from "../../schemas";
 import { LoginField } from "./internal/LoginField";
 import { ServerStatusLine } from "./internal/ServerStatusLine";
 
 interface LoginPageProps {
   /** Optional deep-link target to return to after a successful login. */
   redirect?: string;
+  /**
+   * The self-registration mode from the client config (1 Enabled / 2 Disabled /
+   * 3 SecretKeyOnly), supplied by the route. When Disabled the register link is
+   * hidden. Defaults to Enabled so the link shows while the config resolves.
+   */
+  registrationMode?: number;
 }
 
 // Layout shell for the login screen: a centered column on the login background,
 // matching the mock. Logic lives in `useLoginForm`; this body only composes.
-export const LoginPage: FC<LoginPageProps> = ({ redirect }) => {
+export const LoginPage: FC<LoginPageProps> = ({
+  redirect,
+  registrationMode = AuthRegistrationMode.Enabled,
+}) => {
   const { form, onSubmit, isPending, serverError } = useLoginForm({ redirect });
+  const showRegisterLink = registrationMode !== AuthRegistrationMode.Disabled;
 
   return (
     <Stack
@@ -112,13 +123,15 @@ export const LoginPage: FC<LoginPageProps> = ({ redirect }) => {
           </PrimaryButton>
         </Stack>
 
-        <Stack sx={{ mt: 1.75 }}>
-          <Link to="/register" style={{ textDecoration: "none" }}>
-            <Typography sx={{ fontSize: 13, fontWeight: 600, color: "primary.main" }}>
-              {authCopy.loginToRegister}
-            </Typography>
-          </Link>
-        </Stack>
+        {showRegisterLink ? (
+          <Stack sx={{ mt: 1.75 }}>
+            <Link to="/register" style={{ textDecoration: "none" }}>
+              <Typography sx={{ fontSize: 13, fontWeight: 600, color: "primary.main" }}>
+                {authCopy.loginToRegister}
+              </Typography>
+            </Link>
+          </Stack>
+        ) : null}
 
         <Stack sx={{ mt: 2.25 }}>
           <ServerStatusLine label={authCopy.serverStatus} />

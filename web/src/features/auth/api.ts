@@ -162,26 +162,29 @@ export const useLogin = () =>
 interface RegisterArgs {
   form: RegisterForm;
   /**
-   * Optional invite code lifted from the QR-code URL (`/register?code=…`). Sent
-   * as `inviteCode` only when present; omitted otherwise (open registration).
+   * Optional registration secret key lifted from the QR-code URL
+   * (`/register?secretKey=…`, with `?code=` kept as a legacy alias). Sent as
+   * `secretKey` only when present; omitted otherwise (open registration).
    */
-  inviteCode?: string;
+  secretKey?: string;
 }
 
 // Self-registration. Anonymous endpoint; issues no session, so there is nothing
 // to invalidate — the user logs in afterward. The optional PayPal handle is sent
-// as null when left blank, and the invite code only when one is present. A 409
-// (duplicate username) / 403 (wrong/missing invite code) / 400 (validation)
+// as null when left blank, and the secret key only when one is present. We send
+// it under all three names (`secretKey` plus the legacy `code` / `inviteCode`
+// aliases) so the request works against either the new or the old backend. A 409
+// (duplicate username) / 403 (wrong/missing secret key) / 400 (validation)
 // surfaces as an ApiError, the same shape login uses, so the form hook can branch
 // on it.
-const register = async ({ form, inviteCode }: RegisterArgs): Promise<RegisterResponse> => {
+const register = async ({ form, secretKey }: RegisterArgs): Promise<RegisterResponse> => {
   const handle = form.payPalHandle.trim();
   const data = await apiClient.post("/api/auth/register", {
     username: form.username,
     displayName: form.displayName,
     payPalHandle: handle === "" ? null : handle,
     password: form.password,
-    ...(inviteCode !== undefined ? { inviteCode } : {}),
+    ...(secretKey !== undefined ? { secretKey, code: secretKey, inviteCode: secretKey } : {}),
   });
   return RegisterResponseSchema.parse(data);
 };

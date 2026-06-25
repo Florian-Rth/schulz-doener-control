@@ -4,8 +4,8 @@ import type { FC } from "react";
 import { printCopy } from "../../../copy";
 import { usePrintListContext } from "../../../print-context";
 
-// The sheet header: "Döner-Tag {date}", the synonym + order-count subline and
-// the "Abholer: {names}" line. Presentational — reads the derived strings from
+// The sheet header: "Döner-Tag {date}", the order-count subline and the
+// "Abholer: {names}" line. Presentational — reads the derived strings from
 // context. Stays black-on-white in print thanks to PrintStyles.
 export const PrintHeader: FC = () => {
   const { title, subline, abholerNames } = usePrintListContext();

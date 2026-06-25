@@ -38,6 +38,7 @@ export const orderCopy = {
 export const MEAT_LABELS: Record<MeatType, string> = {
   Kalb: "Kalb",
   Haehnchen: "Hähnchen",
+  Gemischt: "Gemischt",
 };
 
 // UI labels + emoji for the sauce enum.

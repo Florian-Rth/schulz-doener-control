@@ -154,6 +154,62 @@ describe("RegisterPage", () => {
     expect(await findByText(authCopy.registerCodeInvalid)).toBeInTheDocument();
   });
 
+  it("forwards the secretKey from the URL on the register request", async () => {
+    seedXsrfCookie();
+    useAnonymousMe();
+    let receivedBody: Record<string, unknown> | null = null;
+    mswServer.use(
+      http.post("*/api/auth/register", async ({ request }) => {
+        receivedBody = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(
+          {
+            userId: "22222222-2222-2222-2222-222222222222",
+            username: "m.wagner",
+            displayName: "Markus Wagner",
+          },
+          { status: 201 },
+        );
+      }),
+    );
+    const user = userEvent.setup();
+    const { findByRole, findByLabelText } = renderApp({
+      initialPath: "/register?secretKey=doener-2026",
+    });
+
+    await fillValidForm(user, findByLabelText);
+    await user.click(await findByRole("button", { name: "Konto anlegen" }));
+
+    await waitFor(() => {
+      expect(receivedBody).not.toBeNull();
+    });
+    expect((receivedBody as unknown as { secretKey: string }).secretKey).toBe("doener-2026");
+  });
+
+  it("shows the secret-key hint when registration is secret-key-only and no key is present", async () => {
+    useAnonymousMe();
+    mswServer.use(
+      http.get("*/api/config", () =>
+        HttpResponse.json({ pwaGateEnabled: false, registrationMode: 3 }),
+      ),
+    );
+    const { findByText, queryByLabelText } = renderApp({ initialPath: "/register" });
+
+    expect(await findByText("Registrierung nur mit Code")).toBeInTheDocument();
+    expect(queryByLabelText("Benutzername")).toBeNull();
+  });
+
+  it("renders the form in secret-key-only mode when the URL carries a key", async () => {
+    useAnonymousMe();
+    mswServer.use(
+      http.get("*/api/config", () =>
+        HttpResponse.json({ pwaGateEnabled: false, registrationMode: 3 }),
+      ),
+    );
+    const { findByLabelText } = renderApp({ initialPath: "/register?secretKey=doener-2026" });
+
+    expect(await findByLabelText("Benutzername")).toBeInTheDocument();
+  });
+
   it("redirects an authenticated visitor away from /register", async () => {
     mswServer.use(
       http.get("*/api/auth/me", () =>

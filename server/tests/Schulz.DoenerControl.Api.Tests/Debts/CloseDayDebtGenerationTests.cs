@@ -81,9 +81,8 @@ public sealed class CloseDayDebtGenerationTests : DoenerControlTestBase
         Assert.Equal("Markus Wagner", row.PersonName);
         Assert.Equal(750, row.AmountCents);
         Assert.Equal("Döner-Tag", row.Reason);
-        // Chef has a PayPal handle seeded → the deep link is built (paypal.me/.../7.50EUR).
-        Assert.NotNull(row.PaypalUrl);
-        Assert.Contains("7.50EUR", row.PaypalUrl);
+        // Chef has a PayPal handle seeded → the creditor's pay link is reconstructed with the amount.
+        Assert.Equal($"{TestSeeding.ChefPayPalLink}/7.50EUR", row.PaypalUrl);
         Assert.Equal("7,50 €", row.AmountLabel);
 
         // Settling the debt flips it to Settled and drops it from the open list.

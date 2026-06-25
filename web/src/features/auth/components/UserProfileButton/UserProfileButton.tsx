@@ -17,8 +17,9 @@ interface UserProfileButtonProps {
 
 // Profile menu behind the user avatar: an IconButton wrapping the Avatar that
 // opens a Menu with "Einstellungen", "Döner-Tiere", "Benachrichtigungen",
-// "Admin-Bereich" (admins only), "Passwort ändern" and "Abmelden". Reads the
-// current user from the auth context; all actions live in `useProfileMenu`.
+// "Admin-Bereich" (admins only), "Passwort ändern", "Impressum" and "Abmelden".
+// Reads the current user from the auth context; all actions live in
+// `useProfileMenu`.
 // Reusable on any authenticated header — sets no positioning margin of its own.
 export const UserProfileButton: FC<UserProfileButtonProps> = ({ size = 38, sx }) => {
   const { user } = useAuth();
@@ -33,6 +34,7 @@ export const UserProfileButton: FC<UserProfileButtonProps> = ({ size = 38, sx })
     goToNotifications,
     goToAdmin,
     goToChangePassword,
+    goToImpressum,
     logout,
     logoutError,
     dismissLogoutError,
@@ -93,6 +95,9 @@ export const UserProfileButton: FC<UserProfileButtonProps> = ({ size = 38, sx })
         ) : null}
         <MenuItem onClick={goToChangePassword} sx={{ fontWeight: 600 }}>
           {authCopy.changePassword}
+        </MenuItem>
+        <MenuItem onClick={goToImpressum} sx={{ fontWeight: 600 }}>
+          {authCopy.impressum}
         </MenuItem>
         <MenuItem
           onClick={logout}

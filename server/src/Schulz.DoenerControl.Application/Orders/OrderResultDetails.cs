@@ -25,7 +25,9 @@ public sealed record OrderResultLineDetails(
 );
 
 // The day's designated collector, as shown on the success screen's "pay the Abholer" card. Null on
-// the result when no collector is designated yet (e.g. nobody has claimed pickup).
+// the result when no collector is designated yet (e.g. nobody has claimed pickup). PayPalHandle is a
+// display field: the collector's reconstructed base PayPal link (never the bare handle); the actual
+// prefilled pay button uses OrderResultDetails.MyPayPalUrl, which carries the amount.
 public sealed record AbholerDetails(
     string Name,
     string Initials,

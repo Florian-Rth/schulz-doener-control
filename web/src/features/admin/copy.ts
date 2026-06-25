@@ -17,6 +17,11 @@ export const adminCopy = {
       description: "Döner, Pizza & Insider-Spezialitäten pflegen.",
       icon: "restaurant",
     },
+    pizzaVariants: {
+      title: "Pizza-Sorten",
+      description: "Die Sorten pflegen, die bei der Pizza zur Wahl stehen.",
+      icon: "local_pizza",
+    },
     tiere: {
       title: "Döner-Tiere",
       description: "Die 15 erfassten Exemplare und ihre Bedingungen.",
@@ -27,7 +32,38 @@ export const adminCopy = {
       description: "Die Döner-Sprüche pflegen, die beim Öffnen rausgehen.",
       icon: "campaign",
     },
+    registrierung: {
+      title: "Registrierung",
+      description: "Türen auf, zu oder nur mit Code – wer darf in den Trupp?",
+      icon: "how_to_reg",
+    },
   },
+} as const;
+
+// German UI strings for the registration-mode screen (/admin/registrierung). The admin picks who
+// may self-register: open for all, closed, or only with the shared secret key.
+export const registrationCopy = {
+  title: "Registrierung",
+  subtitle: "Wer darf in den Trupp?",
+  intro:
+    "Hier bestimmst du, wer sich selbst ein Konto anlegen darf, Chef. Bei „Nur mit Registrierungscode“ kommt nur rein, wer den Code aus dem QR-Link kennt.",
+  loading: "Einstellung wird geladen …",
+  loadError: "Die Einstellung konnte nicht geladen werden, Chef. Versuch es nochmal.",
+  modeLabel: "Registrierungs-Modus",
+  modeEnabled: "Offen für alle",
+  modeDisabled: "Geschlossen",
+  modeSecretKey: "Nur mit Registrierungscode",
+  secretKeyLabel: "Registrierungscode",
+  secretKeyPlaceholder: "z. B. doener-2026",
+  secretKeyHelper:
+    "Diesen Code hängst du an den Registrier-Link (?secretKey=…) bzw. baust ihn in den QR-Code ein, Chef.",
+  secretKeyRequired: "Für „Nur mit Registrierungscode“ brauchst du einen Code, Chef.",
+  saveButton: "Speichern",
+  saving: "Wird gespeichert …",
+  saveSuccess: "Gespeichert, Chef. Die Tür ist jetzt eingestellt.",
+  // Server-error mappings
+  errorValidation: "Die Eingaben passen nicht, Chef. Prüf die Felder.",
+  errorGeneric: "Hat nicht geklappt, Chef. Versuch es nochmal.",
 } as const;
 
 // German UI strings for the user-administration screen (/admin/benutzer).
@@ -54,9 +90,8 @@ export const usersCopy = {
   usernamePlaceholder: "z. B. markus.wagner",
   displayNameLabel: "Anzeigename",
   displayNamePlaceholder: "z. B. Markus Wagner",
-  payPalLabel: "PayPal.Me-Name (optional)",
-  payPalPlaceholder: "z. B. MarkusW",
-  payPalPrefix: "paypal.me/",
+  payPalLabel: "PayPal-Link (optional)",
+  payPalPlaceholder: "https://paypal.me/name",
   roleLabel: "Rolle",
   activeLabel: "Konto aktiv",
   // Create dialog
@@ -148,6 +183,51 @@ export const menuCopy = {
   cancel: "Abbrechen",
   // Server-error mappings
   errorDuplicate: "Diese ID gibt es schon, Chef. Wähl eine andere.",
+  errorValidation: "Die Eingaben passen nicht, Chef. Prüf die Felder.",
+  errorGeneric: "Hat nicht geklappt, Chef. Versuch es nochmal.",
+} as const;
+
+// German UI strings for the pizza-variant screen (/admin/pizza-variants). These are the sorts the
+// order form offers when a colleague picks a pizza; the catalog is fully admin-managed.
+export const pizzaVariantsCopy = {
+  title: "Pizza-Sorten",
+  subtitle: "Sorten pflegen",
+  intro:
+    "Hier pflegst du die Pizza-Sorten, Chef. Was hier verfügbar ist, taucht in der Bestellung als Auswahl auf.",
+  loading: "Sorten werden geladen …",
+  loadError: "Die Sorten konnten nicht geladen werden, Chef. Versuch es nochmal.",
+  empty: "Noch keine Pizza-Sorten, Chef. Leg die erste an.",
+  addButton: "Sorte anlegen",
+  // Status badges
+  available: "Verfügbar",
+  unavailable: "Nicht verfügbar",
+  sortLabel: (order: number): string => `Reihenfolge ${order}`,
+  // Per-row actions
+  actionEdit: "Bearbeiten",
+  actionDelete: "Entfernen",
+  // Field labels (shared create/edit)
+  nameLabel: "Name",
+  namePlaceholder: "z. B. Margherita",
+  iconLabel: "Symbol (optional)",
+  sortOrderLabel: "Reihenfolge",
+  availableLabel: "Verfügbar",
+  // Create dialog
+  createTitle: "Neue Sorte anlegen",
+  createSubmit: "Anlegen",
+  createSubmitting: "Wird angelegt …",
+  // Edit dialog
+  editTitle: "Sorte bearbeiten",
+  editSubmit: "Speichern",
+  editSubmitting: "Speichern …",
+  // Delete confirmation
+  deleteTitle: "Sorte entfernen?",
+  deleteBody: (name: string): string =>
+    `Soll die Pizza-Sorte „${name}" wirklich weg, Chef? Sorten, die in früheren Bestellungen vorkommen, werden nur ausgeblendet (stillgelegt) statt gelöscht – die alten Bestellungen bleiben heil.`,
+  deleteConfirm: "Ja, entfernen",
+  deleting: "Wird entfernt …",
+  cancel: "Abbrechen",
+  // Server-error mappings
+  errorDuplicate: "Diese Sorte gibt es schon, Chef. Wähl einen anderen Namen.",
   errorValidation: "Die Eingaben passen nicht, Chef. Prüf die Felder.",
   errorGeneric: "Hat nicht geklappt, Chef. Versuch es nochmal.",
 } as const;

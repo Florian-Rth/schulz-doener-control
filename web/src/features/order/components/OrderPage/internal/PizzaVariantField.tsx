@@ -13,7 +13,8 @@ import { SectionLabel } from "./SectionLabel";
 export const PizzaVariantField: FC = () => {
   const { form, menu } = useOrderFormContext();
   const { index } = useOrderLineContext();
-  const options = menu.pizzaVariants.map((variant) => ({ value: variant, label: variant }));
+  // The admin-managed catalog already arrives as {value,label} pairs.
+  const options = menu.pizzaVariants;
   const errorId = `lines.${index}.pizzaVariant-error`;
 
   return (

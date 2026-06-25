@@ -1,6 +1,16 @@
 import { z } from "zod";
 import { authCopy } from "./copy";
 
+// The self-registration policy the login/register screens react to. Mirrors the wire values the
+// client config carries (1 Enabled / 2 Disabled / 3 SecretKeyOnly). Kept as a local copy so the
+// auth feature stays self-contained and never imports another feature; the route layer (which may
+// read pwa-gate) feeds the numeric mode into the pages, which compare against these.
+export const AuthRegistrationMode = {
+  Enabled: 1,
+  Disabled: 2,
+  SecretKeyOnly: 3,
+} as const;
+
 // --- API boundary schemas (validated with .parse on every response) ---
 
 // POST /api/auth/login response — no token in the body (it is in the cookie).
@@ -33,6 +43,19 @@ export const SessionSchema = z.object({
 
 // --- Form schemas ---
 
+// The user pastes the full PayPal link from their profile; the backend parses
+// the handle out of it. Optional on registration, so empty input is allowed.
+const PAYPAL_HOSTS = new Set(["paypal.me", "www.paypal.me", "paypal.com", "www.paypal.com"]);
+const isPayPalLink = (value: string): boolean => {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return false;
+  }
+  return url.protocol === "https:" && PAYPAL_HOSTS.has(url.hostname.toLowerCase());
+};
+
 export const LoginFormSchema = z.object({
   username: z.string().trim().toLowerCase().min(1, "Pflichtfeld"),
   password: z.string().min(1, "Pflichtfeld"),
@@ -63,8 +86,8 @@ export const RegisterFormSchema = z
     payPalHandle: z
       .string()
       .trim()
-      .max(40, authCopy.registerPayPalHandleLength)
-      .regex(/^[A-Za-z0-9]*$/, authCopy.registerPayPalHandlePattern),
+      .max(256, authCopy.registerPayPalHandleLength)
+      .refine((value) => value === "" || isPayPalLink(value), authCopy.registerPayPalHandlePattern),
     password: z
       .string()
       .min(10, authCopy.registerPasswordLength)

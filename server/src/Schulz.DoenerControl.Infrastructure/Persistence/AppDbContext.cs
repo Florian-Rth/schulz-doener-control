@@ -12,6 +12,8 @@ public sealed class AppDbContext : DbContext
 
     public DbSet<MenuItem> MenuItems => Set<MenuItem>();
 
+    public DbSet<PizzaVariant> PizzaVariants => Set<PizzaVariant>();
+
     public DbSet<OrderDay> OrderDays => Set<OrderDay>();
 
     public DbSet<Order> Orders => Set<Order>();
@@ -25,6 +27,8 @@ public sealed class AppDbContext : DbContext
     public DbSet<Notification> Notifications => Set<Notification>();
 
     public DbSet<NotificationTemplate> NotificationTemplates => Set<NotificationTemplate>();
+
+    public DbSet<RegistrationMode> RegistrationMode => Set<RegistrationMode>();
 
     public DbSet<PushSubscription> PushSubscriptions => Set<PushSubscription>();
 

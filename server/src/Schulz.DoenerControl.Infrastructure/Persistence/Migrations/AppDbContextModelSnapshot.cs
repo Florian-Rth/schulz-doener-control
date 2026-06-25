@@ -196,6 +196,10 @@ namespace Schulz.DoenerControl.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("OrderDayId")
+                        .IsUnique()
+                        .HasFilter("\"IsPickup\"");
+
                     b.HasIndex("UserId");
 
                     b.HasIndex("OrderDayId", "UserId")
@@ -271,8 +275,8 @@ namespace Schulz.DoenerControl.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("OrderId")
                         .HasColumnType("TEXT");
 
-                    b.Property<int?>("PizzaVariant")
-                        .HasColumnType("INTEGER");
+                    b.Property<Guid?>("PizzaVariantId")
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("PriceCents")
                         .HasColumnType("INTEGER");
@@ -292,9 +296,39 @@ namespace Schulz.DoenerControl.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("OrderId");
 
+                    b.HasIndex("PizzaVariantId");
+
                     b.HasIndex("ProductId");
 
                     b.ToTable("OrderLines", (string)null);
+                });
+
+            modelBuilder.Entity("Schulz.DoenerControl.Core.Entities.PizzaVariant", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Icon")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsAvailable")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PizzaVariants", (string)null);
                 });
 
             modelBuilder.Entity("Schulz.DoenerControl.Core.Entities.PushSubscription", b =>
@@ -369,6 +403,27 @@ namespace Schulz.DoenerControl.Infrastructure.Persistence.Migrations
                     b.ToTable("RefreshTokens", (string)null);
                 });
 
+            modelBuilder.Entity("Schulz.DoenerControl.Core.Entities.RegistrationMode", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Mode")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SecretKey")
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("RegistrationMode", (string)null);
+                });
+
             modelBuilder.Entity("Schulz.DoenerControl.Core.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -408,7 +463,7 @@ namespace Schulz.DoenerControl.Infrastructure.Persistence.Migrations
                         .HasColumnType("BLOB");
 
                     b.Property<string>("PayPalHandle")
-                        .HasMaxLength(128)
+                        .HasMaxLength(256)
                         .HasColumnType("TEXT");
 
                     b.Property<int>("Role")
@@ -526,6 +581,11 @@ namespace Schulz.DoenerControl.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Schulz.DoenerControl.Core.Entities.PizzaVariant", "PizzaVariant")
+                        .WithMany()
+                        .HasForeignKey("PizzaVariantId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Schulz.DoenerControl.Core.Entities.MenuItem", null)
                         .WithMany()
                         .HasForeignKey("ProductId")
@@ -533,6 +593,8 @@ namespace Schulz.DoenerControl.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Order");
+
+                    b.Navigation("PizzaVariant");
                 });
 
             modelBuilder.Entity("Schulz.DoenerControl.Core.Entities.PushSubscription", b =>

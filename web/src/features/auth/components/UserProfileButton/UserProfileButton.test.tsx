@@ -148,6 +148,19 @@ describe("UserProfileButton", () => {
     });
   });
 
+  it("navigiert über 'Impressum' nach /impressum", async () => {
+    useAuthenticatedHandlers();
+    const user = userEvent.setup();
+    const { findByRole, router } = renderApp({ initialPath: "/" });
+
+    await user.click(await findByRole("button", { name: "Profilmenü öffnen" }));
+    await user.click(await findByRole("menuitem", { name: "Impressum" }));
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/impressum");
+    });
+  });
+
   it("zeigt 'Admin-Bereich' für eine Admin-Sitzung", async () => {
     mswServer.use(
       http.get("*/api/auth/me", () =>

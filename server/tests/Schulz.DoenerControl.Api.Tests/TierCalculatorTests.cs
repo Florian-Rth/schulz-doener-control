@@ -283,14 +283,28 @@ public sealed class TierCalculatorTests
     }
 
     [Fact]
-    public void Should_Expose_All_Fifteen_Tiers_In_Priority_Order()
+    public void Should_Expose_The_Packesel_Superlative_Then_All_Fifteen_Pattern_Tiers_In_Priority_Order()
     {
         var catalog = TierCalculator.Catalog;
 
-        Assert.Equal(15, catalog.Count);
-        Assert.Equal("Die Bürowaffe", catalog[0].Name);
-        Assert.Equal("Der Knoblauch-Wolf", catalog[1].Name);
-        Assert.Equal("Der solide Döner-Bürger", catalog[14].Name);
+        // The Packesel superlative leads, then the 15 order-pattern tiers in priority order.
+        Assert.Equal(16, catalog.Count);
+        Assert.Equal("Der Packesel", catalog[0].Name);
+        Assert.Equal("🐎", catalog[0].Emoji);
+        Assert.Equal("Die Bürowaffe", catalog[1].Name);
+        Assert.Equal("Der Knoblauch-Wolf", catalog[2].Name);
+        Assert.Equal("Der solide Döner-Bürger", catalog[15].Name);
+    }
+
+    [Fact]
+    public void Should_Never_Return_The_Packesel_From_Pattern_Computation()
+    {
+        // ComputeTier resolves only order-pattern tiers; the Packesel is awarded globally by the
+        // TierService, never from a single user's order pattern — not even the empty fallback.
+        var tier = TierCalculator.ComputeTier(MarkusHistory());
+
+        Assert.NotEqual("Der Packesel", tier.Name);
+        Assert.Equal("Der Packesel", TierCalculator.Packesel.Name);
     }
 
     [Fact]
@@ -308,8 +322,9 @@ public sealed class TierCalculatorTests
 
         // The Knoblauch-Wolf branch compares garlic >= 0.7; the human-readable condition is rendered
         // from that very constant, so it reads as a real percentage rather than a duplicated literal.
-        Assert.Equal("Knoblauch-Anteil ≥ 70 %", catalog[1].Condition);
-        Assert.Equal("Schärfe-Anteil ≥ 70 %", catalog[2].Condition);
-        Assert.Equal("Wenn keine andere Regel zutrifft", catalog[14].Condition);
+        // Indices are offset by one: the Packesel superlative leads the catalogue at index 0.
+        Assert.Equal("Knoblauch-Anteil ≥ 70 %", catalog[2].Condition);
+        Assert.Equal("Schärfe-Anteil ≥ 70 %", catalog[3].Condition);
+        Assert.Equal("Wenn keine andere Regel zutrifft", catalog[15].Condition);
     }
 }

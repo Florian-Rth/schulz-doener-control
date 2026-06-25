@@ -22,9 +22,10 @@ public sealed class ForceEndDayRequestValidator : Validator<ForceEndDayRequest>
     }
 }
 
-// Admin scrap-and-end ("Döner-Tag beenden"): force-ends a running Döner-Tag in any open state —
-// discards every order and closes it WITHOUT crystallizing debts. Admin-only; the collector's normal
-// debt-generating close is the separate /close endpoint. Returns how many orders were discarded.
+// Scrap-and-end ("Döner-Tag beenden"): force-ends a running Döner-Tag in any open state — discards
+// every order and closes it WITHOUT crystallizing debts. Allowed for an admin OR the day's
+// designated collector (Abholer); the collector's normal debt-generating close is the separate
+// /close endpoint. Authorization is enforced in the service. Returns how many orders were discarded.
 public sealed class ForceEndDay : Endpoint<ForceEndDayRequest, ForceEndDayResponse>
 {
     private readonly IOrderDayService orderDayService;
@@ -38,8 +39,8 @@ public sealed class ForceEndDay : Endpoint<ForceEndDayRequest, ForceEndDayRespon
 
     public override void Configure()
     {
+        // Authenticated, but NOT admin-gated: the service authorizes (admin OR the day's collector).
         Post("/api/order-days/{Id}/force-end");
-        Roles("Admin");
     }
 
     public override async Task HandleAsync(ForceEndDayRequest req, CancellationToken ct)
@@ -50,7 +51,12 @@ public sealed class ForceEndDay : Endpoint<ForceEndDayRequest, ForceEndDayRespon
             return;
         }
 
-        var result = await orderDayService.ForceEndAsync(callerId, req.Id, ct);
+        var result = await orderDayService.ForceEndAsync(
+            callerId,
+            User.IsInRole("Admin"),
+            req.Id,
+            ct
+        );
 
         if (!result.IsSuccess)
         {
@@ -72,6 +78,9 @@ public sealed class ForceEndDay : Endpoint<ForceEndDayRequest, ForceEndDayRespon
         {
             case ResultStatus.NotFound:
                 await Send.NotFoundAsync(ct);
+                break;
+            case ResultStatus.Forbidden:
+                await Send.ForbiddenAsync(ct);
                 break;
             case ResultStatus.Conflict:
                 await Send.ErrorsAsync(StatusCodes.Status409Conflict, cancellation: ct);

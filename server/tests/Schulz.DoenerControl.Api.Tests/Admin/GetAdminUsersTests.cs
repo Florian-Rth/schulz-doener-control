@@ -31,7 +31,8 @@ public sealed class GetAdminUsersTests : DoenerControlTestBase
         Assert.Equal("Admin", chef.Role);
         Assert.True(chef.IsActive);
         Assert.False(chef.MustChangePassword);
-        Assert.Equal("MarkusWagnerHB", chef.PayPalHandle);
+        // The list DTO surfaces the reconstructed base link, not the bare stored handle.
+        Assert.Equal(TestSeeding.ChefPayPalLink, chef.PayPalHandle);
 
         var colleague = body.Users.Single(user => user.Username == "t.klein");
         Assert.Equal("Employee", colleague.Role);

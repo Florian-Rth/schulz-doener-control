@@ -7,6 +7,7 @@ export {
 } from "./api";
 export { ChangePasswordForm } from "./components/ChangePasswordForm";
 export { DisplayNameForm } from "./components/DisplayNameForm";
+export { ImpressumPage } from "./components/ImpressumPage";
 export { PayPalHandleForm } from "./components/PayPalHandleForm";
 export { SettingsPage } from "./components/SettingsPage";
 export {

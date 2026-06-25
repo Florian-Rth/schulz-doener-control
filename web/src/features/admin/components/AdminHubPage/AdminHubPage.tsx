@@ -35,6 +35,12 @@ export const AdminHubPage: FC = () => {
           onClick={() => goTo("/admin/menue")}
         />
         <AdminNavCard
+          icon={cards.pizzaVariants.icon}
+          title={cards.pizzaVariants.title}
+          description={cards.pizzaVariants.description}
+          onClick={() => goTo("/admin/pizza-variants")}
+        />
+        <AdminNavCard
           icon={cards.tiere.icon}
           title={cards.tiere.title}
           description={cards.tiere.description}
@@ -45,6 +51,12 @@ export const AdminHubPage: FC = () => {
           title={cards.benachrichtigungen.title}
           description={cards.benachrichtigungen.description}
           onClick={() => goTo("/admin/benachrichtigungen")}
+        />
+        <AdminNavCard
+          icon={cards.registrierung.icon}
+          title={cards.registrierung.title}
+          description={cards.registrierung.description}
+          onClick={() => goTo("/admin/registrierung")}
         />
         <GhostButton onClick={goHome} sx={{ mt: 0.75 }}>
           {adminCopy.back}

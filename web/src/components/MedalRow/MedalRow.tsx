@@ -11,6 +11,8 @@ interface MedalRowProps {
   count: number;
   /** Top-3 medal emoji; falls back to "{rank}." when absent. */
   medal?: string;
+  /** The person's Döner-Tier glyph (🐺/🐎/…); omitted when they have no tier. */
+  tierEmoji?: string;
   /** Highlights the current user's row (red text + pink tint + "· du"). */
   isMe?: boolean;
   sx?: SxProps<Theme>;
@@ -24,6 +26,7 @@ export const MedalRow: FC<MedalRowProps> = ({
   avatarColorHex,
   count,
   medal,
+  tierEmoji,
   isMe = false,
   sx,
 }) => {
@@ -64,6 +67,11 @@ export const MedalRow: FC<MedalRowProps> = ({
           color: isMe ? theme.palette.primary.main : theme.palette.navy.main,
         })}
       >
+        {tierEmoji !== undefined ? (
+          <Typography component="span" sx={{ mr: 0.5 }}>
+            {tierEmoji}
+          </Typography>
+        ) : null}
         {displayName}
         {isMe ? (
           <Typography

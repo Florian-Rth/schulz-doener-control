@@ -5,8 +5,9 @@ using Xunit;
 
 namespace Schulz.DoenerControl.Api.Tests.Config;
 
-// The PWA install gate runs inside the authenticated app shell, so the SPA fetches its on/off state
-// from /api/config with the session cookie. The flag is operational kill-switch config: an
+// /api/config is the non-secret client config the SPA reads. It is anonymous: the pre-login
+// register/login page must read registrationMode to react to the self-registration policy, so the
+// endpoint must answer without a session. The PWA-gate flag is operational kill-switch config: an
 // environment that has not configured it must report the gate disabled, so a fresh deployment is
 // never accidentally locked to PWA-only.
 public sealed class GetClientConfigTests : DoenerControlTestBase
@@ -33,13 +34,21 @@ public sealed class GetClientConfigTests : DoenerControlTestBase
     }
 
     [Fact]
-    public async Task Should_Return_Unauthorized_When_Not_Authenticated()
+    public async Task Should_Return_Config_Anonymously_When_Not_Authenticated()
     {
         var auth = new AuthTestClient(App.CreateClient());
 
         var response = await auth.GetAsync(ConfigUrl);
 
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<ClientConfigResponseBody>(
+            TestContext.Current.CancellationToken
+        );
+        Assert.NotNull(body);
+        // The seeded default registration policy is Enabled (mode 1), surfaced even without a session
+        // so the pre-login register page can react to it.
+        Assert.Equal(1, body!.RegistrationMode);
+        Assert.False(body.PwaGateEnabled);
     }
 
     private async Task<AuthTestClient> LoginAsChefAsync()
@@ -52,5 +61,5 @@ public sealed class GetClientConfigTests : DoenerControlTestBase
         return auth;
     }
 
-    private sealed record ClientConfigResponseBody(bool PwaGateEnabled);
+    private sealed record ClientConfigResponseBody(bool PwaGateEnabled, int RegistrationMode);
 }

@@ -17,6 +17,11 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
         // One order per user per day; supports upsert until cutoff.
         builder.HasIndex(order => new { order.OrderDayId, order.UserId }).IsUnique();
 
+        // At most ONE pickup (Abholer) per day. Filtered unique index: only the IsPickup=true rows
+        // participate, so non-pickup orders are unconstrained. Keeps Order.IsPickup single in lockstep
+        // with OrderDay.CollectorUserId.
+        builder.HasIndex(order => order.OrderDayId).IsUnique().HasFilter("\"IsPickup\"");
+
         builder
             .HasOne(order => order.OrderDay)
             .WithMany(day => day.Orders)

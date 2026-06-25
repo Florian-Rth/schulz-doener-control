@@ -7,6 +7,9 @@ namespace Schulz.DoenerControl.Application.Calculators;
 // or "{ProductName} {Meat}" for döner; the description joins the sauce label and any extra wish with
 // " · ", falling back to "Standard". Sauces are stored as a flags enum and rendered in the canonical
 // vocabulary order (Kräuter, Knoblauch, Scharf) to match the order screen.
+//
+// The pizza variant is now admin-managed reference data (not a closed enum), so callers resolve the
+// variant Name before calling this pure calculator and pass it in as pizzaVariantName.
 public static class OrderLabelBuilder
 {
     private const string NoSauceLabel = "ohne Soße";
@@ -18,10 +21,10 @@ public static class OrderLabelBuilder
         ProductKind kind,
         string productName,
         MeatType? meat,
-        PizzaVariant? pizzaVariant
+        string? pizzaVariantName
     ) =>
         kind == ProductKind.Pizza
-            ? $"Pizza {PizzaVariantLabel(pizzaVariant)}"
+            ? $"Pizza {pizzaVariantName ?? string.Empty}".TrimEnd()
             : $"{productName} {MeatLabel(meat)}";
 
     [Pure]
@@ -56,18 +59,7 @@ public static class OrderLabelBuilder
         {
             MeatType.Kalb => "Kalb",
             MeatType.Haehnchen => "Hähnchen",
-            _ => string.Empty,
-        };
-
-    [Pure]
-    private static string PizzaVariantLabel(PizzaVariant? variant) =>
-        variant switch
-        {
-            PizzaVariant.Salami => "Salami",
-            PizzaVariant.Margherita => "Margherita",
-            PizzaVariant.Funghi => "Funghi",
-            PizzaVariant.Tonno => "Tonno",
-            PizzaVariant.Hawaii => "Hawaii",
+            MeatType.Gemischt => "Gemischt",
             _ => string.Empty,
         };
 }

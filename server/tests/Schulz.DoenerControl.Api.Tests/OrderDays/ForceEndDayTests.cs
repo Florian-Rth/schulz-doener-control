@@ -9,8 +9,8 @@ using Xunit;
 
 namespace Schulz.DoenerControl.Api.Tests.OrderDays;
 
-// Admin scrap-and-end: an admin may force-end a running Döner-Tag in any state — even one someone
-// opened by accident or that already has orders. It discards every order and closes the day WITHOUT
+// Scrap-and-end: an admin may force-end a running Döner-Tag in any state — even one someone opened by
+// accident or that already has orders. It discards every order and closes the day WITHOUT
 // crystallizing debts (unlike the collector's normal close). Own DB: the unique Date index fits one
 // OrderDay.
 public sealed class ForceEndDayTests : DoenerControlTestBase
@@ -65,14 +65,15 @@ public sealed class ForceEndDayTests : DoenerControlTestBase
     }
 }
 
-// Force-end is admin-only (Roles("Admin")): a regular colleague is rejected with 403.
+// Force-end is allowed for an admin OR the day's collector: a regular colleague who is neither is
+// rejected with 403.
 public sealed class ForceEndDayNonAdminTests : DoenerControlTestBase
 {
     public ForceEndDayNonAdminTests(DoenerControlApp app)
         : base(app) { }
 
     [Fact]
-    public async Task Should_Return_Forbidden_When_Caller_Is_Not_Admin()
+    public async Task Should_Return_Forbidden_When_Caller_Is_Neither_Admin_Nor_Collector()
     {
         var chef = await DebtTestHelpers.LoginAsChefAsync(App);
         var dayId = await DebtTestHelpers.OpenTodayAsync(chef);
@@ -81,6 +82,53 @@ public sealed class ForceEndDayNonAdminTests : DoenerControlTestBase
         var response = await lukas.PostAsync($"/api/order-days/{dayId}/force-end");
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+}
+
+// The day's designated collector (Abholer) — a non-admin — may force-end their own Döner-Tag: orders
+// are pruned, the day closes, and no debts are crystallized (just like the admin scrap-and-end).
+public sealed class ForceEndDayCollectorTests : DoenerControlTestBase
+{
+    public ForceEndDayCollectorTests(DoenerControlApp app)
+        : base(app) { }
+
+    [Fact]
+    public async Task Should_Discard_Orders_And_Close_Day_Without_Debts_When_Collector_Force_Ends()
+    {
+        var chef = await DebtTestHelpers.LoginAsChefAsync(App);
+        var dayId = await DebtTestHelpers.OpenTodayAsync(chef);
+        var lukas = await DebtTestHelpers.LoginAsColleagueAsync(App, "l.brandt", "kollegePw11");
+        await DebtTestHelpers.PlaceOrderAsync(lukas, dayId, priceCents: 750, isPickup: true);
+
+        // Lukas (a non-admin) is the day's designated collector.
+        var lukasId = await DebtTestHelpers.UserIdAsync(App, "l.brandt");
+        await DebtTestHelpers.SeedCollectorAsync(App, dayId, lukasId);
+
+        var response = await lukas.PostAsync($"/api/order-days/{dayId}/force-end");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        using var scope = App.Services.CreateScope();
+        var database = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var day = await database.OrderDays.SingleAsync(
+            d => d.Id == dayId,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(OrderDayStatus.Closed, day.Status);
+        Assert.NotNull(day.ClosedAt);
+        Assert.Null(day.CollectorUserId);
+
+        var remainingOrders = await database.Orders.CountAsync(
+            o => o.OrderDayId == dayId,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(0, remainingOrders);
+
+        var debts = await database.Debts.CountAsync(
+            d => d.OrderDayId == dayId,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(0, debts);
     }
 }
 

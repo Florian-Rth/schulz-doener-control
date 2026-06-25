@@ -21,6 +21,8 @@ interface UseProfileMenuResult {
   goToAdmin: () => void;
   /** Closes the menu and routes to the change-password page. */
   goToChangePassword: () => void;
+  /** Closes the menu and routes to the Impressum (legal notice). */
+  goToImpressum: () => void;
   /**
    * Logs out, then — on success only — clears the cached session and routes to
    * /login. Clearing only in `onSuccess` avoids the logout race: wiping the
@@ -73,6 +75,11 @@ export const useProfileMenu = (): UseProfileMenuResult => {
     void navigate({ to: "/passwort-aendern" });
   };
 
+  const goToImpressum = (): void => {
+    close();
+    void navigate({ to: "/impressum" });
+  };
+
   const logout = (): void => {
     close();
     setLogoutError(null);
@@ -98,6 +105,7 @@ export const useProfileMenu = (): UseProfileMenuResult => {
     goToNotifications,
     goToAdmin,
     goToChangePassword,
+    goToImpressum,
     logout,
     logoutError,
     dismissLogoutError: () => {
