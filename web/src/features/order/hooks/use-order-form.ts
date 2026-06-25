@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { type FieldErrors, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { ApiError } from "@/lib/api";
-import { useSubmitOrder } from "../api";
+import { useDeleteMyOrder, useSubmitOrder } from "../api";
 import { orderCopy } from "../copy";
 import { blankLine } from "../order-context";
 import { OrderFormSchema } from "../schemas";
@@ -27,6 +27,12 @@ interface UseOrderFormResult {
   isSubmitting: boolean;
   serverError: string | null;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  /** True when an order already exists for this day (so it can be withdrawn). */
+  canRemove: boolean;
+  /** Withdraws the existing order, then routes back to the dashboard. */
+  removeOrder: () => void;
+  isRemoving: boolean;
+  removeError: string | null;
 }
 
 const MAX_LINES = 20;
@@ -56,7 +62,9 @@ const buildDefaults = (existing: MyOrder | undefined): OrderForm => {
 export const useOrderForm = ({ dayId, menu, existing }: UseOrderFormArgs): UseOrderFormResult => {
   const navigate = useNavigate();
   const submitMutation = useSubmitOrder();
+  const deleteMutation = useDeleteMyOrder();
   const [serverError, setServerError] = useState<string | null>(null);
+  const [removeError, setRemoveError] = useState<string | null>(null);
 
   const form = useForm<OrderForm>({
     resolver: zodResolver(OrderFormSchema),
@@ -152,6 +160,20 @@ export const useOrderForm = ({ dayId, menu, existing }: UseOrderFormArgs): UseOr
     },
   );
 
+  const canRemove = (existing?.order ?? null) !== null;
+
+  const removeOrder = (): void => {
+    setRemoveError(null);
+    void (async (): Promise<void> => {
+      try {
+        await deleteMutation.mutateAsync(dayId);
+        await navigate({ to: "/" });
+      } catch {
+        setRemoveError(orderCopy.removeFailed);
+      }
+    })();
+  };
+
   return {
     form,
     fields: fieldArray.fields,
@@ -164,5 +186,9 @@ export const useOrderForm = ({ dayId, menu, existing }: UseOrderFormArgs): UseOr
     isSubmitting: submitMutation.isPending,
     serverError,
     onSubmit,
+    canRemove,
+    removeOrder,
+    isRemoving: deleteMutation.isPending,
+    removeError,
   };
 };

@@ -22,6 +22,12 @@ export interface OrderFormContextValue {
   isSubmitting: boolean;
   serverError: string | null;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  /** True when an order already exists for this day (so it can be withdrawn). */
+  canRemove: boolean;
+  /** Withdraws the existing order, then routes back to the dashboard. */
+  removeOrder: () => void;
+  isRemoving: boolean;
+  removeError: string | null;
 }
 
 export const OrderFormContext = createContext<OrderFormContextValue | null>(null);

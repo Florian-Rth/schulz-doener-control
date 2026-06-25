@@ -111,6 +111,52 @@ const seedXsrfCookie = (): void => {
   document.cookie = "dc_xsrf=test-token";
 };
 
+// An existing order for the day, in the OrderDetails wire shape — drives the "remove my order" flow.
+const existingOrder = {
+  hasOrder: true,
+  order: {
+    id: "99999999-9999-9999-9999-999999999999",
+    orderDayId: DAY_ID,
+    lines: [
+      {
+        productId: "doener",
+        productLabel: "Döner Kalb",
+        kind: "doener",
+        meat: "Kalb",
+        pizzaVariant: null,
+        sauces: ["Knoblauch"],
+        priceCents: 750,
+        priceLabel: "7,50 €",
+        extra: null,
+        quantity: 1,
+        lineTotalCents: 750,
+        lineTotalLabel: "7,50 €",
+        detail: "Knoblauch",
+      },
+    ],
+    priceCents: 750,
+    priceLabel: "7,50 €",
+    isPickup: false,
+  },
+};
+
+// Like useOrderHandlers but with an existing order on the day and a DELETE handler that records the
+// withdrawal, so the remove-my-order flow can be exercised end to end.
+const useExistingOrderHandlers = (onDelete: () => void): void => {
+  mswServer.use(
+    http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
+    http.get("*/api/menu", () => HttpResponse.json(menuResponse)),
+    http.get("*/api/order-days/today", () =>
+      HttpResponse.json({ isOpen: true, day: { id: DAY_ID, iCanStillOrder: true } }),
+    ),
+    http.get("*/api/order-days/:dayId/orders/mine", () => HttpResponse.json(existingOrder)),
+    http.delete("*/api/order-days/:dayId/orders/mine", () => {
+      onDelete();
+      return new HttpResponse(null, { status: 204 });
+    }),
+  );
+};
+
 describe("OrderPage", () => {
   it("zeigt die Produkte und deaktiviert den Submit, bis ein Produkt gewählt ist", async () => {
     useOrderHandlers();
@@ -288,5 +334,35 @@ describe("OrderPage", () => {
     expect(body.lines[0].meat).toBe("Kalb");
     expect(body.lines[0].priceCents).toBe(750);
     expect(body.lines[0].quantity).toBe(2);
+  });
+
+  it("blendet 'Meine Bestellung entfernen' aus, wenn noch keine Bestellung existiert", async () => {
+    useOrderHandlers();
+    const { findByRole, queryByRole } = renderApp({ initialPath: "/order" });
+
+    // Wait for the form to mount, then assert the withdraw action is absent without an order.
+    await findByRole("button", { name: /Bestellung abgeben/ });
+    expect(queryByRole("button", { name: "Meine Bestellung entfernen" })).not.toBeInTheDocument();
+  });
+
+  it("entfernt die bestehende Bestellung nach Bestätigung und navigiert zur Übersicht", async () => {
+    seedXsrfCookie();
+    let deleteCalled = false;
+    useExistingOrderHandlers(() => {
+      deleteCalled = true;
+    });
+    const user = userEvent.setup();
+    const { findByRole, router } = renderApp({ initialPath: "/order" });
+
+    await user.click(await findByRole("button", { name: "Meine Bestellung entfernen" }));
+    // Confirm in the dialog.
+    await user.click(await findByRole("button", { name: "Ja, entfernen" }));
+
+    await waitFor(() => {
+      expect(deleteCalled).toBe(true);
+    });
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/");
+    });
   });
 });

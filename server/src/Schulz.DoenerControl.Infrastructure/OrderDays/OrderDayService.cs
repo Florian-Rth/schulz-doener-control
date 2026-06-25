@@ -136,7 +136,8 @@ public sealed class OrderDayService : IOrderDayService
             return Result<CloseDayResult>.NotFound("Döner-Tag nicht gefunden.");
 
         // Only the designated collector may close the day. No collector means nobody may — the same
-        // "one designated payer" rule that guards close-ordering.
+        // "one designated payer" rule that guards close-ordering. (An admin scrap-and-end is the
+        // separate ForceEnd action.)
         if (day.CollectorUserId != command.CallerUserId)
             return Result<CloseDayResult>.Forbidden(
                 "Nur der Abholer darf den Döner-Tag schließen."
@@ -161,6 +162,42 @@ public sealed class OrderDayService : IOrderDayService
                 await ProjectAsync(reloaded!, command.CallerUserId, ct),
                 debtsCreated
             )
+        );
+    }
+
+    public async Task<Result<ForceEndDayResult>> ForceEndAsync(
+        Guid callerUserId,
+        Guid orderDayId,
+        CancellationToken ct
+    )
+    {
+        var day = await database.OrderDays.FirstOrDefaultAsync(d => d.Id == orderDayId, ct);
+        if (day is null)
+            return Result<ForceEndDayResult>.NotFound("Döner-Tag nicht gefunden.");
+
+        if (day.Status == OrderDayStatus.Closed)
+            return Result<ForceEndDayResult>.Conflict("Der Döner-Tag ist bereits geschlossen.");
+
+        // Admin scrap-and-end: discard every order (and its lines) and close the day WITHOUT creating
+        // debts — an aborted day leaves nobody owing anything. Vacate the collector designation too.
+        // Lines are removed explicitly before the orders so the required FK never dangles mid-save.
+        var orders = await database.Orders.Where(o => o.OrderDayId == orderDayId).ToListAsync(ct);
+        var orderIds = orders.Select(order => order.Id).ToList();
+        var lines = await database
+            .OrderLines.Where(line => orderIds.Contains(line.OrderId))
+            .ToListAsync(ct);
+        database.OrderLines.RemoveRange(lines);
+        database.Orders.RemoveRange(orders);
+
+        day.CollectorUserId = null;
+        day.Status = OrderDayStatus.Closed;
+        day.ClosedAt = clock.UtcNow();
+
+        await database.SaveChangesAsync(ct);
+
+        var reloaded = await LoadDay(d => d.Id == day.Id, ct);
+        return Result<ForceEndDayResult>.Success(
+            new ForceEndDayResult(await ProjectAsync(reloaded!, callerUserId, ct), orders.Count)
         );
     }
 

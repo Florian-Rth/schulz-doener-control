@@ -20,6 +20,7 @@ import {
 import { useDashboardContext } from "../../../dashboard-context";
 import { useDayStatus } from "../../../hooks/use-day-status";
 import type { DashboardDay } from "../../../types";
+import { AdminEndDayButton } from "./AdminEndDayButton";
 import { OrderRowItem } from "./OrderRowItem";
 import { TakeOverCollectorButton } from "./TakeOverCollectorButton";
 
@@ -223,7 +224,11 @@ export const DayOpenCard: FC<DayOpenCardProps> = ({ day }) => {
           startIcon={day.iCanStillOrder ? "add" : "lock"}
           sx={{ mt: 2 }}
         >
-          {day.iCanStillOrder ? homeCopy.goOrder : homeCopy.orderingClosedCta}
+          {day.iCanStillOrder
+            ? iHaveOrdered
+              ? homeCopy.editOrder
+              : homeCopy.goOrder
+            : homeCopy.orderingClosedCta}
         </PrimaryButton>
         {!day.iCanStillOrder ? (
           <Stack
@@ -249,6 +254,7 @@ export const DayOpenCard: FC<DayOpenCardProps> = ({ day }) => {
           </GhostButton>
         ) : null}
         {collectorControls}
+        <AdminEndDayButton />
       </Stack>
     </Paper>
   );

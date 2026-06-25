@@ -28,6 +28,11 @@ export interface DashboardContextValue {
   /** Collector-only: closes the day and creates the debts. */
   closeDay: (dayId: string) => void;
   isClosingDay: boolean;
+  /** True when the signed-in user is an admin (may force-end any running day). */
+  isAdmin: boolean;
+  /** Admin-only: scrap-and-end the running day — discards all orders, no debts. */
+  forceEndDay: (dayId: string) => void;
+  isForceEndingDay: boolean;
   /** Become the designated Abholer for the running day ("Ich hole heute ab" / take-over). */
   claimCollector: (dayId: string) => void;
   isClaimingCollector: boolean;

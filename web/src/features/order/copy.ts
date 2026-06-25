@@ -24,6 +24,14 @@ export const orderCopy = {
   cutoffPassed: "Der Abholer hat die Bestellung geschlossen — heute geht nichts mehr, Chef.",
   submitFailed: "Bestellung konnte nicht gespeichert werden, Chef.",
   insider: "INSIDER",
+  // Withdraw the caller's order (e.g. they have to leave for a meeting). Only while ordering is open.
+  removeOrder: "Meine Bestellung entfernen",
+  removeConfirmTitle: "Bestellung entfernen?",
+  removeConfirmBody: "Dann bist du heute raus, Chef — deine Bestellung wird komplett gelöscht.",
+  removeConfirmCta: "Ja, entfernen",
+  removePending: "Wird entfernt …",
+  removeCancel: "Doch nicht",
+  removeFailed: "Bestellung konnte nicht entfernt werden, Chef.",
 } as const;
 
 // UI labels for the meat enum (ASCII enum value -> accented German label).

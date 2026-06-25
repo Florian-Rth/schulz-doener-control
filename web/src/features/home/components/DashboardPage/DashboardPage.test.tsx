@@ -353,6 +353,49 @@ describe("DashboardPage", () => {
     expect(await findByText("Döner-Tag läuft")).toBeInTheDocument();
     expect(queryByRole("button", { name: "Bestellung schließen" })).not.toBeInTheDocument();
     expect(queryByRole("button", { name: "Döner-Tag schließen" })).not.toBeInTheDocument();
+    // A non-admin non-collector also gets no admin force-end button.
+    expect(queryByRole("button", { name: "Döner-Tag beenden" })).not.toBeInTheDocument();
+  });
+
+  it("lässt einen Admin den Döner-Tag nach Bestätigung force-enden (verwirft Bestellungen, keine Schulden)", async () => {
+    let forceEndHit = false;
+    mswServer.use(
+      http.get("*/api/auth/me", () =>
+        HttpResponse.json({ ...authenticatedSession, role: "Admin" }),
+      ),
+      http.get("*/api/debts/history", () => HttpResponse.json({ payments: [] })),
+      http.get("*/api/dashboard", () =>
+        HttpResponse.json(buildDashboard({ day: { ...openDay, amICollector: false } })),
+      ),
+      http.post("*/api/order-days/day-1/force-end", () => {
+        forceEndHit = true;
+        return HttpResponse.json({ day: {}, removedOrders: 2 });
+      }),
+    );
+
+    const { findByRole } = renderApp({ initialPath: "/" });
+    const user = userEvent.setup();
+
+    // The destructive action confirms before firing.
+    await user.click(await findByRole("button", { name: "Döner-Tag beenden" }));
+    await user.click(await findByRole("button", { name: "Ja, beenden" }));
+
+    await waitFor(() => {
+      expect(forceEndHit).toBe(true);
+    });
+  });
+
+  it("beschriftet die Bestell-CTA als 'ändern', wenn der Nutzer schon bestellt hat", async () => {
+    // One order belongs to the caller (isMine) → the CTA becomes the discoverable edit entry point.
+    useDashboardHandlers(
+      buildDashboard({
+        day: { ...openDay, orders: [{ ...openDay.orders[0], isMine: true }] },
+      }),
+    );
+    const { findByRole, queryByRole } = renderApp({ initialPath: "/" });
+
+    expect(await findByRole("button", { name: "Meine Bestellung ändern" })).toBeInTheDocument();
+    expect(queryByRole("button", { name: "Meine Bestellung abgeben" })).not.toBeInTheDocument();
   });
 
   it("zeigt dem Abholer bei offener Bestellung 'Bestellung schließen' und feuert den richtigen POST", async () => {

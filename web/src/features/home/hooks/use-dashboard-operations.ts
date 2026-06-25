@@ -4,6 +4,7 @@ import {
   useClaimCollector,
   useCloseDay,
   useCloseOrdering,
+  useForceEndDay,
   useOpenDay,
   useSettleDebt,
 } from "../api";
@@ -17,6 +18,9 @@ export interface DashboardOperations {
   isClosingOrdering: boolean;
   closeDay: (dayId: string) => void;
   isClosingDay: boolean;
+  /** Admin-only: scrap-and-end the running day — discards all orders, no debts. */
+  forceEndDay: (dayId: string) => void;
+  isForceEndingDay: boolean;
   /** Become the designated Abholer for the running day ("Ich hole heute ab" / take-over). */
   claimCollector: (dayId: string) => void;
   isClaimingCollector: boolean;
@@ -52,6 +56,7 @@ export const useDashboardOperations = ({
   };
   const closeOrderingMutation = useCloseOrdering({ onError: showError });
   const closeDayMutation = useCloseDay({ onError: showError });
+  const forceEndDayMutation = useForceEndDay({ onError: showError });
   const claimCollectorMutation = useClaimCollector({ onError: showError });
   const settleMutation = useSettleDebt();
   // The debt row whose settle is in flight, so only that row disables its
@@ -86,6 +91,11 @@ export const useDashboardOperations = ({
       closeDayMutation.mutate(dayId);
     },
     isClosingDay: closeDayMutation.isPending,
+    forceEndDay: (dayId: string) => {
+      setErrorToast(null);
+      forceEndDayMutation.mutate(dayId);
+    },
+    isForceEndingDay: forceEndDayMutation.isPending,
     claimCollector: (dayId: string) => {
       setErrorToast(null);
       claimCollectorMutation.mutate(dayId);

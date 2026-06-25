@@ -114,7 +114,8 @@ public sealed class CloseDayNoCollectorTests : DoenerControlTestBase
         var chef = await DebtTestHelpers.LoginAsChefAsync(App);
         var dayId = await DebtTestHelpers.OpenTodayAsync(chef);
 
-        // No collector designated → closing the day is forbidden for everyone, even the opener.
+        // No collector designated → closing the day is forbidden for everyone, even the opener. An
+        // admin scrap-and-end is the separate ForceEnd action (see ForceEndDayTests).
         var response = await chef.PostAsync($"/api/order-days/{dayId}/close");
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);

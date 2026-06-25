@@ -2,6 +2,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { FC } from "react";
 import { PageLayout, PrimaryButton } from "@/components";
+import { useAuth } from "@/features/auth";
 import { useDashboard } from "../api";
 import { homeCopy } from "../copy";
 import { DashboardContext, type DashboardContextValue } from "../dashboard-context";
@@ -50,6 +51,7 @@ interface ReadyProps {
 // data slices + the action operations into the context and renders the page.
 const DashboardReady: FC<ReadyProps> = ({ dashboard }) => {
   const operations = useDashboardOperations({ serverToast: dashboard.toast });
+  const { user } = useAuth();
 
   const value: DashboardContextValue = {
     firstName: dashboard.firstName,
@@ -68,6 +70,11 @@ const DashboardReady: FC<ReadyProps> = ({ dashboard }) => {
     isClosingOrdering: operations.isClosingOrdering,
     closeDay: operations.closeDay,
     isClosingDay: operations.isClosingDay,
+    // Case-insensitive like the auth route guard (ensureRole) — the role string's casing is owned by
+    // the backend; an admin may force-end any running day.
+    isAdmin: (user?.role ?? "").toLowerCase() === "admin",
+    forceEndDay: operations.forceEndDay,
+    isForceEndingDay: operations.isForceEndingDay,
     claimCollector: operations.claimCollector,
     isClaimingCollector: operations.isClaimingCollector,
     settle: operations.settle,

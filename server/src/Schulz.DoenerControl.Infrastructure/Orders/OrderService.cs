@@ -125,6 +125,15 @@ public sealed class OrderService : IOrderService
         if (order is null)
             return Result.NotFound("Keine Bestellung gefunden.");
 
+        // Withdrawing leaves the day entirely (no pickup), so reconcile the single Abholer: if the
+        // leaver was the designated collector, vacate it — otherwise debt generation at close would
+        // credit a non-participant. `day` is tracked, so this persists on the SaveChanges below.
+        day.CollectorUserId = CollectorDesignation.Reconcile(
+            day.CollectorUserId,
+            command.CallerUserId,
+            isPickup: false
+        );
+
         database.Orders.Remove(order);
         await database.SaveChangesAsync(ct);
         return Result.Success();

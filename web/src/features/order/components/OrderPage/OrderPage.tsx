@@ -9,6 +9,7 @@ import { useOrderFormContext } from "../../order-context";
 import { OrderHeader } from "./internal/OrderHeader";
 import { OrderLineCard } from "./internal/OrderLineCard";
 import { PickupToggleCard } from "./internal/PickupToggleCard";
+import { RemoveOrderButton } from "./internal/RemoveOrderButton";
 
 // Layout shell for the order screen. Renders one OrderLineCard per field-array
 // entry, an add-line control, the running order total, the pickup toggle and the
@@ -73,6 +74,8 @@ export const OrderPage: FC = () => {
             {orderCopy.submit}
           </PrimaryButton>
         </Stack>
+
+        <RemoveOrderButton />
       </PageLayout.Content>
     </PageLayout>
   );

@@ -102,6 +102,26 @@ export const useCloseDay = ({ onError }: CloseMutationOptions) => {
   });
 };
 
+// POST /api/order-days/{id}/force-end — admin scrap-and-end: discards all orders and closes the day
+// WITHOUT debts (unlike /close). Admin-only on the server. We invalidate so the section swaps to the
+// closed state on refetch.
+const forceEndDay = async (dayId: string): Promise<void> => {
+  await apiClient.post(`/api/order-days/${dayId}/force-end`);
+};
+
+export const useForceEndDay = ({ onError }: CloseMutationOptions) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: forceEndDay,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
+    },
+    onError: () => {
+      onError(homeCopy.adminEndFailed);
+    },
+  });
+};
+
 // POST /api/debts/{id}/settle — the caller's personal "ich hab bezahlt"
 // confirmation (FEATURE 4). One-way: the server marks the debt Settled and it
 // drops off the open-debts list, so we invalidate the dashboard to let it

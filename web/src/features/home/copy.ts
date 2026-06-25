@@ -28,6 +28,9 @@ export const homeCopy = {
   orderingOpenSubtitle: "Bestellung läuft · noch offen",
   abholerLabel: "Abholer heute:",
   goOrder: "Meine Bestellung abgeben",
+  // Shown instead of goOrder once the caller already has an order — the order form pre-fills the
+  // existing order and the submit upserts it, so this is the discoverable "edit" entry point.
+  editOrder: "Meine Bestellung ändern",
   // CTA + info line once the collector has closed ordering (FEATURE 4).
   orderingClosedCta: "Bestellung geschlossen",
   orderingClosedInfo: "Der Abholer hat die Bestellung geschlossen, Chef.",
@@ -63,6 +66,16 @@ export const homeCopy = {
   closeDay: "Döner-Tag schließen",
   closeOrderingFailed: "Bestellung konnte nicht geschlossen werden, Chef.",
   closeDayFailed: "Döner-Tag konnte nicht geschlossen werden, Chef.",
+  // Admin-only scrap-and-end: discards all orders and ends the day (no debts). Available in any
+  // state — e.g. an accidental open, or a day to abort. Destructive → confirm before firing.
+  adminEndDay: "Döner-Tag beenden",
+  adminEndDialogTitle: "Döner-Tag beenden?",
+  adminEndDialogBody:
+    "Das verwirft ALLE Bestellungen und beendet den Tag, Chef. Es entstehen keine Schulden — und rückgängig geht's nicht.",
+  adminEndConfirm: "Ja, beenden",
+  adminEndPending: "Wird beendet …",
+  adminEndCancel: "Doch nicht",
+  adminEndFailed: "Döner-Tag konnte nicht beendet werden, Chef.",
   // Leaderboard
   leaderboardTitle: "Döner-Bestenliste",
   // Open payments

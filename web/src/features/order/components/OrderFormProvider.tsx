@@ -34,6 +34,10 @@ const OrderFormReady: FC<ReadyProps> = ({ dayId, menu }) => {
     isSubmitting: form.isSubmitting,
     serverError: form.serverError,
     onSubmit: form.onSubmit,
+    canRemove: form.canRemove,
+    removeOrder: form.removeOrder,
+    isRemoving: form.isRemoving,
+    removeError: form.removeError,
   };
 
   return (

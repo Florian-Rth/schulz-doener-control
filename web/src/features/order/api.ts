@@ -76,3 +76,21 @@ export const useSubmitOrder = () => {
     },
   });
 };
+
+const deleteOrder = async (dayId: string): Promise<void> => {
+  await apiClient.delete(`/api/order-days/${dayId}/orders/mine`);
+};
+
+// Withdraws the caller's order for the day. Invalidates the order queries + the dashboard aggregate
+// (raw key, mirroring useSubmitOrder) so the running-day participant list/own-order state refresh.
+export const useDeleteMyOrder = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteOrder,
+    onSuccess: (_data, dayId) => {
+      void queryClient.invalidateQueries({ queryKey: orderKeys.today });
+      void queryClient.invalidateQueries({ queryKey: orderKeys.myOrder(dayId) });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+  });
+};
