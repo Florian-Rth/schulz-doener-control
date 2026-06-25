@@ -9,6 +9,9 @@ import { StrictMode, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { AuthProvider, useAuth } from "@/features/auth";
 import { registerHardLogout } from "@/lib/api";
+// Side-effect import: starts capturing the `beforeinstallprompt` event early (it fires before
+// React mounts) so the PWA install guide can offer a one-tap install on Android / Chromium desktop.
+import "@/lib/pwa/install-prompt";
 import { registerServiceWorker } from "@/lib/push";
 import { queryClient } from "@/lib/query-client";
 import { router } from "@/lib/router";

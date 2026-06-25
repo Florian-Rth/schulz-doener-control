@@ -1,7 +1,17 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { ensureSessionGate } from "@/features/auth";
+import { PwaGate } from "@/features/pwa-gate";
 
 const CHANGE_PASSWORD_PATH = "/passwort-aendern";
+
+// The authenticated app shell, wrapped in the PWA install gate. When the gate is enabled every page
+// under /_auth is reachable only as an installed PWA (or via the dev bypass); login & register sit
+// outside this layout and stay browser-accessible, and /passwort-aendern is exempted inside the gate.
+const AuthShell = () => (
+  <PwaGate>
+    <Outlet />
+  </PwaGate>
+);
 
 // Pathless layout route = the auth guard. `beforeLoad` ensures the session is
 // resolved (from cache or a `GET /api/auth/me` fetch) via the router's
@@ -31,5 +41,5 @@ export const Route = createFileRoute("/_auth")({
       throw redirect({ to: CHANGE_PASSWORD_PATH });
     }
   },
-  component: Outlet,
+  component: AuthShell,
 });

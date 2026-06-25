@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  detectInstallPlatform,
   isIosDevice,
   isPushSupported,
   isStandalonePwa,
@@ -16,6 +17,8 @@ const IPADOS_UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15";
 const MAC_DESKTOP_UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
+const ANDROID_UA =
+  "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36";
 
 // Stubs the device-detection globals the iOS helpers read.
 const stubDevice = (opts: {
@@ -254,5 +257,26 @@ describe("iOS-Erkennung", () => {
   it("needsIosInstall ist false auf einem Nicht-iOS-Gerät", () => {
     stubDevice({ userAgent: MAC_DESKTOP_UA, maxTouchPoints: 0 });
     expect(needsIosInstall()).toBe(false);
+  });
+});
+
+describe("detectInstallPlatform", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("erkennt iOS auf einem iPhone", () => {
+    stubDevice({ userAgent: IPHONE_UA, maxTouchPoints: 5 });
+    expect(detectInstallPlatform()).toBe("ios");
+  });
+
+  it("erkennt Android anhand des User-Agents", () => {
+    stubDevice({ userAgent: ANDROID_UA, maxTouchPoints: 5 });
+    expect(detectInstallPlatform()).toBe("android");
+  });
+
+  it("fällt auf Desktop zurück (Mac ohne Touch)", () => {
+    stubDevice({ userAgent: MAC_DESKTOP_UA, maxTouchPoints: 0 });
+    expect(detectInstallPlatform()).toBe("desktop");
   });
 });

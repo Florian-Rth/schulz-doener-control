@@ -24,6 +24,9 @@ services:
       # Optional web-push (leave empty to disable).
       Push__VapidPublicKey: ${VAPID_PUBLIC_KEY:-}
       Push__VapidPrivateKey: ${VAPID_PRIVATE_KEY:-}
+      # PWA install gate: when true the app is usable only as an installed PWA
+      # (browser tabs see the install guide). Defaults off; flip to true to enforce.
+      Auth__PwaGateEnabled: ${PWA_GATE_ENABLED:-false}
     volumes:
       - doener-data:/data
     expose:

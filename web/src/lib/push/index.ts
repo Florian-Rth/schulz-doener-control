@@ -1,6 +1,7 @@
-export type { PushSubscriptionPayload, SubscribeResult } from "./push-browser";
+export type { InstallPlatform, PushSubscriptionPayload, SubscribeResult } from "./push-browser";
 export {
   currentPermission,
+  detectInstallPlatform,
   isIosDevice,
   isPushSupported,
   isStandalonePwa,

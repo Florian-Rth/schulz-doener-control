@@ -2,6 +2,7 @@ using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Schulz.DoenerControl.Application.Config;
 using Schulz.DoenerControl.Application.Dashboard;
 using Schulz.DoenerControl.Application.Debts;
 using Schulz.DoenerControl.Application.Leaderboards;
@@ -14,6 +15,7 @@ using Schulz.DoenerControl.Application.Push;
 using Schulz.DoenerControl.Application.Security;
 using Schulz.DoenerControl.Application.Tiers;
 using Schulz.DoenerControl.Application.Users;
+using Schulz.DoenerControl.Infrastructure.Config;
 using Schulz.DoenerControl.Infrastructure.Dashboard;
 using Schulz.DoenerControl.Infrastructure.Debts;
 using Schulz.DoenerControl.Infrastructure.Leaderboards;
@@ -51,6 +53,7 @@ public static class DependencyInjection
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IUserService, UserService>();
         services.AddRegistration(configuration);
+        services.AddClientConfig(configuration);
         services.AddScoped<IProfileService, ProfileService>();
         services.AddScoped<IMenuService, MenuService>();
         services.AddScoped<INotificationTemplateService, NotificationTemplateService>();
@@ -100,6 +103,28 @@ public static class DependencyInjection
         {
             options.AvatarColorHex = avatarColorHex;
         }
+    }
+
+    private static void AddClientConfig(
+        this IServiceCollection services,
+        IConfiguration configuration
+    )
+    {
+        services
+            .AddOptions<ClientConfigOptions>()
+            .Configure(options => BindClientConfig(configuration, options));
+
+        // Read-only config with no DbContext dependency, so a singleton matches PushKeyService.
+        services.AddSingleton<IClientConfigService, ClientConfigService>();
+    }
+
+    private static void BindClientConfig(IConfiguration configuration, ClientConfigOptions options)
+    {
+        options.PwaGateEnabled =
+            bool.TryParse(
+                configuration[ClientConfigOptions.PwaGateEnabledConfigKey],
+                out var enabled
+            ) && enabled;
     }
 
     private static void AddRegistration(

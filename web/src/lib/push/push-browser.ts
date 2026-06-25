@@ -155,3 +155,18 @@ export const isStandalonePwa = (): boolean => {
 // True on an iPhone/iPad opened in a browser tab (not yet installed): Web Push is
 // unavailable here and only works once the app is added to the Home Screen.
 export const needsIosInstall = (): boolean => isIosDevice() && !isStandalonePwa();
+
+// The install-guide platforms whose "add to Home Screen" / "install app" steps differ.
+export type InstallPlatform = "ios" | "android" | "desktop";
+
+// Classifies the device so the install guide shows the right steps. iOS first (isIosDevice also
+// covers iPadOS's desktop-Mac user agent), then Android, otherwise desktop.
+export const detectInstallPlatform = (): InstallPlatform => {
+  if (isIosDevice()) {
+    return "ios";
+  }
+  if (typeof navigator !== "undefined" && /Android/.test(navigator.userAgent)) {
+    return "android";
+  }
+  return "desktop";
+};
