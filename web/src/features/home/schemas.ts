@@ -130,6 +130,34 @@ export const PaymentHistorySchema = z.object({
   payments: z.array(PaymentHistoryRowSchema),
 });
 
+// GET /api/debts/receivables (FEATURE C-2) — what the collector is still owed:
+// open debts others have toward them, plus the already-settled ones. A
+// standalone read-only payload (NOT part of the dashboard aggregate). Open rows
+// come first, then settled. `amountLabel`/`*TotalLabel` already carry the
+// trailing " €" → rendered as-is. `settledAt`/`dayLabel` are null on open rows.
+const ReceivableRowSchema = z.object({
+  id: z.string(),
+  debtorName: z.string(),
+  initials: z.string(),
+  avatarColorHex: z.string(),
+  reason: z.string(),
+  dayLabel: z.string().nullable(),
+  amountCents: z.number().int(),
+  amountLabel: z.string(),
+  isSettled: z.boolean(),
+  settledAt: z.string().nullable(),
+});
+
+export const ReceivablesSchema = z.object({
+  openCount: z.number().int(),
+  openTotalCents: z.number().int(),
+  openTotalLabel: z.string(),
+  settledCount: z.number().int(),
+  settledTotalCents: z.number().int(),
+  settledTotalLabel: z.string(),
+  rows: z.array(ReceivableRowSchema),
+});
+
 export const DashboardSchema = z.object({
   firstName: z.string(),
   displayName: z.string(),

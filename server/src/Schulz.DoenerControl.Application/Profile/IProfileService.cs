@@ -15,4 +15,9 @@ public interface IProfileService
         UpdateDisplayNameCommand command,
         CancellationToken ct
     );
+
+    Task<Result<ProfileDetails>> UpdateWorkEmailAsync(
+        UpdateWorkEmailCommand command,
+        CancellationToken ct
+    );
 }

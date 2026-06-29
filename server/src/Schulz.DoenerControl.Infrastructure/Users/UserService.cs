@@ -136,6 +136,7 @@ public sealed class UserService : IUserService
             NormalizedUserName = normalized,
             DisplayName = command.DisplayName.Trim(),
             PayPalHandle = HandleFromLink(command.PayPalHandle),
+            WorkEmail = NormalizeWorkEmail(command.WorkEmail),
             PasswordHash = hashed.Hash,
             PasswordSalt = hashed.Salt,
             // Self-registration always yields a plain Employee: the role is never client-selectable.
@@ -313,6 +314,10 @@ public sealed class UserService : IUserService
     // The request carries the user's full PayPal LINK; parse out and store only the bare handle.
     private static string? HandleFromLink(string? link) => PayPalHandleParsing.FromLink(link);
 
+    // Work email is stored verbatim (trimmed); a blank value is normalised to null = "not provided".
+    private static string? NormalizeWorkEmail(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
     private static bool IsUniqueViolation(DbUpdateException ex) =>
         ex.InnerException is SqliteException { SqliteErrorCode: 19 };
 
@@ -327,6 +332,7 @@ public sealed class UserService : IUserService
             // The stored value is the bare handle; surface the reconstructed link the user entered.
             PayPalLinkBuilder.BuildLink(user.PayPalHandle, null),
             !string.IsNullOrWhiteSpace(user.PayPalHandle),
+            user.WorkEmail,
             user.MustChangePassword
         );
 

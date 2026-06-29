@@ -1,3 +1,5 @@
+import { waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { HttpResponse, http } from "msw";
 import { describe, expect, it } from "vitest";
 import type { Dashboard } from "@/features/home";
@@ -134,6 +136,29 @@ const useDashboardHandlers = (dashboard: Dashboard): void => {
   mswServer.use(
     http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
     http.get("*/api/dashboard", () => HttpResponse.json(dashboard)),
+    // The /druck route reads the client config (for the e-mail-PDF flag) and the
+    // PWA gate does too; default emailPdfEnabled off so the e-mail button is absent.
+    http.get("*/api/config", () =>
+      HttpResponse.json({ pwaGateEnabled: false, registrationMode: 1, emailPdfEnabled: false }),
+    ),
+  );
+};
+
+// D-4 wiring: vary the client-config `emailPdfEnabled` flag (threaded in from
+// the /druck route) and the session's `workEmail`. A non-null work e-mail means
+// the caller may e-mail the list to themselves.
+interface EmailHandlerOptions {
+  emailPdfEnabled: boolean;
+  workEmail: string | null;
+}
+
+const useEmailHandlers = ({ emailPdfEnabled, workEmail }: EmailHandlerOptions): void => {
+  mswServer.use(
+    http.get("*/api/auth/me", () => HttpResponse.json({ ...authenticatedSession, workEmail })),
+    http.get("*/api/dashboard", () => HttpResponse.json(buildDashboard())),
+    http.get("*/api/config", () =>
+      HttpResponse.json({ pwaGateEnabled: false, registrationMode: 1, emailPdfEnabled }),
+    ),
   );
 };
 
@@ -176,5 +201,55 @@ describe("PrintListPage", () => {
     const { findByText } = renderApp({ initialPath: "/druck" });
 
     expect(await findByText(/Heute läuft kein Döner-Tag/)).toBeInTheDocument();
+  });
+
+  it("zeigt den Mail-Button, wenn das Feature aktiv ist und eine Arbeits-Mail hinterlegt ist", async () => {
+    useEmailHandlers({ emailPdfEnabled: true, workEmail: "markus@schulz.st" });
+    const { findByRole, queryByText } = renderApp({ initialPath: "/druck" });
+
+    expect(
+      await findByRole("button", { name: "Liste an meine Mail schicken" }),
+    ).toBeInTheDocument();
+    // No settings hint when the work e-mail is already on file.
+    expect(queryByText(/Hinterlege zuerst deine Arbeits-Mail/)).not.toBeInTheDocument();
+  });
+
+  it("zeigt statt des Buttons einen Einstellungs-Hinweis, wenn keine Arbeits-Mail hinterlegt ist", async () => {
+    useEmailHandlers({ emailPdfEnabled: true, workEmail: null });
+    const { findByText, findByRole, queryByRole } = renderApp({ initialPath: "/druck" });
+
+    expect(await findByText(/Hinterlege zuerst deine Arbeits-Mail/)).toBeInTheDocument();
+    expect(await findByRole("link", { name: "Zu den Einstellungen" })).toBeInTheDocument();
+    expect(queryByRole("button", { name: "Liste an meine Mail schicken" })).not.toBeInTheDocument();
+  });
+
+  it("zeigt weder Button noch Hinweis, wenn das Feature deaktiviert ist", async () => {
+    useEmailHandlers({ emailPdfEnabled: false, workEmail: "markus@schulz.st" });
+    const { findByText, queryByRole, queryByText } = renderApp({ initialPath: "/druck" });
+
+    // wait for the sheet, then assert both the button and the hint are absent
+    expect(await findByText("Gesamt")).toBeInTheDocument();
+    expect(queryByRole("button", { name: "Liste an meine Mail schicken" })).not.toBeInTheDocument();
+    expect(queryByText(/Hinterlege zuerst deine Arbeits-Mail/)).not.toBeInTheDocument();
+  });
+
+  it("verschickt die Liste und zeigt eine Erfolgs-Toast mit der Adresse", async () => {
+    let emailHit = false;
+    useEmailHandlers({ emailPdfEnabled: true, workEmail: "markus@schulz.st" });
+    mswServer.use(
+      http.post("*/api/order-days/day-1/email-pdf", () => {
+        emailHit = true;
+        return HttpResponse.json({ sentToAddress: "markus@schulz.st" });
+      }),
+    );
+    const { findByRole, findByText } = renderApp({ initialPath: "/druck" });
+    const user = userEvent.setup();
+
+    await user.click(await findByRole("button", { name: "Liste an meine Mail schicken" }));
+
+    await waitFor(() => {
+      expect(emailHit).toBe(true);
+    });
+    expect(await findByText("Liste ist unterwegs an markus@schulz.st, Chef.")).toBeInTheDocument();
   });
 });

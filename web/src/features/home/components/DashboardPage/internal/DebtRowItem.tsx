@@ -39,7 +39,7 @@ export const DebtRowItem: FC<DebtRowItemProps> = ({ debt, divider }) => {
         <Typography sx={{ fontSize: "0.875rem", fontWeight: 700, color: "navy.main" }}>
           {debt.amountLabel} €
         </Typography>
-        <Stack direction="row" sx={{ alignItems: "center", gap: 0.75 }}>
+        <Stack direction="row" sx={{ alignItems: "center", gap: 1.25 }}>
           <SettleDebtButton debtId={debt.id} />
           {debt.paypalUrl !== null ? (
             <PayPalButton href={debt.paypalUrl} size="pill">

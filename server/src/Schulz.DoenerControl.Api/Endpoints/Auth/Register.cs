@@ -15,6 +15,7 @@ public sealed record RegisterRequest(
     string Username,
     string DisplayName,
     string? PayPalHandle,
+    string? WorkEmail,
     string Password,
     string? SecretKey,
     string? Code,
@@ -48,6 +49,16 @@ public sealed partial class RegisterRequestValidator : Validator<RegisterRequest
         When(
             request => !string.IsNullOrWhiteSpace(request.PayPalHandle),
             () => RuleFor(request => request.PayPalHandle).PayPalLink()
+        );
+
+        // Optional: a valid email only when a value is supplied (blank = not provided).
+        When(
+            request => !string.IsNullOrWhiteSpace(request.WorkEmail),
+            () =>
+                RuleFor(request => request.WorkEmail)
+                    .MaximumLength(256)
+                    .EmailAddress()
+                    .WithMessage("Bitte gib eine gültige E-Mail-Adresse ein, Chef.")
         );
 
         // Same rules as the self-service password change: minimum length plus at least one letter
@@ -101,6 +112,7 @@ public sealed class Register : Endpoint<RegisterRequest, RegisterResponse>
             req.Username,
             req.DisplayName,
             req.PayPalHandle,
+            req.WorkEmail,
             req.Password,
             CoalesceSecretKey(req)
         );

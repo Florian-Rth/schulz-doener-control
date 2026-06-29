@@ -293,7 +293,7 @@ public sealed class OrderDayService : IOrderDayService
         var canStillOrder = OrderWindow.CanOrder(day.Status, day.OrderingClosedAt);
 
         var amICollector = day.CollectorUserId == callerId;
-        var abholer = await BuildAbholer(day, callerId, myOrder, ct);
+        var abholer = await BuildAbholer(day, ct);
 
         return new OrderDayDetails(
             day.Id,
@@ -314,14 +314,11 @@ public sealed class OrderDayService : IOrderDayService
     }
 
     // Resolves the designated Abholer strictly from OrderDay.CollectorUserId (no opener/first-pickup
-    // heuristic): null when nobody is designated. The PayPal deep link is built per-caller and stays
-    // null when the caller is the collector, has not ordered yet, or the collector has no handle.
-    private async Task<AbholerSummary?> BuildAbholer(
-        OrderDay day,
-        Guid callerId,
-        Order? callersOrder,
-        CancellationToken ct
-    )
+    // heuristic): null when nobody is designated. PayPalUrl is intentionally always null on the live
+    // day — reimbursement happens only through the debts crystallised at close-day, once the Abholer
+    // is final. Until then the pickup person could still change, so we never surface a pay link that
+    // might target a not-yet-final collector.
+    private async Task<AbholerSummary?> BuildAbholer(OrderDay day, CancellationToken ct)
     {
         if (day.CollectorUserId is not { } collectorId)
             return null;
@@ -329,26 +326,16 @@ public sealed class OrderDayService : IOrderDayService
         var collector = await database
             .Users.AsNoTracking()
             .Where(user => user.Id == collectorId)
-            .Select(user => new
-            {
-                user.DisplayName,
-                user.AvatarColorHex,
-                user.PayPalHandle,
-            })
+            .Select(user => new { user.DisplayName, user.AvatarColorHex })
             .FirstOrDefaultAsync(ct);
         if (collector is null)
             return null;
-
-        var payPalUrl =
-            callerId == collectorId || callersOrder is null
-                ? null
-                : PayPalLinkBuilder.BuildLink(collector.PayPalHandle, callersOrder.TotalCents);
 
         return new AbholerSummary(
             collector.DisplayName,
             NameFormatter.InitialsOf(collector.DisplayName),
             collector.AvatarColorHex,
-            payPalUrl
+            PayPalUrl: null
         );
     }
 

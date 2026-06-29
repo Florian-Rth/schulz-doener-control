@@ -38,6 +38,14 @@ export const settingsCopy = {
   displayNameSaving: "Speichern …",
   displayNameSaved: "Gespeichert ✓",
   displayNameError: "Konnte nicht gespeichert werden, Chef. Versuch es nochmal.",
+  // Work-email field (optional) — the address the order-list PDF is mailed to.
+  workEmailLabel: "Arbeits-E-Mail (optional)",
+  workEmailHelper: "Für den Bestelllisten-Versand per PDF. Leer lassen zum Entfernen.",
+  workEmailPlaceholder: "z. B. max@schulz.st",
+  workEmailSubmit: "Arbeits-Mail speichern",
+  workEmailSaving: "Speichern …",
+  workEmailSaved: "Gespeichert ✓",
+  workEmailError: "Arbeits-Mail konnte nicht gespeichert werden, Chef.",
   // Read-only identity preview. The session does not carry the login username,
   // so we show the live avatar + first name (the greeting name) as the identity.
   identityPreviewLabel: "Dein Avatar",

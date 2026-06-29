@@ -3,24 +3,18 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { FC } from "react";
 import {
-  GhostButton,
   LiveDot,
   MaterialIcon,
-  PayPalButton,
   PrimaryButton,
   RedChromeSurface,
+  SecondaryButton,
 } from "@/components";
-import {
-  cutoffSentence,
-  homeCopy,
-  participantPill,
-  payAbholerLabel,
-  payCashAbholer,
-} from "../../../copy";
+import { cutoffSentence, homeCopy, participantPill } from "../../../copy";
 import { useDashboardContext } from "../../../dashboard-context";
 import { useDayStatus } from "../../../hooks/use-day-status";
 import type { DashboardDay } from "../../../types";
 import { AdminEndDayButton } from "./AdminEndDayButton";
+import { CollectorControls } from "./CollectorControls";
 import { OrderRowItem } from "./OrderRowItem";
 import { TakeOverCollectorButton } from "./TakeOverCollectorButton";
 
@@ -32,15 +26,7 @@ interface DayOpenCardProps {
 // "{n} dabei"), personal status eyebrow, notification preview, the abholer
 // block (or a no-collector warning), the order rows, and the order CTA.
 export const DayOpenCard: FC<DayOpenCardProps> = ({ day }) => {
-  const {
-    goOrder,
-    goPrint,
-    closeOrdering,
-    isClosingOrdering,
-    closeDay,
-    isClosingDay,
-    claimCollector,
-  } = useDashboardContext();
+  const { goOrder, claimCollector } = useDashboardContext();
   const { statusLine, iHaveOrdered, hasNoCollector, canTakeOver, isEmpty } = useDayStatus(day);
 
   // Subtitle is purely state-driven, never time-based: the "Bestellschluss"
@@ -51,27 +37,17 @@ export const DayOpenCard: FC<DayOpenCardProps> = ({ day }) => {
       ? cutoffSentence(day.cutoffLabel)
       : homeCopy.orderingOpenSubtitle;
 
-  // Collector-only close controls. day.id is only read here, inside this
-  // open-state card; while ordering is open the collector locks ordering, once
-  // locked they close the whole day (creating the debts).
+  // day.id is only read inside this open-state card. The collector's edit CTA
+  // is the calmer navy SecondaryButton so the single red primary stays the
+  // close action over in CollectorControls.
   const dayId = day.id;
-  const collectorControls =
-    day.amICollector && dayId !== null ? (
-      <PrimaryButton
-        onClick={() => {
-          if (day.isOrderingClosed) {
-            closeDay(dayId);
-          } else {
-            closeOrdering(dayId);
-          }
-        }}
-        loading={day.isOrderingClosed ? isClosingDay : isClosingOrdering}
-        startIcon={day.isOrderingClosed ? "lock" : "lock_clock"}
-        sx={{ mt: 1 }}
-      >
-        {day.isOrderingClosed ? homeCopy.closeDay : homeCopy.closeOrdering}
-      </PrimaryButton>
-    ) : null;
+
+  const orderCtaLabel = day.iCanStillOrder
+    ? iHaveOrdered
+      ? homeCopy.editOrder
+      : homeCopy.goOrder
+    : homeCopy.orderingClosedCta;
+  const orderCtaIcon = day.iCanStillOrder ? "add" : "lock";
 
   return (
     <Paper
@@ -177,27 +153,6 @@ export const DayOpenCard: FC<DayOpenCardProps> = ({ day }) => {
                 {day.pickupNames.join(", ")}
               </Typography>
             </Stack>
-            {canTakeOver && day.abholer !== null ? (
-              day.abholer.payPalUrl !== null ? (
-                <Stack sx={{ gap: 0.5 }}>
-                  <PayPalButton href={day.abholer.payPalUrl}>
-                    {payAbholerLabel(day.abholer.name)}
-                  </PayPalButton>
-                  <Typography
-                    sx={{ fontSize: "0.6875rem", color: "muted.main", textAlign: "center" }}
-                  >
-                    {homeCopy.payAbholerCaption}
-                  </Typography>
-                </Stack>
-              ) : (
-                <Typography
-                  role="alert"
-                  sx={{ fontSize: "0.75rem", fontWeight: 600, color: "primary.main" }}
-                >
-                  {payCashAbholer(day.abholer.name)}
-                </Typography>
-              )
-            ) : null}
             {canTakeOver && iHaveOrdered && dayId !== null && day.abholer !== null ? (
               <TakeOverCollectorButton dayId={dayId} currentCollectorName={day.abholer.name} />
             ) : null}
@@ -218,18 +173,25 @@ export const DayOpenCard: FC<DayOpenCardProps> = ({ day }) => {
           </Stack>
         )}
 
-        <PrimaryButton
-          onClick={goOrder}
-          disabled={!day.iCanStillOrder}
-          startIcon={day.iCanStillOrder ? "add" : "lock"}
-          sx={{ mt: 2 }}
-        >
-          {day.iCanStillOrder
-            ? iHaveOrdered
-              ? homeCopy.editOrder
-              : homeCopy.goOrder
-            : homeCopy.orderingClosedCta}
-        </PrimaryButton>
+        {day.amICollector ? (
+          <SecondaryButton
+            onClick={goOrder}
+            disabled={!day.iCanStillOrder}
+            startIcon={orderCtaIcon}
+            sx={{ mt: 2 }}
+          >
+            {orderCtaLabel}
+          </SecondaryButton>
+        ) : (
+          <PrimaryButton
+            onClick={goOrder}
+            disabled={!day.iCanStillOrder}
+            startIcon={orderCtaIcon}
+            sx={{ mt: 2 }}
+          >
+            {orderCtaLabel}
+          </PrimaryButton>
+        )}
         {!day.iCanStillOrder ? (
           <Stack
             direction="row"
@@ -248,13 +210,10 @@ export const DayOpenCard: FC<DayOpenCardProps> = ({ day }) => {
             </Typography>
           </Stack>
         ) : null}
-        {day.orders.length > 0 ? (
-          <GhostButton onClick={goPrint} sx={{ mt: 1 }}>
-            {homeCopy.printList}
-          </GhostButton>
-        ) : null}
-        {collectorControls}
-        <AdminEndDayButton />
+        <CollectorControls day={day} />
+        {/* A non-collector admin reaches the destructive abort here — the
+            collector sees it inside their own CollectorControls subsection. */}
+        {!day.amICollector ? <AdminEndDayButton /> : null}
       </Stack>
     </Paper>
   );

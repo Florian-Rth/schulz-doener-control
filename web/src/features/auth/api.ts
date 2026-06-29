@@ -119,6 +119,7 @@ export const LOCKED_SESSION: Session = {
   role: "",
   payPalHandleSet: false,
   payPalHandle: null,
+  workEmail: null,
   mustChangePassword: true,
 };
 
@@ -179,10 +180,12 @@ interface RegisterArgs {
 // on it.
 const register = async ({ form, secretKey }: RegisterArgs): Promise<RegisterResponse> => {
   const handle = form.payPalHandle.trim();
+  const workEmail = form.workEmail.trim();
   const data = await apiClient.post("/api/auth/register", {
     username: form.username,
     displayName: form.displayName,
     payPalHandle: handle === "" ? null : handle,
+    workEmail: workEmail === "" ? null : workEmail,
     password: form.password,
     ...(secretKey !== undefined ? { secretKey, code: secretKey, inviteCode: secretKey } : {}),
   });

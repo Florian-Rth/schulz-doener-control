@@ -42,6 +42,34 @@ public sealed class DebtService : IDebtService
         return Result<DebtLedgerDetails>.Success(BuildLedger(rows));
     }
 
+    public async Task<Result<ReceivablesLedgerDetails>> GetReceivablesForCreditorAsync(
+        Guid callerId,
+        CancellationToken ct
+    )
+    {
+        // ALL creditor-side debts (open AND settled). SQLite cannot ORDER BY a DateTimeOffset, so split
+        // by status and order in memory: open newest-created first, then settled newest-settled first.
+        var debts = await database
+            .Debts.AsNoTracking()
+            .Include(debt => debt.DebtorUser)
+            .Include(debt => debt.OrderDay)
+            .Where(debt => debt.CreditorUserId == callerId)
+            .ToListAsync(ct);
+
+        var open = debts
+            .Where(debt => debt.Status == PaymentStatus.Open)
+            .OrderByDescending(debt => debt.CreatedAt)
+            .Select(MapReceivable)
+            .ToList();
+        var settled = debts
+            .Where(debt => debt.Status == PaymentStatus.Settled)
+            .OrderByDescending(debt => debt.SettledAt)
+            .Select(MapReceivable)
+            .ToList();
+
+        return Result<ReceivablesLedgerDetails>.Success(BuildReceivables(open, settled));
+    }
+
     public async Task<Result<IReadOnlyList<DebtHistorySummary>>> GetSettledForDebtorAsync(
         Guid callerId,
         int take,
@@ -178,6 +206,50 @@ public sealed class DebtService : IDebtService
             MoneyFormatter.ToGermanString(debt.AmountCents),
             debt.SettledAt ?? debt.CreatedAt,
             debt.Reason
+        );
+    }
+
+    // Creditor-side row describing the DEBTOR. Null-guards OrderDay (ad-hoc debts have none). No
+    // PayPal link — the receivables view is read-only.
+    private ReceivableSummary MapReceivable(Debt debt)
+    {
+        var debtor = debt.DebtorUser;
+        var name = debtor?.DisplayName ?? string.Empty;
+        var dayLabel = debt.OrderDay is null
+            ? null
+            : DebtDayLabelBuilder.Build(debt.OrderDay.Date, clock.Today());
+
+        return new ReceivableSummary(
+            debt.Id,
+            name,
+            NameFormatter.InitialsOf(name),
+            debtor?.AvatarColorHex ?? string.Empty,
+            debt.Reason,
+            dayLabel,
+            debt.AmountCents,
+            MoneyFormatter.ToGermanString(debt.AmountCents),
+            debt.Status == PaymentStatus.Settled,
+            debt.SettledAt,
+            debt.CreatedAt
+        );
+    }
+
+    private static ReceivablesLedgerDetails BuildReceivables(
+        IReadOnlyList<ReceivableSummary> open,
+        IReadOnlyList<ReceivableSummary> settled
+    )
+    {
+        var openTotal = open.Sum(row => row.AmountCents);
+        var settledTotal = settled.Sum(row => row.AmountCents);
+        IReadOnlyList<ReceivableSummary> rows = open.Concat(settled).ToList();
+        return new ReceivablesLedgerDetails(
+            open.Count,
+            openTotal,
+            MoneyFormatter.ToGermanString(openTotal),
+            settled.Count,
+            settledTotal,
+            MoneyFormatter.ToGermanString(settledTotal),
+            rows
         );
     }
 

@@ -12,7 +12,9 @@ public sealed record GetProfileResponse(
     string AvatarColorHex,
     string Role,
     string? PayPalHandle,
-    bool PayPalHandleSet
+    bool PayPalHandleSet,
+    string? WorkEmail,
+    bool WorkEmailSet
 );
 
 // Returns the caller's own profile: the self-entered PayPal.Me handle plus the read-only display
@@ -60,6 +62,8 @@ public sealed class GetProfile : EndpointWithoutRequest<GetProfileResponse>
             details.AvatarColorHex,
             details.Role.ToString(),
             details.PayPalHandle,
-            details.PayPalHandleSet
+            details.PayPalHandleSet,
+            details.WorkEmail,
+            details.WorkEmailSet
         );
 }

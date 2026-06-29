@@ -13,5 +13,6 @@ public sealed record CurrentUserDetails(
     UserRole Role,
     string? PayPalHandle,
     bool PayPalHandleSet,
+    string? WorkEmail,
     bool MustChangePassword
 );

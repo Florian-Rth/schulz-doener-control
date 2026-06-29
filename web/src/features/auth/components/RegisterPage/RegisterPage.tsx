@@ -118,6 +118,13 @@ export const RegisterPage: FC<RegisterPageProps> = ({ registrationMode }) => {
               />
               <RegisterField
                 control={form.control}
+                name="workEmail"
+                label={authCopy.registerWorkEmailLabel}
+                placeholder={authCopy.registerWorkEmailPlaceholder}
+                autoComplete="email"
+              />
+              <RegisterField
+                control={form.control}
                 name="password"
                 label={authCopy.registerPasswordLabel}
                 placeholder={authCopy.registerPasswordPlaceholder}

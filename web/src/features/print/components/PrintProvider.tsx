@@ -38,8 +38,11 @@ const PrintMessage: FC<{ message: string }> = ({ message }) => {
 
 // Inner provider — mounted only once an open day with orders is resolved. Wires
 // the derived view model into the context and renders the print page.
-const PrintReady: FC<{ day: DashboardDay }> = ({ day }) => {
-  const value = usePrintList({ day });
+const PrintReady: FC<{ day: DashboardDay; emailPdfEnabled: boolean }> = ({
+  day,
+  emailPdfEnabled,
+}) => {
+  const value = usePrintList({ day, emailPdfEnabled });
   return (
     <PrintListContext.Provider value={value}>
       <PrintListPage />
@@ -47,11 +50,20 @@ const PrintReady: FC<{ day: DashboardDay }> = ({ day }) => {
   );
 };
 
+interface PrintProviderProps {
+  /**
+   * Whether the "Liste an meine Mail schicken" action is available (backend SMTP
+   * toggle). Threaded in from the /druck route — the print feature must not read
+   * the client config itself (no @/features/pwa-gate dependency).
+   */
+  emailPdfEnabled: boolean;
+}
+
 // Logic layer for the print screen: fetches the dashboard aggregate and guards
 // the states (loading / error / no open day / no orders) before mounting the
 // list. Reuses the home feature's dashboard query — no extra round-trip and no
 // backend change.
-export const PrintProvider: FC = () => {
+export const PrintProvider: FC<PrintProviderProps> = ({ emailPdfEnabled }) => {
   const dashboardQuery = useDashboard();
 
   if (dashboardQuery.isPending) {
@@ -72,5 +84,5 @@ export const PrintProvider: FC = () => {
     return <PrintMessage message={printCopy.noOrders} />;
   }
 
-  return <PrintReady day={day} />;
+  return <PrintReady day={day} emailPdfEnabled={emailPdfEnabled} />;
 };

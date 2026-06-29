@@ -17,6 +17,8 @@ interface StatCardProps {
   tint?: StatTint;
   /** Highlight the value (e.g. the "Offen" stat is orange). */
   valueColor?: "navy" | "orange";
+  /** When set, the tile becomes a tappable button (e.g. scroll to a section). */
+  onClick?: () => void;
   sx?: SxProps<Theme>;
 }
 
@@ -39,15 +41,25 @@ export const StatCard: FC<StatCardProps> = ({
   unit,
   tint = "pink",
   valueColor = "navy",
+  onClick,
   sx,
 }) => {
+  const interactive = onClick !== undefined;
   return (
     <Paper
+      component={interactive ? "button" : "div"}
+      type={interactive ? "button" : undefined}
+      onClick={onClick}
+      aria-label={interactive ? `${label}: ${value}${unit ?? ""}` : undefined}
       sx={[
         (theme) => ({
+          display: "block",
+          width: "100%",
           p: 1.5,
+          border: "none",
           borderRadius: `${theme.radii.lg}px`,
           boxShadow: "0 1px 3px rgba(0,0,0,.10)",
+          ...(interactive ? { cursor: "pointer", textAlign: "inherit", font: "inherit" } : {}),
         }),
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}

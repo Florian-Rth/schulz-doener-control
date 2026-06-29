@@ -19,7 +19,7 @@ public sealed class AbholerProjectionForNonPickupPayerTests : DoenerControlTestB
         : base(app) { }
 
     [Fact]
-    public async Task Should_Expose_Abholer_With_PayPalUrl_For_Non_Pickup_Caller_Who_Ordered()
+    public async Task Should_Not_Expose_PayPalUrl_On_Open_Day_For_Non_Pickup_Caller()
     {
         var chef = await DebtTestHelpers.LoginAsChefAsync(App);
         var dayId = await DebtTestHelpers.OpenTodayAsync(chef);
@@ -42,8 +42,9 @@ public sealed class AbholerProjectionForNonPickupPayerTests : DoenerControlTestB
         Assert.NotNull(body.Day.Abholer);
         Assert.Equal(TestSeeding.ChefDisplayName, body.Day.Abholer!.Name);
         Assert.Equal("MW", body.Day.Abholer.Initials);
-        // The collector's pay link is reconstructed from their handle with the caller's own total.
-        Assert.Equal($"{TestSeeding.ChefPayPalLink}/7.60EUR", body.Day.Abholer.PayPalUrl);
+        // Pay-link gating: the open-day Abholer never carries a pay link — reimbursement happens only
+        // through the debts created at close-day, once the Abholer is final.
+        Assert.Null(body.Day.Abholer.PayPalUrl);
     }
 }
 

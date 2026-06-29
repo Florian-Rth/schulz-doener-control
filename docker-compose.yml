@@ -27,6 +27,16 @@ services:
       # PWA install gate: when true the app is usable only as an installed PWA
       # (browser tabs see the install guide). Defaults off; flip to true to enforce.
       Auth__PwaGateEnabled: ${PWA_GATE_ENABLED:-false}
+      # Optional SMTP for "mail the order list as a PDF". Leave SMTP_HOST empty to
+      # keep the feature disabled (the print-view send button stays hidden).
+      Smtp__Enabled: ${SMTP_ENABLED:-false}
+      Smtp__Host: ${SMTP_HOST:-}
+      Smtp__Port: ${SMTP_PORT:-587}
+      Smtp__User: ${SMTP_USER:-}
+      Smtp__Password: ${SMTP_PASSWORD:-}
+      Smtp__FromAddress: ${SMTP_FROM_ADDRESS:-}
+      Smtp__FromName: ${SMTP_FROM_NAME:-Schulz Döner Control}
+      Smtp__UseStartTls: ${SMTP_USE_STARTTLS:-true}
     volumes:
       - doener-data:/data
     expose:

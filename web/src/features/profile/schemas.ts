@@ -20,6 +20,26 @@ export const DisplayNameFormSchema = z.object({
   displayName: z.string().trim().min(1, "Pflichtfeld").max(128, "Höchstens 128 Zeichen."),
 });
 
+// PUT /api/profile/work-email response — the persisted work email + whether one
+// is now set (gates the print-view "email the list" button).
+export const WorkEmailResponseSchema = z.object({
+  workEmail: z.string().nullable(),
+  workEmailSet: z.boolean(),
+});
+
+// Mirrors the backend PutWorkEmailRequestValidator: optional; a real value must
+// be a valid email, max 256 chars. Empty input clears the stored value.
+export const WorkEmailFormSchema = z.object({
+  workEmail: z
+    .string()
+    .trim()
+    .max(256, "Höchstens 256 Zeichen.")
+    .refine(
+      (value) => value === "" || z.email().safeParse(value).success,
+      "Bitte gib eine gültige E-Mail-Adresse ein, Chef.",
+    ),
+});
+
 // --- Form schema ---
 
 // The PayPal link is now stored as a full URL (the backend persists/returns it

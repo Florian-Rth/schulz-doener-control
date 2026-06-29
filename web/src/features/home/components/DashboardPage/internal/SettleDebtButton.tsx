@@ -1,11 +1,6 @@
 import Button from "@mui/material/Button";
-import Dialog from "@mui/material/Dialog";
-import DialogContent from "@mui/material/DialogContent";
-import DialogTitle from "@mui/material/DialogTitle";
-import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
 import { type FC, useState } from "react";
-import { GhostButton, MaterialIcon, PrimaryButton } from "@/components";
+import { ConfirmDialog, MaterialIcon } from "@/components";
 import { homeCopy } from "../../../copy";
 import { useDashboardContext } from "../../../dashboard-context";
 
@@ -44,8 +39,8 @@ export const SettleDebtButton: FC<SettleDebtButtonProps> = ({ debtId }) => {
         sx={(theme) => ({
           borderRadius: `${theme.radii.sm - 3}px`,
           fontWeight: 700,
-          py: 0.625,
-          px: 1.5,
+          py: 1,
+          px: 1.75,
           fontSize: "0.75rem",
           minWidth: 0,
           borderWidth: "1.5px",
@@ -55,25 +50,17 @@ export const SettleDebtButton: FC<SettleDebtButtonProps> = ({ debtId }) => {
         {homeCopy.settle}
       </Button>
 
-      <Dialog open={confirmOpen} onClose={closeConfirm} fullWidth>
-        <DialogTitle sx={{ fontWeight: 700, color: "navy.main" }}>
-          {homeCopy.settleDialogTitle}
-        </DialogTitle>
-        <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-          <Stack sx={{ gap: 0.5, pt: 0.5 }}>
-            <Typography sx={{ fontSize: "0.875rem", color: "label.main", lineHeight: 1.5 }}>
-              {homeCopy.settleDialogBody}
-            </Typography>
-
-            <PrimaryButton onClick={confirmSettle} loading={pending} sx={{ mt: 1.5 }}>
-              {pending ? homeCopy.settlePending : homeCopy.settleConfirm}
-            </PrimaryButton>
-            <GhostButton onClick={closeConfirm} disabled={pending} sx={{ mt: 1 }}>
-              {homeCopy.settleCancel}
-            </GhostButton>
-          </Stack>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={confirmOpen}
+        onClose={closeConfirm}
+        title={homeCopy.settleDialogTitle}
+        body={homeCopy.settleDialogBody}
+        confirmLabel={homeCopy.settleConfirm}
+        pendingLabel={homeCopy.settlePending}
+        cancelLabel={homeCopy.settleCancel}
+        pending={pending}
+        onConfirm={confirmSettle}
+      />
     </>
   );
 };

@@ -14,6 +14,7 @@ public sealed record GetMeResponse(
     string Role,
     bool PayPalHandleSet,
     string? PayPalHandle,
+    string? WorkEmail,
     bool MustChangePassword
 );
 
@@ -70,6 +71,7 @@ public sealed class GetMe : EndpointWithoutRequest<GetMeResponse>
             details.Role.ToString(),
             details.PayPalHandleSet,
             details.PayPalHandle,
+            details.WorkEmail,
             details.MustChangePassword
         );
 }

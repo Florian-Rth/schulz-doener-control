@@ -15,6 +15,7 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(user => user.NormalizedUserName).HasMaxLength(64).IsRequired();
         builder.Property(user => user.DisplayName).HasMaxLength(128).IsRequired();
         builder.Property(user => user.PayPalHandle).HasMaxLength(256);
+        builder.Property(user => user.WorkEmail).HasMaxLength(256);
         builder.Property(user => user.PasswordHash).IsRequired();
         builder.Property(user => user.PasswordSalt).IsRequired();
         builder.Property(user => user.Role).HasConversion<int>();

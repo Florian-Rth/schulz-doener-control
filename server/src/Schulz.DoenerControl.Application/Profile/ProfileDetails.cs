@@ -14,5 +14,7 @@ public sealed record ProfileDetails(
     string AvatarColorHex,
     UserRole Role,
     string? PayPalHandle,
-    bool PayPalHandleSet
+    bool PayPalHandleSet,
+    string? WorkEmail,
+    bool WorkEmailSet
 );

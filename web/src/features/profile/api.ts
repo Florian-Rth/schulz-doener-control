@@ -1,8 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { authKeys } from "@/features/auth";
 import { apiClient } from "@/lib/api";
-import { DisplayNameResponseSchema, PayPalHandleResponseSchema } from "./schemas";
-import type { DisplayNameResponse, PayPalHandleResponse } from "./types";
+import {
+  DisplayNameResponseSchema,
+  PayPalHandleResponseSchema,
+  WorkEmailResponseSchema,
+} from "./schemas";
+import type { DisplayNameResponse, PayPalHandleResponse, WorkEmailResponse } from "./types";
 
 export const profileKeys = {
   me: ["profile", "me"] as const,
@@ -42,6 +46,26 @@ export const useUpdateDisplayName = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: updateDisplayName,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: authKeys.session });
+    },
+  });
+};
+
+// Sends the work email, or `null` to clear it (the backend treats null/blank as
+// "not provided"). Empty strings map to null so the wire body matches the clear contract.
+const updateWorkEmail = async (workEmail: string): Promise<WorkEmailResponse> => {
+  const value = workEmail.trim() === "" ? null : workEmail.trim();
+  const data = await apiClient.put("/api/profile/work-email", { workEmail: value });
+  return WorkEmailResponseSchema.parse(data);
+};
+
+// Captures/updates/clears the caller's optional work email. On success the auth
+// session is invalidated so the print-view button's `workEmail` gate re-reads from `/me`.
+export const useUpdateWorkEmail = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: updateWorkEmail,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: authKeys.session });
     },

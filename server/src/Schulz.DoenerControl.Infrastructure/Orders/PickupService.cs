@@ -51,6 +51,13 @@ public sealed class PickupService : IPickupService
         if (day.Status != OrderDayStatus.Open)
             return Result<OrderDayDetails>.Conflict("Der Döner-Tag ist geschlossen.");
 
+        // Once ordering is locked, the Abholer is final — no late churn (defends the single-creditor
+        // invariant and the pay-link gating: payments only ever target the locked-in collector).
+        if (day.OrderingClosedAt is not null)
+            return Result<OrderDayDetails>.Conflict(
+                "Die Bestellung ist geschlossen — der Abholer steht fest."
+            );
+
         var collectorOrder = await database.Orders.FirstOrDefaultAsync(
             order =>
                 order.OrderDayId == command.OrderDayId && order.UserId == command.CollectorUserId,
@@ -93,6 +100,13 @@ public sealed class PickupService : IPickupService
 
         if (day.Status != OrderDayStatus.Open)
             return Result<OrderDayDetails>.Conflict("Der Döner-Tag ist geschlossen.");
+
+        // Once ordering is locked, the Abholer is final — take-over is forbidden so nobody can
+        // displace the collector after the pickup person has been committed to.
+        if (day.OrderingClosedAt is not null)
+            return Result<OrderDayDetails>.Conflict(
+                "Die Bestellung ist geschlossen — der Abholer steht fest."
+            );
 
         var callerOrder = await database.Orders.FirstOrDefaultAsync(
             order => order.OrderDayId == command.OrderDayId && order.UserId == command.CallerUserId,

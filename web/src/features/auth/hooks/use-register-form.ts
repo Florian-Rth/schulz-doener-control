@@ -59,6 +59,7 @@ export const useRegisterForm = ({
       username: "",
       displayName: "",
       payPalHandle: "",
+      workEmail: "",
       password: "",
       confirmPassword: "",
     },

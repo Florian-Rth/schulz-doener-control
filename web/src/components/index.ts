@@ -1,5 +1,6 @@
 export { Avatar } from "./Avatar";
-export { GhostButton, PrimaryButton } from "./buttons";
+export { GhostButton, PrimaryButton, SecondaryButton } from "./buttons";
+export { ConfirmDialog } from "./ConfirmDialog";
 export { IconChipBox } from "./IconChipBox";
 export { LiveDot } from "./LiveDot";
 export { isMaterialIconName, MaterialIcon, type MaterialIconName } from "./MaterialIcon";

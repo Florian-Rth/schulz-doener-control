@@ -4,6 +4,10 @@ using Schulz.DoenerControl.Api.Auth;
 using Schulz.DoenerControl.Application;
 using Schulz.DoenerControl.Infrastructure;
 
+// QuestPDF Community licence (free under the QuestPDF revenue threshold) — must be set before the
+// first PDF is generated, or QuestPDF throws. Internal office tool; well within the threshold.
+QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddApplication();

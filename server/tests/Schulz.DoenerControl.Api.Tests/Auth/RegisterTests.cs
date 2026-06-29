@@ -217,4 +217,68 @@ public sealed class RegisterTests : DoenerControlTestBase
         Assert.NotNull(loginBody);
         Assert.False(loginBody!.MustChangePassword);
     }
+
+    [Fact]
+    public async Task Should_Store_WorkEmail_When_Provided()
+    {
+        var anon = new AuthTestClient(App.CreateClient());
+
+        var response = await anon.PostJsonAsync(
+            RegisterUrl,
+            new
+            {
+                Username = "p.mailer",
+                DisplayName = "Paul Mailer",
+                WorkEmail = "paul@schulz.st",
+                Password = "Doener1234",
+            }
+        );
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+
+        var persisted = await AdminUserTestHelpers.FindUserAsync(App, "p.mailer");
+        Assert.NotNull(persisted);
+        Assert.Equal("paul@schulz.st", persisted!.WorkEmail);
+    }
+
+    [Fact]
+    public async Task Should_Register_When_WorkEmail_Omitted()
+    {
+        var anon = new AuthTestClient(App.CreateClient());
+
+        var response = await anon.PostJsonAsync(
+            RegisterUrl,
+            new
+            {
+                Username = "o.ohne",
+                DisplayName = "Olga Ohne",
+                Password = "Doener1234",
+            }
+        );
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+
+        var persisted = await AdminUserTestHelpers.FindUserAsync(App, "o.ohne");
+        Assert.NotNull(persisted);
+        Assert.Null(persisted!.WorkEmail);
+    }
+
+    [Fact]
+    public async Task Should_Return400_When_WorkEmail_Invalid()
+    {
+        var anon = new AuthTestClient(App.CreateClient());
+
+        var response = await anon.PostJsonAsync(
+            RegisterUrl,
+            new
+            {
+                Username = "f.falsch",
+                DisplayName = "Frank Falsch",
+                WorkEmail = "kein-email",
+                Password = "Doener1234",
+            }
+        );
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
 }

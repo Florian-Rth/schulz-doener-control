@@ -220,6 +220,19 @@ const buildDashboard = (overrides: Partial<Dashboard> = {}): Dashboard => ({
   ...overrides,
 });
 
+// Empty receivables payload — the "Was mir noch zusteht" card fetches this
+// independently of the dashboard aggregate; default to empty so it renders
+// nothing (its own dedicated test overrides this handler).
+const emptyReceivables = {
+  openCount: 0,
+  openTotalCents: 0,
+  openTotalLabel: "0,00 €",
+  settledCount: 0,
+  settledTotalCents: 0,
+  settledTotalLabel: "0,00 €",
+  rows: [],
+};
+
 const useDashboardHandlers = (dashboard: Dashboard): void => {
   mswServer.use(
     http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
@@ -227,6 +240,8 @@ const useDashboardHandlers = (dashboard: Dashboard): void => {
     // The "Meine letzten Zahlungen" card fetches this independently of the
     // dashboard aggregate; default to empty so it renders nothing.
     http.get("*/api/debts/history", () => HttpResponse.json({ payments: [] })),
+    // The "Was mir noch zusteht" card likewise self-fetches; default to empty.
+    http.get("*/api/debts/receivables", () => HttpResponse.json(emptyReceivables)),
   );
 };
 
@@ -310,8 +325,23 @@ describe("DashboardPage", () => {
     expect(hrefs).toContain("https://paypal.me/SaraYHB/3.00EUR");
   });
 
-  it("zeigt auf der offenen Tag-Karte einen PayPal-Link an den Abholer, wenn man selbst bestellt hat und nicht abholt", async () => {
-    // Caller has an own order (isMine) → they owe the Abholer → the pay link shows.
+  it("zeigt auf der offenen Tag-Karte KEINEN PayPal-Link an den Abholer (Zahlung läuft erst nach Abschluss)", async () => {
+    // B-2: the open-day pay path is gone — even when the caller owes the Abholer
+    // (own order, foreign Abholer with a PayPal handle) no pay link/button shows.
+    useDashboardHandlers(
+      buildDashboard({
+        day: { ...openDay, orders: [{ ...openDay.orders[1], isMine: true }, ...openDay.orders] },
+      }),
+    );
+    const { findByText, queryByRole } = renderApp({ initialPath: "/" });
+
+    expect(await findByText("Döner-Tag läuft")).toBeInTheDocument();
+    expect(queryByRole("button", { name: /Jetzt an Lukas Brandt zahlen/ })).not.toBeInTheDocument();
+    expect(queryByRole("link", { name: /Jetzt an Lukas Brandt zahlen/ })).not.toBeInTheDocument();
+  });
+
+  it("bietet die Übernahme an, solange die Bestellung offen ist (eigene Bestellung, fremder Abholer)", async () => {
+    // Caller has an own order (isMine) and a foreign Abholer is set → they may take over.
     useDashboardHandlers(
       buildDashboard({
         day: { ...openDay, orders: [{ ...openDay.orders[1], isMine: true }, ...openDay.orders] },
@@ -319,8 +349,25 @@ describe("DashboardPage", () => {
     );
     const { findByRole } = renderApp({ initialPath: "/" });
 
-    const payLink = await findByRole("link", { name: /Jetzt an Lukas Brandt zahlen/ });
-    expect(payLink).toHaveAttribute("href", "https://paypal.me/LukasBrandtHB/7.60EUR");
+    expect(await findByRole("button", { name: /übernehme die Abholung/i })).toBeInTheDocument();
+  });
+
+  it("blendet den Übernahme-Button aus, sobald die Bestellung geschlossen ist", async () => {
+    // B-2: take-over closes when ordering locks — the Abholer is then final.
+    useDashboardHandlers(
+      buildDashboard({
+        day: {
+          ...openDay,
+          isOrderingClosed: true,
+          iCanStillOrder: false,
+          orders: [{ ...openDay.orders[1], isMine: true }, ...openDay.orders],
+        },
+      }),
+    );
+    const { findByText, queryByRole } = renderApp({ initialPath: "/" });
+
+    expect(await findByText("Döner-Tag läuft")).toBeInTheDocument();
+    expect(queryByRole("button", { name: /übernehme die Abholung/i })).not.toBeInTheDocument();
   });
 
   it("zeigt keinen Abholer-Zahllink, wenn noch kein Abholer feststeht", async () => {
@@ -333,41 +380,13 @@ describe("DashboardPage", () => {
     expect(queryByRole("link", { name: /zahlen/ })).not.toBeInTheDocument();
   });
 
-  it("zeigt statt eines toten PayPal-Buttons einen Bar-zahlen-Hinweis, wenn der Abholer kein PayPal hat", async () => {
-    // Caller has an own order (isMine) → they owe the Abholer → the cash hint shows.
-    useDashboardHandlers(
-      buildDashboard({
-        day: {
-          ...openDay,
-          abholer: { ...openDay.abholer, payPalUrl: null },
-          orders: [{ ...openDay.orders[1], isMine: true }, ...openDay.orders],
-        },
-      }),
-    );
+  it("zeigt einem Kollegen ohne eigene Bestellung KEINEN Übernahme-Button (er schuldet nichts)", async () => {
+    // Bug #5: a non-orderer owes the Abholer nothing → the take-over button stays
+    // hidden. All seed orders are isMine: false.
+    useDashboardHandlers(buildDashboard({ day: { ...openDay } }));
     const { findByText, queryByRole } = renderApp({ initialPath: "/" });
 
-    // no dead PayPal button — instead a cash-payment alert naming the Abholer
-    expect(
-      await findByText("Lukas Brandt hat kein PayPal hinterlegt — bitte bar bezahlen, Chef."),
-    ).toBeInTheDocument();
-    expect(queryByRole("button", { name: /Jetzt an Lukas Brandt zahlen/ })).not.toBeInTheDocument();
-    expect(queryByRole("link", { name: /Jetzt an Lukas Brandt zahlen/ })).not.toBeInTheDocument();
-  });
-
-  it("zeigt einem Kollegen ohne eigene Bestellung KEINEN Bar-zahlen-Hinweis (er schuldet nichts)", async () => {
-    // Bug #5: a non-orderer owes the Abholer nothing → neither the cash hint nor the
-    // pay link nor the take-over button may show. All seed orders are isMine: false.
-    useDashboardHandlers(
-      buildDashboard({
-        day: { ...openDay, abholer: { ...openDay.abholer, payPalUrl: null } },
-      }),
-    );
-    const { findByText, queryByText, queryByRole } = renderApp({ initialPath: "/" });
-
     expect(await findByText("Döner-Tag läuft")).toBeInTheDocument();
-    expect(
-      queryByText("Lukas Brandt hat kein PayPal hinterlegt — bitte bar bezahlen, Chef."),
-    ).not.toBeInTheDocument();
     expect(queryByRole("button", { name: /zahlen/ })).not.toBeInTheDocument();
     expect(queryByRole("link", { name: /zahlen/ })).not.toBeInTheDocument();
     expect(queryByRole("button", { name: /übernehmen/i })).not.toBeInTheDocument();
@@ -388,9 +407,36 @@ describe("DashboardPage", () => {
 
     expect(await findByText("Döner-Tag läuft")).toBeInTheDocument();
     expect(queryByRole("button", { name: "Bestellung schließen" })).not.toBeInTheDocument();
-    expect(queryByRole("button", { name: "Döner-Tag schließen" })).not.toBeInTheDocument();
+    expect(queryByRole("button", { name: "Tag abschließen & abrechnen" })).not.toBeInTheDocument();
     // A non-admin non-collector also gets no admin force-end button.
-    expect(queryByRole("button", { name: "Döner-Tag beenden" })).not.toBeInTheDocument();
+    expect(queryByRole("button", { name: "Döner-Tag abbrechen" })).not.toBeInTheDocument();
+  });
+
+  it("zeigt einem Nicht-Abholer ihre rote Bestell-CTA und keinen Drucken-Button", async () => {
+    useDashboardHandlers(buildDashboard({ day: { ...openDay, amICollector: false } }));
+    const { findByRole, queryByRole } = renderApp({ initialPath: "/" });
+
+    // The single order CTA is the red primary for a non-collector.
+    expect(await findByRole("button", { name: /Meine Bestellung abgeben/ })).toBeInTheDocument();
+    // The print list is collector-only — a non-collector never sees it.
+    expect(queryByRole("button", { name: "Bestellliste drucken" })).not.toBeInTheDocument();
+  });
+
+  it("zeigt dem Abholer genau eine rote Schließen-CTA, eine navy-Bearbeiten-CTA und den Drucken-Button", async () => {
+    useDashboardHandlers(
+      buildDashboard({ day: { ...openDay, amICollector: true, isOrderingClosed: false } }),
+    );
+    const { findByRole } = renderApp({ initialPath: "/" });
+
+    // The collector's close-ordering action and a print button both show.
+    expect(await findByRole("button", { name: "Bestellung schließen" })).toBeInTheDocument();
+    expect(await findByRole("button", { name: "Bestellliste drucken" })).toBeInTheDocument();
+
+    // Their own order CTA is the calmer navy secondary (the close action is the
+    // only red primary on the card).
+    const editCta = await findByRole("button", { name: /Meine Bestellung abgeben/ });
+    expect(editCta).toBeInTheDocument();
+    expect(editCta.className).toContain("MuiButton-outlined");
   });
 
   it("lässt einen Admin den Döner-Tag nach Bestätigung force-enden (verwirft Bestellungen, keine Schulden)", async () => {
@@ -400,6 +446,7 @@ describe("DashboardPage", () => {
         HttpResponse.json({ ...authenticatedSession, role: "Admin" }),
       ),
       http.get("*/api/debts/history", () => HttpResponse.json({ payments: [] })),
+      http.get("*/api/debts/receivables", () => HttpResponse.json(emptyReceivables)),
       http.get("*/api/dashboard", () =>
         HttpResponse.json(buildDashboard({ day: { ...openDay, amICollector: false } })),
       ),
@@ -413,8 +460,8 @@ describe("DashboardPage", () => {
     const user = userEvent.setup();
 
     // The destructive action confirms before firing.
-    await user.click(await findByRole("button", { name: "Döner-Tag beenden" }));
-    await user.click(await findByRole("button", { name: "Ja, beenden" }));
+    await user.click(await findByRole("button", { name: "Döner-Tag abbrechen" }));
+    await user.click(await findByRole("button", { name: "Ja, abbrechen" }));
 
     await waitFor(() => {
       expect(forceEndHit).toBe(true);
@@ -428,6 +475,7 @@ describe("DashboardPage", () => {
     mswServer.use(
       http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
       http.get("*/api/debts/history", () => HttpResponse.json({ payments: [] })),
+      http.get("*/api/debts/receivables", () => HttpResponse.json(emptyReceivables)),
       http.get("*/api/dashboard", () =>
         HttpResponse.json(buildDashboard({ day: { ...openDay, amICollector: true } })),
       ),
@@ -440,8 +488,8 @@ describe("DashboardPage", () => {
     const { findByRole } = renderApp({ initialPath: "/" });
     const user = userEvent.setup();
 
-    await user.click(await findByRole("button", { name: "Döner-Tag beenden" }));
-    await user.click(await findByRole("button", { name: "Ja, beenden" }));
+    await user.click(await findByRole("button", { name: "Döner-Tag abbrechen" }));
+    await user.click(await findByRole("button", { name: "Ja, abbrechen" }));
 
     await waitFor(() => {
       expect(forceEndHit).toBe(true);
@@ -468,6 +516,7 @@ describe("DashboardPage", () => {
     mswServer.use(
       http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
       http.get("*/api/debts/history", () => HttpResponse.json({ payments: [] })),
+      http.get("*/api/debts/receivables", () => HttpResponse.json(emptyReceivables)),
       http.get("*/api/dashboard", () => {
         dashboardFetches += 1;
         return HttpResponse.json(
@@ -488,9 +537,11 @@ describe("DashboardPage", () => {
     const user = userEvent.setup();
 
     // ordering open → only the "Bestellung schließen" button shows
-    expect(queryByRole("button", { name: "Döner-Tag schließen" })).not.toBeInTheDocument();
+    expect(queryByRole("button", { name: "Tag abschließen & abrechnen" })).not.toBeInTheDocument();
     const fetchesBefore = dashboardFetches;
+    // The close action confirms before firing.
     await user.click(await findByRole("button", { name: "Bestellung schließen" }));
+    await user.click(await findByRole("button", { name: "Ja, Bestellung schließen" }));
 
     await waitFor(() => {
       expect(closeOrderingHit).toBe(true);
@@ -508,6 +559,7 @@ describe("DashboardPage", () => {
     mswServer.use(
       http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
       http.get("*/api/debts/history", () => HttpResponse.json({ payments: [] })),
+      http.get("*/api/debts/receivables", () => HttpResponse.json(emptyReceivables)),
       http.get("*/api/dashboard", () => {
         dashboardFetches += 1;
         return HttpResponse.json(
@@ -523,10 +575,12 @@ describe("DashboardPage", () => {
     const { findByRole, queryByRole } = renderApp({ initialPath: "/" });
     const user = userEvent.setup();
 
-    // ordering closed → the button flips to "Döner-Tag schließen"
+    // ordering closed → the button flips to "Tag abschließen & abrechnen"
     expect(queryByRole("button", { name: "Bestellung schließen" })).not.toBeInTheDocument();
     const fetchesBefore = dashboardFetches;
-    await user.click(await findByRole("button", { name: "Döner-Tag schließen" }));
+    // The close action confirms before firing.
+    await user.click(await findByRole("button", { name: "Tag abschließen & abrechnen" }));
+    await user.click(await findByRole("button", { name: "Ja, abschließen & abrechnen" }));
 
     await waitFor(() => {
       expect(closeDayHit).toBe(true);
@@ -540,6 +594,7 @@ describe("DashboardPage", () => {
     mswServer.use(
       http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
       http.get("*/api/debts/history", () => HttpResponse.json({ payments: [] })),
+      http.get("*/api/debts/receivables", () => HttpResponse.json(emptyReceivables)),
       http.get("*/api/dashboard", () =>
         HttpResponse.json(
           buildDashboard({ day: { ...openDay, amICollector: true, isOrderingClosed: false } }),
@@ -554,6 +609,7 @@ describe("DashboardPage", () => {
     const user = userEvent.setup();
 
     await user.click(await findByRole("button", { name: "Bestellung schließen" }));
+    await user.click(await findByRole("button", { name: "Ja, Bestellung schließen" }));
 
     expect(
       await findByText("Bestellung konnte nicht geschlossen werden, Chef."),
@@ -564,6 +620,7 @@ describe("DashboardPage", () => {
     mswServer.use(
       http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
       http.get("*/api/debts/history", () => HttpResponse.json({ payments: [] })),
+      http.get("*/api/debts/receivables", () => HttpResponse.json(emptyReceivables)),
       http.get("*/api/dashboard", () =>
         HttpResponse.json(
           buildDashboard({ day: { ...openDay, amICollector: true, isOrderingClosed: true } }),
@@ -577,7 +634,8 @@ describe("DashboardPage", () => {
     const { findByRole, findByText } = renderApp({ initialPath: "/" });
     const user = userEvent.setup();
 
-    await user.click(await findByRole("button", { name: "Döner-Tag schließen" }));
+    await user.click(await findByRole("button", { name: "Tag abschließen & abrechnen" }));
+    await user.click(await findByRole("button", { name: "Ja, abschließen & abrechnen" }));
 
     expect(
       await findByText("Döner-Tag konnte nicht geschlossen werden, Chef."),
@@ -590,6 +648,7 @@ describe("DashboardPage", () => {
     mswServer.use(
       http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
       http.get("*/api/debts/history", () => HttpResponse.json({ payments: [] })),
+      http.get("*/api/debts/receivables", () => HttpResponse.json(emptyReceivables)),
       http.get("*/api/dashboard", () => {
         dashboardFetches += 1;
         return HttpResponse.json(buildDashboard());
@@ -627,6 +686,7 @@ describe("DashboardPage", () => {
     mswServer.use(
       http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
       http.get("*/api/debts/history", () => HttpResponse.json({ payments: [] })),
+      http.get("*/api/debts/receivables", () => HttpResponse.json(emptyReceivables)),
       http.get("*/api/dashboard", () => HttpResponse.json(buildDashboard())),
       http.post("*/api/debts/:debtId/settle", async () => {
         await new Promise<void>((resolve) => {
@@ -682,6 +742,7 @@ describe("DashboardPage", () => {
       http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
       http.get("*/api/dashboard", () => HttpResponse.json(buildDashboard())),
       http.get("*/api/debts/history", () => HttpResponse.json(paymentHistory)),
+      http.get("*/api/debts/receivables", () => HttpResponse.json(emptyReceivables)),
     );
     const { findByText, getByText } = renderApp({ initialPath: "/" });
 
@@ -713,11 +774,74 @@ describe("DashboardPage", () => {
       http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
       http.get("*/api/dashboard", () => HttpResponse.json(buildDashboard())),
       http.get("*/api/debts/history", () => HttpResponse.json({ payments: [] })),
+      http.get("*/api/debts/receivables", () => HttpResponse.json(emptyReceivables)),
     );
     const { findByText, queryByText } = renderApp({ initialPath: "/" });
 
     // wait for the page to settle, then assert the card is absent
     expect(await findByText("Offene Zahlungen")).toBeInTheDocument();
     expect(queryByText("Meine letzten Zahlungen")).not.toBeInTheDocument();
+  });
+
+  it("zeigt den PayPal-Hinweis, wenn der Nutzer kein PayPal hinterlegt hat", async () => {
+    mswServer.use(
+      http.get("*/api/auth/me", () =>
+        HttpResponse.json({ ...authenticatedSession, payPalHandleSet: false, payPalHandle: null }),
+      ),
+      http.get("*/api/dashboard", () => HttpResponse.json(buildDashboard())),
+      http.get("*/api/debts/history", () => HttpResponse.json({ payments: [] })),
+      http.get("*/api/debts/receivables", () => HttpResponse.json(emptyReceivables)),
+    );
+    const { findByText } = renderApp({ initialPath: "/" });
+
+    expect(await findByText("Kein PayPal hinterlegt, Chef")).toBeInTheDocument();
+  });
+
+  it("blendet den PayPal-Hinweis aus, wenn ein PayPal-Handle hinterlegt ist", async () => {
+    // The default session has payPalHandleSet: true.
+    useDashboardHandlers(buildDashboard());
+    const { findByText, queryByText } = renderApp({ initialPath: "/" });
+
+    expect(await findByText("Döner-Tag läuft")).toBeInTheDocument();
+    expect(queryByText("Kein PayPal hinterlegt, Chef")).not.toBeInTheDocument();
+  });
+
+  it("ordnet die offenen Zahlungen direkt unter den Döner-Tag, vor Tier und Stats", async () => {
+    useDashboardHandlers(buildDashboard());
+    const { findByText, getByText } = renderApp({ initialPath: "/" });
+
+    const openPayments = await findByText("Offene Zahlungen");
+    const stats = getByText("Döner-Überwachung");
+    const tier = getByText("Dein Döner-Tier");
+
+    // OpenPaymentsCard precedes both the tier and the stats sections in the DOM.
+    expect(
+      openPayments.compareDocumentPosition(stats) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      openPayments.compareDocumentPosition(tier) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it("macht die 'Offen'-Kachel nur tappbar, wenn die Anzahl > 0 ist", async () => {
+    useDashboardHandlers(buildDashboard());
+    const { findByText } = renderApp({ initialPath: "/" });
+
+    // openPaymentsCount is 2 → the tile is a button.
+    const openTile = await findByText("Offen");
+    expect(openTile.closest("button")).not.toBeNull();
+  });
+
+  it("lässt die 'Offen'-Kachel inert, wenn keine offenen Zahlungen bestehen", async () => {
+    useDashboardHandlers(
+      buildDashboard({
+        stats: { ...baseStats, openPaymentsCount: 0 },
+        debts: { openCount: 0, totalCents: 0, totalLabel: "0,00", rows: [] },
+      }),
+    );
+    const { findByText } = renderApp({ initialPath: "/" });
+
+    const openTile = await findByText("Offen");
+    expect(openTile.closest("button")).toBeNull();
   });
 });

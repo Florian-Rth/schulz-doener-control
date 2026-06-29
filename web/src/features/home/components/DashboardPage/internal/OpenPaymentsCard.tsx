@@ -19,6 +19,7 @@ export const OpenPaymentsCard: FC = () => {
 
   return (
     <Paper
+      id="offene-zahlungen"
       sx={(theme) => ({
         p: 2,
         borderRadius: `${theme.radii.xl}px`,

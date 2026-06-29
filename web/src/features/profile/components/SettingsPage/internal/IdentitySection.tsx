@@ -5,6 +5,7 @@ import { Avatar } from "@/components";
 import type { Session } from "@/features/auth";
 import { settingsCopy } from "../../../copy";
 import { DisplayNameForm } from "../../DisplayNameForm";
+import { WorkEmailForm } from "../../WorkEmailForm";
 import { SettingsSection } from "./SettingsSection";
 
 interface IdentitySectionProps {
@@ -33,6 +34,7 @@ export const IdentitySection: FC<IdentitySectionProps> = ({ user }) => {
       </Stack>
 
       <DisplayNameForm initialName={user.displayName} />
+      <WorkEmailForm initialEmail={user.workEmail} />
     </SettingsSection>
   );
 };

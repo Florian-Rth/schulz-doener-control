@@ -55,6 +55,23 @@ public sealed class ProfileService : IProfileService
         return Result<ProfileDetails>.Success(Map(user));
     }
 
+    public async Task<Result<ProfileDetails>> UpdateWorkEmailAsync(
+        UpdateWorkEmailCommand command,
+        CancellationToken ct
+    )
+    {
+        var user = await FindAsync(command.CallerUserId, ct);
+        if (user is null)
+            return Result<ProfileDetails>.NotFound("Benutzer nicht gefunden.");
+
+        user.WorkEmail = string.IsNullOrWhiteSpace(command.WorkEmail)
+            ? null
+            : command.WorkEmail.Trim();
+        await database.SaveChangesAsync(ct);
+
+        return Result<ProfileDetails>.Success(Map(user));
+    }
+
     private static ProfileDetails Map(User user) =>
         new(
             user.Id,
@@ -65,7 +82,9 @@ public sealed class ProfileService : IProfileService
             user.Role,
             // The stored value is the bare handle; the user only ever sees a link, so reconstruct it.
             PayPalLinkBuilder.BuildLink(user.PayPalHandle, null),
-            !string.IsNullOrWhiteSpace(user.PayPalHandle)
+            !string.IsNullOrWhiteSpace(user.PayPalHandle),
+            user.WorkEmail,
+            !string.IsNullOrWhiteSpace(user.WorkEmail)
         );
 
     private Task<User?> FindAsync(Guid callerId, CancellationToken ct) =>

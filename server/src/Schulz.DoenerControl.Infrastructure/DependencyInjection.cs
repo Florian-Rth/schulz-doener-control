@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Schulz.DoenerControl.Application.Config;
 using Schulz.DoenerControl.Application.Dashboard;
 using Schulz.DoenerControl.Application.Debts;
+using Schulz.DoenerControl.Application.Email;
 using Schulz.DoenerControl.Application.Leaderboards;
 using Schulz.DoenerControl.Application.Menu;
 using Schulz.DoenerControl.Application.Notifications;
@@ -19,6 +20,7 @@ using Schulz.DoenerControl.Application.Users;
 using Schulz.DoenerControl.Infrastructure.Config;
 using Schulz.DoenerControl.Infrastructure.Dashboard;
 using Schulz.DoenerControl.Infrastructure.Debts;
+using Schulz.DoenerControl.Infrastructure.Email;
 using Schulz.DoenerControl.Infrastructure.Leaderboards;
 using Schulz.DoenerControl.Infrastructure.Menu;
 using Schulz.DoenerControl.Infrastructure.Notifications;
@@ -61,6 +63,7 @@ public static class DependencyInjection
         services.AddScoped<INotificationTemplateService, NotificationTemplateService>();
         services.AddScoped<IRegistrationModeService, RegistrationModeService>();
         services.AddPush(configuration);
+        services.AddEmail(configuration);
         services.AddOrderDays(configuration);
         services.AddScoped<IOrderService, OrderService>();
         services.AddScoped<IPickupService, PickupService>();
@@ -149,6 +152,43 @@ public static class DependencyInjection
         options.Subject = configuration[VapidOptions.SubjectConfigKey] ?? string.Empty;
         options.PublicKey = configuration[VapidOptions.PublicKeyConfigKey] ?? string.Empty;
         options.PrivateKey = configuration[VapidOptions.PrivateKeyConfigKey] ?? string.Empty;
+    }
+
+    private static void AddEmail(this IServiceCollection services, IConfiguration configuration)
+    {
+        services
+            .AddOptions<SmtpOptions>()
+            .Configure(options => BindSmtpOptions(configuration, options));
+
+        // The SMTP service ctor does no I/O (it only reads bound options), so a singleton is safe and
+        // its IsEnabled can back the client-config kill-switch flag. The PDF renderer is stateless.
+        services.AddSingleton<IEmailService, SmtpEmailService>();
+        services.AddSingleton<OrderListPdfRenderer>();
+        services.AddScoped<IOrderListMailService, OrderListMailService>();
+    }
+
+    private static void BindSmtpOptions(IConfiguration configuration, SmtpOptions options)
+    {
+        options.Enabled =
+            bool.TryParse(configuration[SmtpOptions.EnabledConfigKey], out var enabled) && enabled;
+        options.Host = configuration[SmtpOptions.HostConfigKey] ?? string.Empty;
+        if (int.TryParse(configuration[SmtpOptions.PortConfigKey], out var port))
+        {
+            options.Port = port;
+        }
+        options.User = configuration[SmtpOptions.UserConfigKey] ?? string.Empty;
+        options.Password = configuration[SmtpOptions.PasswordConfigKey] ?? string.Empty;
+        options.FromAddress = configuration[SmtpOptions.FromAddressConfigKey] ?? string.Empty;
+
+        var fromName = configuration[SmtpOptions.FromNameConfigKey];
+        if (!string.IsNullOrWhiteSpace(fromName))
+        {
+            options.FromName = fromName;
+        }
+
+        // Defaults to true (STARTTLS) unless explicitly set false.
+        options.UseStartTls =
+            !bool.TryParse(configuration[SmtpOptions.UseStartTlsConfigKey], out var tls) || tls;
     }
 
     private static void AddOrderDays(this IServiceCollection services, IConfiguration configuration)

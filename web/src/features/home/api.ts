@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError, apiClient } from "@/lib/api";
 import { homeCopy } from "./copy";
-import { DashboardSchema, PaymentHistorySchema } from "./schemas";
-import type { Dashboard, PaymentHistory } from "./types";
+import { DashboardSchema, PaymentHistorySchema, ReceivablesSchema } from "./schemas";
+import type { Dashboard, PaymentHistory, Receivables } from "./types";
 
 export const dashboardKeys = {
   all: ["dashboard"] as const,
@@ -10,6 +10,10 @@ export const dashboardKeys = {
 
 export const paymentHistoryKeys = {
   all: ["payment-history"] as const,
+};
+
+export const receivablesKeys = {
+  all: ["receivables"] as const,
 };
 
 const fetchDashboard = async (signal: AbortSignal): Promise<Dashboard> => {
@@ -39,6 +43,21 @@ export const useMyPaymentHistory = () =>
   useQuery({
     queryKey: paymentHistoryKeys.all,
     queryFn: ({ signal }) => fetchPaymentHistory(signal),
+  });
+
+// GET /api/debts/receivables — what the collector is still owed (open debts
+// others have toward them) plus the already-settled ones. A standalone
+// read-only query (NOT folded into the dashboard aggregate), one-shot like the
+// payment history — no 5s polling.
+const fetchReceivables = async (signal: AbortSignal): Promise<Receivables> => {
+  const data = await apiClient.get("/api/debts/receivables", signal);
+  return ReceivablesSchema.parse(data);
+};
+
+export const useReceivables = () =>
+  useQuery({
+    queryKey: receivablesKeys.all,
+    queryFn: ({ signal }) => fetchReceivables(signal),
   });
 
 // POST /api/order-days/open — "Ich will heute Döner!". The server resolves
@@ -165,6 +184,8 @@ export const useClaimCollector = ({ onError }: CloseMutationOptions) => {
     onError: (error) => {
       if (error instanceof ApiError && error.status === 400) {
         onError(homeCopy.claimNeedsOrder);
+      } else if (error instanceof ApiError && error.status === 409) {
+        onError(homeCopy.claimOrderingClosed);
       } else {
         onError(homeCopy.claimFailed);
       }

@@ -3,9 +3,11 @@ import AccountBalanceWalletOutlined from "@mui/icons-material/AccountBalanceWall
 import AddOutlined from "@mui/icons-material/AddOutlined";
 import ArrowBackOutlined from "@mui/icons-material/ArrowBackOutlined";
 import CampaignOutlined from "@mui/icons-material/CampaignOutlined";
+import CancelOutlined from "@mui/icons-material/CancelOutlined";
 import CheckCircleOutlined from "@mui/icons-material/CheckCircleOutlined";
 import CheckOutlined from "@mui/icons-material/CheckOutlined";
 import ChevronRightOutlined from "@mui/icons-material/ChevronRightOutlined";
+import CloseOutlined from "@mui/icons-material/CloseOutlined";
 import DirectionsCarOutlined from "@mui/icons-material/DirectionsCarOutlined";
 import EmojiEventsOutlined from "@mui/icons-material/EmojiEventsOutlined";
 import EuroOutlined from "@mui/icons-material/EuroOutlined";
@@ -13,7 +15,10 @@ import FastfoodOutlined from "@mui/icons-material/FastfoodOutlined";
 import KebabDiningOutlined from "@mui/icons-material/KebabDiningOutlined";
 import LocalFireDepartmentOutlined from "@mui/icons-material/LocalFireDepartmentOutlined";
 import LocalPizzaOutlined from "@mui/icons-material/LocalPizzaOutlined";
+import LockClockOutlined from "@mui/icons-material/LockClockOutlined";
+import LockOutlined from "@mui/icons-material/LockOutlined";
 import LunchDiningOutlined from "@mui/icons-material/LunchDiningOutlined";
+import MailOutlined from "@mui/icons-material/MailOutlined";
 import NoMealsOutlined from "@mui/icons-material/NoMealsOutlined";
 import NotificationsActiveOutlined from "@mui/icons-material/NotificationsActiveOutlined";
 import PaymentsOutlined from "@mui/icons-material/PaymentsOutlined";
@@ -34,9 +39,11 @@ export const ICON_MAP = {
   add: AddOutlined,
   arrow_back: ArrowBackOutlined,
   campaign: CampaignOutlined,
+  cancel: CancelOutlined,
   check: CheckOutlined,
   check_circle: CheckCircleOutlined,
   chevron_right: ChevronRightOutlined,
+  close: CloseOutlined,
   directions_car: DirectionsCarOutlined,
   emoji_events: EmojiEventsOutlined,
   euro: EuroOutlined,
@@ -44,7 +51,10 @@ export const ICON_MAP = {
   kebab_dining: KebabDiningOutlined,
   local_fire_department: LocalFireDepartmentOutlined,
   local_pizza: LocalPizzaOutlined,
+  lock: LockOutlined,
+  lock_clock: LockClockOutlined,
   lunch_dining: LunchDiningOutlined,
+  mail: MailOutlined,
   no_meals: NoMealsOutlined,
   notifications_active: NotificationsActiveOutlined,
   payments: PaymentsOutlined,

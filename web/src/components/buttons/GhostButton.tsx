@@ -1,12 +1,16 @@
 import Button from "@mui/material/Button";
 import type { SxProps, Theme } from "@mui/material/styles";
 import type { FC, ReactNode } from "react";
+import { MaterialIcon } from "@/components/MaterialIcon";
 
 interface GhostButtonProps {
   children: ReactNode;
   onClick?: () => void;
   type?: "button" | "submit";
   disabled?: boolean;
+  loading?: boolean;
+  /** Optional leading Material icon name. */
+  startIcon?: string;
   sx?: SxProps<Theme>;
 }
 
@@ -17,15 +21,23 @@ export const GhostButton: FC<GhostButtonProps> = ({
   onClick,
   type = "button",
   disabled = false,
+  loading = false,
+  startIcon,
   sx,
 }) => {
   return (
     <Button
       type={type}
       onClick={onClick}
-      disabled={disabled}
+      disabled={disabled || loading}
+      loading={loading}
       variant="outlined"
       color="primary"
+      startIcon={
+        startIcon !== undefined ? (
+          <MaterialIcon name={startIcon} sx={{ fontSize: 22 }} />
+        ) : undefined
+      }
       sx={[
         (theme) => ({
           width: "100%",

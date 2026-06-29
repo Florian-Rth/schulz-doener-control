@@ -34,7 +34,6 @@ export const homeCopy = {
   // CTA + info line once the collector has closed ordering (FEATURE 4).
   orderingClosedCta: "Bestellung geschlossen",
   orderingClosedInfo: "Der Abholer hat die Bestellung geschlossen, Chef.",
-  payAbholerCaption: "Öffnet PayPal.Me · Betrag voreingestellt",
   printList: "Bestellliste drucken",
   // Empty running-day order list nudge.
   noOrdersYet: "Noch keine Bestellungen — sei der Erste, Chef.",
@@ -51,6 +50,8 @@ export const homeCopy = {
   noCollectorOrderFirst:
     "Gib erst deine Bestellung ab, dann kannst du dich als Abholer eintragen, Chef.",
   claimCollector: "Ich hole heute ab",
+  // Collector subsection eyebrow ("Du steuerst den Tag").
+  collectorSectionEyebrow: "Du steuerst den Tag",
   // Take-over confirmation (FEATURE 3).
   takeOverCollector: "Ich übernehme die Abholung",
   takeOverDialogTitle: "Abholung übernehmen?",
@@ -59,23 +60,45 @@ export const homeCopy = {
   // claimCollector mutation error toasts (items 2/3).
   claimNeedsOrder: "Erst bestellen, dann abholen, Chef.",
   claimFailed: "Hat nicht geklappt, Chef.",
+  // claimCollector 409 — ordering already locked, the Abholer is final (B-2).
+  claimOrderingClosed: "Die Bestellung ist schon zu, Chef — der Abholer steht fest.",
   // Cash fallback when the recipient has no PayPal handle (item 6).
   payCash: "Bar zahlen",
   // Collector-only close actions (Abholer steuert den Tag)
   closeOrdering: "Bestellung schließen",
-  closeDay: "Döner-Tag schließen",
+  closeDay: "Tag abschließen & abrechnen",
   closeOrderingFailed: "Bestellung konnte nicht geschlossen werden, Chef.",
   closeDayFailed: "Döner-Tag konnte nicht geschlossen werden, Chef.",
-  // Admin-only scrap-and-end: discards all orders and ends the day (no debts). Available in any
-  // state — e.g. an accidental open, or a day to abort. Destructive → confirm before firing.
-  adminEndDay: "Döner-Tag beenden",
-  adminEndDialogTitle: "Döner-Tag beenden?",
+  // Collector close-ordering confirm (locks ordering — no debts yet).
+  closeOrderingDialogTitle: "Bestellung jetzt schließen?",
+  closeOrderingDialogBody:
+    "Danach kann KEIN Kollege mehr bestellen oder ändern, Chef — und der Abholer steht endgültig fest.",
+  closeOrderingConfirm: "Ja, Bestellung schließen",
+  closeOrderingPending: "Wird geschlossen …",
+  closeOrderingCancel: "Doch nicht",
+  // Collector close-day confirm (settles the day → creates debts).
+  closeDayDialogTitle: "Tag abschließen und abrechnen?",
+  closeDayDialogBody:
+    "Das schließt den Döner-Tag endgültig ab und schreibt allen Kollegen ihre Schulden gut, Chef. Das lässt sich nicht rückgängig machen.",
+  closeDayConfirm: "Ja, abschließen & abrechnen",
+  closeDayPending: "Wird abgerechnet …",
+  closeDayCancel: "Doch nicht",
+  // Admin/collector scrap-and-abort: discards all orders and aborts the day (no debts). Available
+  // in any state — e.g. an accidental open, or a day to abort. Destructive → confirm before firing.
+  adminEndDay: "Döner-Tag abbrechen",
+  adminEndDialogTitle: "Döner-Tag wirklich abbrechen?",
   adminEndDialogBody:
-    "Das verwirft ALLE Bestellungen und beendet den Tag, Chef. Es entstehen keine Schulden — und rückgängig geht's nicht.",
-  adminEndConfirm: "Ja, beenden",
-  adminEndPending: "Wird beendet …",
+    "Das verwirft ALLE Bestellungen und bricht den Tag ab, Chef. Es entstehen keine Schulden — und rückgängig geht's nicht.",
+  adminEndConfirm: "Ja, abbrechen",
+  adminEndPending: "Wird abgebrochen …",
   adminEndCancel: "Doch nicht",
-  adminEndFailed: "Döner-Tag konnte nicht beendet werden, Chef.",
+  adminEndFailed: "Döner-Tag konnte nicht abgebrochen werden, Chef.",
+  // PayPal nudge — shown to a user who hasn't set a PayPal handle (dismissable).
+  paypalNudgeTitle: "Kein PayPal hinterlegt, Chef",
+  paypalNudgeBody:
+    "Ohne PayPal-Link müssen dir die Kollegen bar zahlen. Hinterlege ihn einmal in den Einstellungen.",
+  paypalNudgeCta: "PayPal-Link hinterlegen",
+  paypalNudgeDismissLabel: "Hinweis ausblenden",
   // Leaderboard
   leaderboardTitle: "Döner-Bestenliste",
   // Open payments
@@ -83,6 +106,11 @@ export const homeCopy = {
   pay: "PayPal",
   // Read-only settled-payment history (FEATURE 4 / B12).
   paymentHistoryTitle: "Meine letzten Zahlungen",
+  // Read-only collector receivables card (FEATURE C-2) — what others still owe the caller.
+  receivablesTitle: "Was mir noch zusteht",
+  receivableOpen: "Offen",
+  receivableSettled: "Bezahlt",
+  receivablesEmpty: "Dir schuldet gerade keiner was, Chef.",
   // Per-debt "ich hab bezahlt" confirmation (FEATURE 4 settle). One-way: a
   // settled debt verschwindet aus der Liste und kann nicht zurückgeholt werden.
   settle: "Erledigt",
@@ -117,18 +145,10 @@ const greetingSublinesByWeekday: Readonly<Record<number, string>> = {
 export const greetingSublineForWeekday = (weekday: number): string =>
   greetingSublinesByWeekday[weekday] ?? greetingSublinesByWeekday[4];
 
-// "{name} hat kein PayPal hinterlegt — bitte bar bezahlen, Chef." — the cash
-// fallback alert on the open-day card when the Abholer has no handle (item 6).
-export const payCashAbholer = (name: string): string =>
-  `${name} hat kein PayPal hinterlegt — bitte bar bezahlen, Chef.`;
-
 // "{name} ist gerade dran. …" — the take-over confirmation body naming the
 // current Abholer (item 3).
 export const takeOverDialogBody = (name: string): string =>
   `${name} ist gerade dran. Wenn du übernimmst, sammelst DU das Geld ein und schließt den Tag, Chef.`;
-
-// "Jetzt an {name} zahlen" — the Abholer pay-button label on the open-day card.
-export const payAbholerLabel = (name: string): string => `Jetzt an ${name} zahlen`;
 
 // "Bestellschluss 11:30 Uhr" — assembled from the cutoff label.
 export const cutoffSentence = (cutoffLabel: string): string => `Bestellschluss ${cutoffLabel} Uhr`;

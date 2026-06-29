@@ -38,6 +38,9 @@ export const SessionSchema = z.object({
   role: z.string(),
   payPalHandleSet: z.boolean(),
   payPalHandle: z.string().nullable(),
+  // Tolerant of a backend that predates the field (rollout safety): absent -> null. The inferred
+  // type stays `string | null`, so consumers never see `undefined`.
+  workEmail: z.string().nullable().optional().default(null),
   mustChangePassword: z.boolean(),
 });
 
@@ -88,6 +91,15 @@ export const RegisterFormSchema = z
       .trim()
       .max(256, authCopy.registerPayPalHandleLength)
       .refine((value) => value === "" || isPayPalLink(value), authCopy.registerPayPalHandlePattern),
+    // Optional work email — empty allowed; a real value must be a valid email (mirrors the backend).
+    workEmail: z
+      .string()
+      .trim()
+      .max(256, authCopy.registerWorkEmailLength)
+      .refine(
+        (value) => value === "" || z.email().safeParse(value).success,
+        authCopy.registerWorkEmailInvalid,
+      ),
     password: z
       .string()
       .min(10, authCopy.registerPasswordLength)

@@ -10,7 +10,11 @@ namespace Schulz.DoenerControl.Api.Endpoints.Config;
 // user has a session. Both fields are non-sensitive feature flags — RegistrationMode is the int wire
 // value (1 Enabled / 2 Disabled / 3 SecretKeyOnly) and the secret key itself is never exposed here.
 // Reads through services so the Api never touches ClientConfigOptions or the RegistrationMode entity.
-public sealed record GetClientConfigResponse(bool PwaGateEnabled, int RegistrationMode);
+public sealed record GetClientConfigResponse(
+    bool PwaGateEnabled,
+    int RegistrationMode,
+    bool EmailPdfEnabled
+);
 
 public sealed class GetClientConfig : EndpointWithoutRequest<GetClientConfigResponse>
 {
@@ -36,7 +40,11 @@ public sealed class GetClientConfig : EndpointWithoutRequest<GetClientConfigResp
     {
         var details = clientConfigService.GetClientConfig();
         var registration = await registrationModeService.GetModeAsync(ct);
-        var response = new GetClientConfigResponse(details.PwaGateEnabled, (int)registration.Mode);
+        var response = new GetClientConfigResponse(
+            details.PwaGateEnabled,
+            (int)registration.Mode,
+            details.EmailPdfEnabled
+        );
         await Send.OkAsync(response, cancellation: ct);
     }
 }

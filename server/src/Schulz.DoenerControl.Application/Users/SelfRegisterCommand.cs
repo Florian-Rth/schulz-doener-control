@@ -9,6 +9,7 @@ public sealed record SelfRegisterCommand(
     string Username,
     string DisplayName,
     string? PayPalHandle,
+    string? WorkEmail,
     string Password,
     string? SecretKey
 );

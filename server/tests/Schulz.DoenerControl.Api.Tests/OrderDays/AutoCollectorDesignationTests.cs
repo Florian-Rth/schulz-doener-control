@@ -42,8 +42,8 @@ public sealed class AutoCollectorDesignationOnOrderTests : DoenerControlTestBase
         Assert.NotNull(chefBody.Day.Abholer);
         Assert.Equal(TestSeeding.ChefDisplayName, chefBody.Day.Abholer!.Name);
 
-        // The non-pickup colleague sees the Abholer + the collector's pay link, reconstructed from
-        // the collector's handle with the colleague's own 7,60 € order total.
+        // The non-pickup colleague sees the Abholer, but no open-day pay link (pay-link gating):
+        // reimbursement happens only through the debts created at close-day.
         var lukasToday = await lukas.GetAsync(TodayUrl);
         var lukasBody = await lukasToday.Content.ReadFromJsonAsync<GetTodayOrderDayResponse>(
             TestContext.Current.CancellationToken
@@ -51,7 +51,7 @@ public sealed class AutoCollectorDesignationOnOrderTests : DoenerControlTestBase
         Assert.Equal(HttpStatusCode.OK, lukasToday.StatusCode);
         Assert.False(lukasBody!.Day!.AmICollector);
         Assert.NotNull(lukasBody.Day.Abholer);
-        Assert.Equal($"{TestSeeding.ChefPayPalLink}/7.60EUR", lukasBody.Day.Abholer!.PayPalUrl);
+        Assert.Null(lukasBody.Day.Abholer!.PayPalUrl);
     }
 }
 

@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import type { DashboardSchema, PaymentHistorySchema } from "./schemas";
+import type { DashboardSchema, PaymentHistorySchema, ReceivablesSchema } from "./schemas";
 
 export type Dashboard = z.infer<typeof DashboardSchema>;
 export type DashboardStats = Dashboard["stats"];
@@ -14,3 +14,6 @@ export type DebtRow = DashboardDebts["rows"][number];
 
 export type PaymentHistory = z.infer<typeof PaymentHistorySchema>;
 export type PaymentHistoryRow = PaymentHistory["payments"][number];
+
+export type Receivables = z.infer<typeof ReceivablesSchema>;
+export type ReceivableRow = Receivables["rows"][number];

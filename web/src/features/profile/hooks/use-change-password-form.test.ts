@@ -18,6 +18,7 @@ const lockedSession: Session = {
   role: "employee",
   payPalHandleSet: false,
   payPalHandle: null,
+  workEmail: null,
   mustChangePassword: true,
 };
 

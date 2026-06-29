@@ -7,6 +7,8 @@ import { GreetingBar } from "./internal/GreetingBar";
 import { LeaderboardCard } from "./internal/LeaderboardCard";
 import { MyRecentPaymentsCard } from "./internal/MyRecentPaymentsCard";
 import { OpenPaymentsCard } from "./internal/OpenPaymentsCard";
+import { PayPalNudge } from "./internal/PayPalNudge";
+import { ReceivablesCard } from "./internal/ReceivablesCard";
 import { StatsGrid } from "./internal/StatsGrid";
 import { TierSection } from "./internal/TierSection";
 
@@ -21,14 +23,19 @@ export const DashboardPage: FC = () => {
         {toast !== null ? <PushToast message={toast} onDismiss={dismissToast} /> : null}
         <DashboardHeader isDayOpen={day.isOpen} />
         <GreetingBar />
+        <PayPalNudge />
         {/* The time-sensitive ritual leads: the running/open-day card sits first
-            under the greeting, above the tier + stats overview. */}
+            under the greeting, with the open payments right beneath it (they
+            self-hide when empty), above the tier + stats overview. */}
         <DoenerTagSection />
+        <OpenPaymentsCard />
         <TierSection />
         <StatsGrid />
         <LeaderboardCard />
-        <OpenPaymentsCard />
         <MyRecentPaymentsCard />
+        {/* Self-fetches its own receivables query and self-hides when empty;
+            deliberately NOT part of the dashboard aggregate / context. */}
+        <ReceivablesCard />
       </PageLayout.Content>
     </PageLayout>
   );

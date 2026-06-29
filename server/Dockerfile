@@ -31,6 +31,13 @@ RUN dotnet publish src/Schulz.DoenerControl.Api/Schulz.DoenerControl.Api.csproj 
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
 WORKDIR /app
 
+# QuestPDF renders the order-list PDF via SkiaSharp, which needs fontconfig and at least one
+# installed font on this slim image — otherwise PDF generation throws at runtime. DejaVu covers
+# German umlauts and the € sign. Done as root, before the image drops to the non-root app user.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libfontconfig1 fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/*
+
 # Kestrel listens on 8080 (the .NET 8+ image default); be explicit anyway.
 ENV ASPNETCORE_HTTP_PORTS=8080 \
     ASPNETCORE_ENVIRONMENT=Production \

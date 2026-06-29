@@ -9,9 +9,9 @@ export interface DayStatus {
   /** True while there is no designated Abholer yet. */
   hasNoCollector: boolean;
   /**
-   * True when a foreign Abholer is set and the caller has ordered — i.e. they
-   * actually owe the Abholer and could pay or take over. Non-orderers never owe,
-   * so the pay/take-over UI stays hidden for them.
+   * True when a foreign Abholer is set, the caller has ordered, and ordering is
+   * still open — i.e. they may still take over. Take-over closes once ordering
+   * locks (the Abholer is then final). Non-orderers never qualify.
    */
   canTakeOver: boolean;
   /** True when the running day has no orders at all. */
@@ -36,7 +36,8 @@ export const useDayStatus = (day: DashboardDay): DayStatus => {
     statusLine,
     iHaveOrdered,
     hasNoCollector: day.abholer === null,
-    canTakeOver: day.abholer !== null && !day.amICollector && iHaveOrdered,
+    // Take-over closes when ordering locks — the Abholer is final from then on.
+    canTakeOver: day.abholer !== null && !day.amICollector && iHaveOrdered && !day.isOrderingClosed,
     isEmpty: day.orders.length === 0,
   };
 };

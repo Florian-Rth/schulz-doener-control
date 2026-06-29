@@ -18,6 +18,24 @@ export interface PrintListContextValue {
   print: () => void;
   /** Navigates back to the dashboard. */
   goBack: () => void;
+  /**
+   * True when the "Liste an meine Mail schicken" button should show — the backend
+   * enabled it AND the caller has a work e-mail on file.
+   */
+  emailButtonVisible: boolean;
+  /**
+   * True when the action is enabled but the caller has no work e-mail yet — show
+   * the "Hinterlege deine Arbeits-Mail"-Hinweis with a link to the settings instead.
+   */
+  emailHintVisible: boolean;
+  /** E-mails today's order list as a PDF to the caller's work address. */
+  emailList: () => void;
+  /** True while the e-mail-the-list mutation is in flight. */
+  isEmailingList: boolean;
+  /** Success/error toast text for the e-mail action; null = nothing to show. */
+  emailToast: string | null;
+  /** Dismisses the e-mail toast. */
+  dismissEmailToast: () => void;
 }
 
 // One context for the print compound group. UI pieces read it instead of

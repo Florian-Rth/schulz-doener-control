@@ -10,6 +10,14 @@ import { useDashboardContext } from "../../../dashboard-context";
 export const StatsGrid: FC = () => {
   const { stats } = useDashboardContext();
 
+  // The "Offen" tile jumps to the open-payments card — but only when there is
+  // something open; with a zero count it stays an inert stat.
+  const scrollToOpenPayments = (): void => {
+    document
+      .getElementById("offene-zahlungen")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   return (
     <Stack sx={{ gap: 1.25 }}>
       <Typography variant="eyebrow" sx={{ px: 0.25, letterSpacing: ".1em" }}>
@@ -35,6 +43,7 @@ export const StatsGrid: FC = () => {
           valueColor="orange"
           label={homeCopy.statOpen}
           value={String(stats.openPaymentsCount)}
+          onClick={stats.openPaymentsCount > 0 ? scrollToOpenPayments : undefined}
         />
         <StatCard
           icon="local_fire_department"

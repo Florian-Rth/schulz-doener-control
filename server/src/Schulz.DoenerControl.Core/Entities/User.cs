@@ -17,6 +17,10 @@ public sealed class User
     // Nullable: a user can be provisioned before supplying their PayPal.Me handle.
     public string? PayPalHandle { get; set; }
 
+    // Nullable: an optional work email a colleague may supply at registration or later in
+    // settings; used to mail the order list as a PDF when the office printer is out of reach.
+    public string? WorkEmail { get; set; }
+
     public required byte[] PasswordHash { get; set; }
 
     public required byte[] PasswordSalt { get; set; }

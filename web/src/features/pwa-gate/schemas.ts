@@ -21,6 +21,10 @@ export const ClientConfigSchema = z.object({
   registrationMode: z
     .union([z.literal(1), z.literal(2), z.literal(3)])
     .default(RegistrationMode.Enabled),
+  // Whether the Abholer may e-mail the order list as a PDF (server SMTP toggle).
+  // Optional on the wire (older servers omit it); defaults to false (fail-closed)
+  // so the email button never shows unless the backend explicitly enables it.
+  emailPdfEnabled: z.boolean().default(false),
 });
 
 // The developer bypass query param: ?debug=<token> lets the app run in a browser tab. Validated at

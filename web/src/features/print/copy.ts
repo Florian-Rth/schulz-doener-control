@@ -14,6 +14,13 @@ export const printCopy = {
   totalLabel: "Gesamt",
   print: "Drucken",
   back: "Zurück zur Übersicht",
+  // E-mail-the-list-as-PDF action (D-4) — only shown when the backend enables it
+  // and the caller has a work e-mail on file.
+  emailList: "Liste an meine Mail schicken",
+  emailListSending: "Wird verschickt …",
+  emailListError: "Konnte die Liste nicht verschicken, Chef.",
+  emailListNeedsWorkMail: "Hinterlege zuerst deine Arbeits-Mail im Profil, Chef.",
+  emailListNeedsWorkMailCta: "Zu den Einstellungen",
   // Empty / error / loading states.
   loading: "Lädt …",
   loadFailed: "Bestellliste konnte nicht geladen werden, Chef.",
@@ -32,3 +39,8 @@ export const dayTitle = (date: string): string => `Döner-Tag ${date}`;
 // to keep the handed-over sheet clean for the Döner-Laden.
 export const orderCountSubline = (orderCount: number): string =>
   orderCount === 1 ? "1 Bestellung" : `${orderCount} Bestellungen`;
+
+// "Liste ist unterwegs an {address}, Chef." — the success toast after the order
+// list PDF was e-mailed, echoing back the address the server sent it to (D-4).
+export const emailListSuccess = (address: string): string =>
+  `Liste ist unterwegs an ${address}, Chef.`;
