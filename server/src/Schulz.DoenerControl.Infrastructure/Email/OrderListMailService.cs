@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Schulz.DoenerControl.Application.Email;
 using Schulz.DoenerControl.Application.OrderDays;
 using Schulz.DoenerControl.Core;
@@ -23,18 +24,21 @@ public sealed class OrderListMailService : IOrderListMailService
     private readonly IOrderDayService orderDayService;
     private readonly OrderListPdfRenderer pdfRenderer;
     private readonly AppDbContext database;
+    private readonly ILogger<OrderListMailService> logger;
 
     public OrderListMailService(
         IEmailService emailService,
         IOrderDayService orderDayService,
         OrderListPdfRenderer pdfRenderer,
-        AppDbContext database
+        AppDbContext database,
+        ILogger<OrderListMailService> logger
     )
     {
         this.emailService = emailService;
         this.orderDayService = orderDayService;
         this.pdfRenderer = pdfRenderer;
         this.database = database;
+        this.logger = logger;
     }
 
     public async Task<Result<string>> SendDayListToCallerAsync(
@@ -80,10 +84,13 @@ public sealed class OrderListMailService : IOrderListMailService
         {
             await emailService.SendAsync(message, ct);
         }
-        catch (Exception) when (!ct.IsCancellationRequested)
+        catch (Exception ex) when (!ct.IsCancellationRequested)
         {
             // An enabled-but-misconfigured SMTP host (bad host, auth/TLS failure, …) must surface as
-            // a clean German error, not an unhandled 500. Cancellation still propagates.
+            // a clean German error, not an unhandled 500. Log the real reason so an operator can
+            // diagnose it (e.g. an SMTP "Access Restricted" auth rejection from the provider).
+            // Cancellation still propagates.
+            logger.LogError(ex, "Order-list PDF mail to {Address} failed", message.ToAddress);
             return Result<string>.Conflict(MailSendFailed);
         }
 
