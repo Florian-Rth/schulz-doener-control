@@ -19,9 +19,9 @@ const OrderResultLineSchema = z.object({
 });
 
 // GET /api/orders/{id}/result — the server-driven success view. Money is in
-// integer cents; `priceCents` is the ORDER TOTAL across all lines. `myPayPalUrl`
-// is the prefilled paypal.me link (null when the abholer has no handle → the
-// owes-abholer card shows a cash-fallback warning Alert instead of a button).
+// integer cents; `priceCents` is the ORDER TOTAL across all lines. No pay link
+// here: a non-pickup payer reimburses the Abholer on the home screen once
+// ordering is closed (orders frozen), so the owes-abholer card only informs.
 export const OrderResultSchema = z.object({
   lines: z.array(OrderResultLineSchema),
   priceCents: z.number().int(),
@@ -29,5 +29,4 @@ export const OrderResultSchema = z.object({
   abholer: AbholerSchema.nullable(),
   collectCents: z.number().int(),
   collectCount: z.number().int(),
-  myPayPalUrl: z.string().nullable(),
 });

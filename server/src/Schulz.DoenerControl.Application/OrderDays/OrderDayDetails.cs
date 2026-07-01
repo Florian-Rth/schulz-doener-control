@@ -14,6 +14,7 @@ public sealed record OrderDayDetails(
     int ParticipantCount,
     IReadOnlyList<string> PickupNames,
     IReadOnlyList<OrderRowSummary> Orders,
+    OrderPrintList PrintList,
     bool ICanStillOrder,
     bool IsOrderingClosed,
     Guid? MyOrderId,

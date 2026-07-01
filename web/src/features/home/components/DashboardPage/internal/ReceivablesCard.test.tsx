@@ -33,6 +33,8 @@ const closedDay = {
   amICollector: false,
   abholer: null,
   orders: [],
+  printLines: [],
+  printSummary: [],
 };
 
 const baseDashboard: Dashboard = {

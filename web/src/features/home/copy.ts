@@ -99,6 +99,12 @@ export const homeCopy = {
     "Ohne PayPal-Link müssen dir die Kollegen bar zahlen. Hinterlege ihn einmal in den Einstellungen.",
   paypalNudgeCta: "PayPal-Link hinterlegen",
   paypalNudgeDismissLabel: "Hinweis ausblenden",
+  // Push-notification nudge — shown when notifications are off but switch-on-able (dismissable, once).
+  pushNudgeTitle: "Benachrichtigungen aus, Chef",
+  pushNudgeBody:
+    "Lass dich pingen, sobald ein Kollege den Döner-Tag eröffnet — dann verpasst du keine Runde.",
+  pushNudgeCta: "Benachrichtigungen einschalten",
+  pushNudgeDismissLabel: "Hinweis ausblenden",
   // Leaderboard
   leaderboardTitle: "Döner-Bestenliste",
   // Open payments

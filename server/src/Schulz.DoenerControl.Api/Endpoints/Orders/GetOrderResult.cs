@@ -32,8 +32,7 @@ public sealed record GetOrderResultResponse(
     bool IsPickup,
     AbholerDto? Abholer,
     int CollectCents,
-    int CollectCount,
-    string? MyPayPalUrl
+    int CollectCount
 );
 
 public sealed class GetOrderResultRequestValidator : Validator<GetOrderResultRequest>
@@ -45,8 +44,9 @@ public sealed class GetOrderResultRequestValidator : Validator<GetOrderResultReq
 }
 
 // The Success screen, server-driven from one order id: what the caller ordered, whether they're the
-// pickup, who the Abholer is, and either their PayPal link to pay or the total they collect.
-// The order must be the caller's own (else 404). Authenticated.
+// pickup, who the Abholer is, and (for the collector) the total they collect. No pay link — a payer
+// reimburses the Abholer on the home screen after ordering closes. The order must be the caller's own
+// (else 404). Authenticated.
 public sealed class GetOrderResult : Endpoint<GetOrderResultRequest, GetOrderResultResponse>
 {
     private readonly IOrderService orderService;
@@ -91,8 +91,7 @@ public sealed class GetOrderResult : Endpoint<GetOrderResultRequest, GetOrderRes
             details.IsPickup,
             details.Abholer is null ? null : ToAbholerDto(details.Abholer),
             details.CollectCents,
-            details.CollectCount,
-            details.MyPayPalUrl
+            details.CollectCount
         );
 
     private static OrderResultLineDto ToLineDto(OrderResultLineDetails line) =>

@@ -24,7 +24,7 @@ export const usePrintList = ({ day, emailPdfEnabled }: UsePrintListArgs): PrintL
   const emailMutation = useEmailOrderListPdf();
   const [emailToast, setEmailToast] = useState<string | null>(null);
 
-  const totalCents = day.orders.reduce((sum, order) => sum + order.priceCents, 0);
+  const totalCents = day.printLines.reduce((sum, line) => sum + line.lineTotalCents, 0);
 
   // The caller has a usable work e-mail when it is set and non-empty.
   const workEmailSet =
@@ -49,7 +49,8 @@ export const usePrintList = ({ day, emailPdfEnabled }: UsePrintListArgs): PrintL
     title: dayTitle(formatGermanDate(new Date())),
     subline: orderCountSubline(day.orders.length),
     abholerNames: day.pickupNames.join(", "),
-    orders: day.orders,
+    lines: day.printLines,
+    summary: day.printSummary,
     totalLabel: formatEur(totalCents),
     print: () => {
       window.print();

@@ -139,6 +139,36 @@ public sealed class GetLeaderboardTests : DoenerControlTestBase
     }
 
     [Fact]
+    public async Task Should_Only_Count_Closed_Days_With_Settled_Debts()
+    {
+        // A dedicated future year isolates this test's standings from the shared fixture database.
+        var year = 2097;
+        var chefId = await UserIdAsync("m.wagner");
+
+        await SeedAsync(database =>
+        {
+            // Counted: closed day + settled debt (money confirmed sent).
+            SeedYearOrders(database, chefId, year, 2);
+            // NOT counted: the day never finished (still open) — the ritual might yet be aborted.
+            SeedUncountedOrders(database, chefId, year, openDay: true, count: 3);
+            // NOT counted: the day closed but the debt is still open (money not confirmed sent).
+            SeedUncountedOrders(database, chefId, year, openDay: false, count: 4);
+        });
+
+        var chef = await LoginAsChefAsync();
+        var response = await chef.GetAsync($"{LeaderboardUrl}?year={year}");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<GetLeaderboardResponse>(
+            TestContext.Current.CancellationToken
+        );
+        Assert.NotNull(body);
+
+        // Only the two closed-and-settled orders count — the seven unfinished/unpaid ones are ignored.
+        var chefEntry = body!.Entries.Single(entry => entry.UserId == chefId);
+        Assert.Equal(2, chefEntry.Count);
+    }
+
+    [Fact]
     public async Task Should_Default_To_Current_Year_When_Year_Omitted()
     {
         // The default leaderboard year is the server's "now" year; anchor on the fixed test clock so
@@ -181,6 +211,8 @@ public sealed class GetLeaderboardTests : DoenerControlTestBase
     // index forbids two rows on the same calendar day), with OccurredOn anchored to the given year —
     // the business instant the year filter keys off. The synthetic OrderDay.Date is drawn from a
     // process-wide counter so dates never collide across the test methods that share one fixture DB.
+    // Each order gets a SETTLED debt so it counts under the fail-safe stats rule (day closed AND, for a
+    // non-pickup order, its debt settled = money confirmed sent).
     private static void SeedYearOrders(AppDbContext database, Guid userId, int year, int count)
     {
         for (var i = 0; i < count; i++)
@@ -230,6 +262,110 @@ public sealed class GetLeaderboardTests : DoenerControlTestBase
                     },
                 }
             );
+            database.Debts.Add(SettledDebtFor(orderId, day.Id, userId, occurredOn));
+        }
+    }
+
+    // A settled Döner-Tag debt tying the given order to the stats-counted state. Debtor and creditor
+    // are the same synthetic user — the stats gate only keys on OrderId + Settled status.
+    private static Debt SettledDebtFor(
+        Guid orderId,
+        Guid orderDayId,
+        Guid userId,
+        DateTimeOffset when
+    ) =>
+        new()
+        {
+            Id = Guid.NewGuid(),
+            DebtorUserId = userId,
+            CreditorUserId = userId,
+            OrderId = orderId,
+            OrderDayId = orderDayId,
+            AmountCents = 750,
+            Reason = "Döner-Tag",
+            Status = PaymentStatus.Settled,
+            CreatedAt = when,
+            SettledAt = when,
+        };
+
+    // Seeds `count` orders that must NOT count toward stats: either on a still-OPEN day (openDay:
+    // true, no debt yet) or on a closed day whose debt is still OPEN (openDay: false — money not
+    // confirmed). Proves the fail-safe gate: neither an unfinished day nor an unpaid debt inflates
+    // the numbers.
+    private static void SeedUncountedOrders(
+        AppDbContext database,
+        Guid userId,
+        int year,
+        bool openDay,
+        int count
+    )
+    {
+        for (var i = 0; i < count; i++)
+        {
+            var occurredOn = new DateTimeOffset(year, 6, 1, 12, 0, 0, TimeSpan.Zero).AddDays(i);
+            var dayDate = new DateOnly(2000, 1, 1).AddDays(
+                Interlocked.Increment(ref nextDayOffset)
+            );
+            var day = new OrderDay
+            {
+                Id = Guid.NewGuid(),
+                Date = dayDate,
+                Status = openDay ? OrderDayStatus.Open : OrderDayStatus.Closed,
+                Synonym = "Drehspieß-Tasche",
+                OrderCutoffAt = occurredOn,
+                OpenedByUserId = userId,
+                OpenedAt = occurredOn,
+                ClosedAt = openDay ? null : occurredOn,
+            };
+            database.OrderDays.Add(day);
+            var orderId = Guid.NewGuid();
+            database.Orders.Add(
+                new Order
+                {
+                    Id = orderId,
+                    OrderDayId = day.Id,
+                    UserId = userId,
+                    IsPickup = false,
+                    OccurredOn = occurredOn,
+                    CreatedAt = occurredOn,
+                    UpdatedAt = occurredOn,
+                    Lines = new List<OrderLine>
+                    {
+                        new()
+                        {
+                            Id = Guid.NewGuid(),
+                            OrderId = orderId,
+                            ProductId = "doener",
+                            Kind = ProductKind.Doener,
+                            Meat = MeatType.Kalb,
+                            PizzaVariant = null,
+                            Sauces = Sauce.Knoblauch,
+                            PriceCents = 750,
+                            Extra = null,
+                            Quantity = 1,
+                        },
+                    },
+                }
+            );
+            // A closed day crystallises a debt — seed it OPEN (unsettled) so the order stays uncounted.
+            if (!openDay)
+            {
+                database.Debts.Add(
+                    new Debt
+                    {
+                        Id = Guid.NewGuid(),
+                        DebtorUserId = userId,
+                        CreditorUserId = userId,
+                        OrderId = orderId,
+                        OrderDayId = day.Id,
+                        AmountCents = 750,
+                        Reason = "Döner-Tag",
+                        Status = PaymentStatus.Open,
+                        CreatedAt = occurredOn,
+                        SettledAt = null,
+                    }
+                );
+            }
         }
     }
 

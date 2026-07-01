@@ -102,6 +102,44 @@ const openDay = {
       isPickup: false,
     },
   ],
+  // The server-built print sheet: numbered per-package lines in article-type order + shop summary.
+  printLines: [
+    {
+      number: 1,
+      section: "Döner",
+      personName: "Tobias Klein",
+      productLabel: "Döner Hähnchen",
+      description: "ohne Soße",
+      quantity: 1,
+      lineTotalCents: 750,
+      isPickup: false,
+    },
+    {
+      number: 2,
+      section: "Dürüm",
+      personName: "Lukas Brandt",
+      productLabel: "Dürüm Kalb",
+      description: "Knoblauch, scharf",
+      quantity: 1,
+      lineTotalCents: 850,
+      isPickup: true,
+    },
+    {
+      number: 3,
+      section: "Pizza",
+      personName: "Sara Yılmaz",
+      productLabel: "Pizza Salami",
+      description: "Standard",
+      quantity: 1,
+      lineTotalCents: 900,
+      isPickup: false,
+    },
+  ],
+  printSummary: [
+    { label: "Döner Hähnchen · ohne Soße", quantity: 1 },
+    { label: "Dürüm Kalb · Knoblauch, scharf", quantity: 1 },
+    { label: "Pizza Salami", quantity: 1 },
+  ],
 };
 
 const closedDay = {
@@ -117,6 +155,8 @@ const closedDay = {
   amICollector: false,
   abholer: null,
   orders: [],
+  printLines: [],
+  printSummary: [],
 };
 
 const buildDashboard = (overrides: Partial<Dashboard> = {}): Dashboard => ({
@@ -179,14 +219,23 @@ describe("PrintListPage", () => {
     expect(getByText("3 Bestellungen")).toBeInTheDocument();
     expect(queryByText(/Drehspieß-Tasche/)).not.toBeInTheDocument();
 
-    // one row per order — person, product and detail all present. "Lukas Brandt"
+    // one numbered line per package — person, product and detail all present. "Lukas Brandt"
     // also appears in the Abholer line, so it resolves to two nodes.
     expect(getAllByText("Lukas Brandt").length).toBeGreaterThanOrEqual(1);
     expect(getByText("Sara Yılmaz")).toBeInTheDocument();
     expect(getByText("Dürüm Kalb")).toBeInTheDocument();
     expect(getByText("Knoblauch, scharf")).toBeInTheDocument();
-    expect(getByText("Pizza Salami")).toBeInTheDocument();
-    expect(getByText("Döner Hähnchen")).toBeInTheDocument();
+
+    // article-type section headers group the sheet (Döner appears both as a header and inside the
+    // "Döner Hähnchen" summary/label, so it resolves to multiple nodes).
+    expect(getAllByText("Döner").length).toBeGreaterThanOrEqual(1);
+    expect(getByText("Dürüm")).toBeInTheDocument();
+    expect(getByText("Pizza")).toBeInTheDocument();
+
+    // "für die Theke" grouped shop summary + its numbering hint.
+    expect(getByText(/Für die Theke/)).toBeInTheDocument();
+    expect(getByText("1× Pizza Salami")).toBeInTheDocument();
+    expect(getByText(/Nummer steht auf jeder Tüte/)).toBeInTheDocument();
 
     // grand total: 8,50 + 9,00 + 7,50 = 25,00 €
     expect(getByText("Gesamt")).toBeInTheDocument();

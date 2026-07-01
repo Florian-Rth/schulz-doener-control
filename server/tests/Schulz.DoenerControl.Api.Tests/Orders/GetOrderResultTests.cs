@@ -71,7 +71,8 @@ public sealed class GetOrderResultTests : DoenerControlTestBase
             )
         )!.Id;
 
-        // PAY branch: the colleague owes the chef (Abholer) their own 8,00 € → PayPal deep-link.
+        // PAY branch: the colleague owes the chef (Abholer) their own 8,00 €. No pay link on the
+        // success screen — reimbursement happens on the home screen after ordering closes.
         var payResponse = await colleague.GetAsync($"/api/orders/{colleagueOrderId}/result");
         var pay = await payResponse.Content.ReadFromJsonAsync<GetOrderResultResponse>(
             TestContext.Current.CancellationToken
@@ -85,9 +86,7 @@ public sealed class GetOrderResultTests : DoenerControlTestBase
         Assert.Equal(800, pay.PriceCents);
         Assert.NotNull(pay.Abholer);
         Assert.Equal("Markus Wagner", pay.Abholer!.Name);
-        // Abholer.PayPalHandle is the reconstructed base link; MyPayPalUrl carries the 8,00 € amount.
         Assert.Equal(TestSeeding.ChefPayPalLink, pay.Abholer.PayPalHandle);
-        Assert.Equal($"{TestSeeding.ChefPayPalLink}/8.00EUR", pay.MyPayPalUrl);
         Assert.Equal(0, pay.CollectCents);
 
         // COLLECT branch: the chef collects the colleague's 8,00 € from one non-pickup payer.
@@ -100,6 +99,5 @@ public sealed class GetOrderResultTests : DoenerControlTestBase
         Assert.True(collect!.IsPickup);
         Assert.Equal(800, collect.CollectCents);
         Assert.Equal(1, collect.CollectCount);
-        Assert.Null(collect.MyPayPalUrl);
     }
 }

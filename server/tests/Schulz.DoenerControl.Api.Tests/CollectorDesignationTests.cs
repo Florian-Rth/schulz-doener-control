@@ -4,9 +4,9 @@ using Xunit;
 namespace Schulz.DoenerControl.Api.Tests;
 
 // Pure-logic unit tests for reconciling the day's single designated collector with a participant's
-// pickup state: a pickup with no current collector becomes it; releasing pickup vacates the
-// designation only if the releaser was the collector; re-designating to another pickup is not done
-// here (stays an explicit SetCollector action).
+// pickup state: claiming pickup makes the participant THE collector unconditionally (a take-over
+// that displaces any prior collector — one unified "ich hole ab" rule); releasing pickup vacates the
+// designation only if the releaser was the collector.
 public sealed class CollectorDesignationTests
 {
     private static readonly Guid Participant = Guid.Parse("11111111-1111-1111-1111-111111111111");
@@ -23,11 +23,12 @@ public sealed class CollectorDesignationTests
     }
 
     [Fact]
-    public void Should_Keep_Existing_Collector_When_Pickup_And_Different_Collector()
+    public void Should_Take_Over_When_Pickup_And_Different_Collector()
     {
         var result = CollectorDesignation.Reconcile(OtherCollector, Participant, isPickup: true);
 
-        Assert.Equal(OtherCollector, result);
+        // Claiming pickup is a take-over: the participant becomes the collector, displacing the prior.
+        Assert.Equal(Participant, result);
     }
 
     [Fact]

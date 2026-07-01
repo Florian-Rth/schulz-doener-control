@@ -6,6 +6,7 @@ import { printCopy } from "../../copy";
 import { PrintActions } from "./internal/PrintActions";
 import { PrintHeader } from "./internal/PrintHeader";
 import { PrintStyles } from "./internal/PrintStyles";
+import { PrintSummary } from "./internal/PrintSummary";
 import { PrintTable } from "./internal/PrintTable";
 
 // Layout layer for the printable Abholer list. The white card is the print
@@ -28,6 +29,7 @@ export const PrintListPage: FC = () => {
         >
           <Stack sx={{ gap: 2 }}>
             <PrintHeader />
+            <PrintSummary />
             <PrintTable />
             <Stack
               sx={{

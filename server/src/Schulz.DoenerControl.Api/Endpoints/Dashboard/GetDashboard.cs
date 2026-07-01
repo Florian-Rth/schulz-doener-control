@@ -63,7 +63,11 @@ public sealed record DashboardDayDto(
     bool IsOrderingClosed,
     bool AmICollector,
     DashboardAbholerDto? Abholer,
-    IReadOnlyList<DashboardOrderRowDto> Orders
+    IReadOnlyList<DashboardOrderRowDto> Orders,
+    // The Abholer's printable order sheet, built server-side: numbered per-package lines in
+    // article-type order + the grouped "für die Theke" shop summary (identical to the e-mailed PDF).
+    IReadOnlyList<DashboardPrintLineDto> PrintLines,
+    IReadOnlyList<DashboardPrintSummaryDto> PrintSummary
 );
 
 public sealed record DashboardAbholerDto(
@@ -84,6 +88,22 @@ public sealed record DashboardOrderRowDto(
     bool IsMine,
     bool IsPickup
 );
+
+// One numbered package line on the Abholer's print sheet (LineTotalCents is the line's own total —
+// Quantity × unit price; the frontend formats it and the grand total).
+public sealed record DashboardPrintLineDto(
+    int Number,
+    string Section,
+    string PersonName,
+    string ProductLabel,
+    string Description,
+    int Quantity,
+    int LineTotalCents,
+    bool IsPickup
+);
+
+// One grouped "n× …" line of the shop summary.
+public sealed record DashboardPrintSummaryDto(string Label, int Quantity);
 
 public sealed record DashboardDebtRowDto(
     Guid Id,
@@ -216,7 +236,9 @@ public sealed class GetDashboard : EndpointWithoutRequest<GetDashboardResponse>
                 IsOrderingClosed: false,
                 AmICollector: false,
                 Abholer: null,
-                Orders: []
+                Orders: [],
+                PrintLines: [],
+                PrintSummary: []
             );
         }
 
@@ -232,9 +254,26 @@ public sealed class GetDashboard : EndpointWithoutRequest<GetDashboardResponse>
             day.IsOrderingClosed,
             day.AmICollector,
             MapAbholer(day.Abholer),
-            day.Orders.Select(MapOrderRow).ToList()
+            day.Orders.Select(MapOrderRow).ToList(),
+            day.PrintList.Lines.Select(MapPrintLine).ToList(),
+            day.PrintList.Summary.Select(MapPrintSummary).ToList()
         );
     }
+
+    private static DashboardPrintLineDto MapPrintLine(PrintLineSummary line) =>
+        new(
+            line.Number,
+            line.Section,
+            line.PersonName,
+            line.ProductLabel,
+            line.Description,
+            line.Quantity,
+            line.LineTotalCents,
+            line.IsPickup
+        );
+
+    private static DashboardPrintSummaryDto MapPrintSummary(PrintSummaryLine line) =>
+        new(line.Label, line.Quantity);
 
     private static DashboardAbholerDto? MapAbholer(AbholerSummary? abholer) =>
         abholer is null

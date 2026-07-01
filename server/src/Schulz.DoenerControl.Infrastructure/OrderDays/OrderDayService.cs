@@ -277,10 +277,28 @@ public sealed class OrderDayService : IOrderDayService
 
         var productNames = await LoadProductNames(orders, ct);
         var pizzaVariantNames = await LoadPizzaVariantNames(orders, ct);
+        var productSortOrders = await LoadProductSortOrders(orders, ct);
 
         var rows = orders
             .Select(order => MapRow(order, callerId, productNames, pizzaVariantNames))
             .ToList();
+
+        // The Abholer's printable/e-mailable sheet: one numbered line per package, article-type
+        // ordered, plus the grouped shop summary — built once so screen + PDF stay identical.
+        var printInputs = orders
+            .SelectMany(order =>
+                order.Lines.Select(line =>
+                    BuildPrintLineInput(
+                        order,
+                        line,
+                        productNames,
+                        pizzaVariantNames,
+                        productSortOrders
+                    )
+                )
+            )
+            .ToList();
+        var printList = PrintOrderListBuilder.Build(printInputs);
         var pickupNames = orders
             .Where(order => order.IsPickup)
             .Select(order => order.User?.DisplayName ?? string.Empty)
@@ -305,11 +323,38 @@ public sealed class OrderDayService : IOrderDayService
             orders.Count,
             pickupNames,
             rows,
+            printList,
             canStillOrder,
             day.OrderingClosedAt is not null,
             myOrder?.Id,
             amICollector,
             abholer
+        );
+    }
+
+    private static PrintLineInput BuildPrintLineInput(
+        Order order,
+        OrderLine line,
+        IReadOnlyDictionary<string, string> productNames,
+        IReadOnlyDictionary<Guid, string> pizzaVariantNames,
+        IReadOnlyDictionary<string, int> productSortOrders
+    )
+    {
+        var productName = productNames.GetValueOrDefault(line.ProductId, line.ProductId);
+        var variantName = line.PizzaVariantId is { } variantId
+            ? pizzaVariantNames.GetValueOrDefault(variantId)
+            : null;
+        return new PrintLineInput(
+            // Unknown products sink to the end of the sheet rather than jumping to the front.
+            productSortOrders.GetValueOrDefault(line.ProductId, int.MaxValue),
+            // Article-type section header: the product name groups Döner/Dürüm/Pizza/… on the sheet.
+            productName,
+            order.User?.DisplayName ?? string.Empty,
+            OrderLabelBuilder.BuildProductLabel(line.Kind, productName, line.Meat, variantName),
+            OrderLabelBuilder.BuildDescription(line.Kind, line.Sauces, line.Extra),
+            line.Quantity,
+            line.Quantity * line.PriceCents,
+            order.IsPickup
         );
     }
 
@@ -356,6 +401,27 @@ public sealed class OrderDayService : IOrderDayService
             .MenuItems.AsNoTracking()
             .Where(item => productIds.Contains(item.Id))
             .ToDictionaryAsync(item => item.Id, item => item.Name, ct);
+    }
+
+    // Per-product menu SortOrder, so the print sheet can bucket lines by article type (Döner, Dürüm,
+    // Dönerbox, …, Pizza) in the same order the menu itself uses.
+    private async Task<IReadOnlyDictionary<string, int>> LoadProductSortOrders(
+        IReadOnlyCollection<Order> orders,
+        CancellationToken ct
+    )
+    {
+        if (orders.Count == 0)
+            return new Dictionary<string, int>();
+
+        var productIds = orders
+            .SelectMany(order => order.Lines)
+            .Select(line => line.ProductId)
+            .Distinct()
+            .ToList();
+        return await database
+            .MenuItems.AsNoTracking()
+            .Where(item => productIds.Contains(item.Id))
+            .ToDictionaryAsync(item => item.Id, item => item.SortOrder, ct);
     }
 
     private async Task<IReadOnlyDictionary<Guid, string>> LoadPizzaVariantNames(

@@ -3,33 +3,30 @@ using System.Diagnostics.Contracts;
 
 namespace Schulz.DoenerControl.Application.Calculators;
 
-// Ranks the per-year order tallies into the Döner-Bestenliste: count-descending, standard
-// competition ranking (ties share a rank, the next distinct count skips ranks), the current user
-// flagged, and the gap to the next-higher count surfaced for the "nur noch X bis Platz N" line.
+// Ranks the per-year order tallies into the Döner-Bestenliste: count-descending, DENSE ranking
+// (ties share a rank, the next distinct count is the very next rank — ranks never skip, so
+// 1,2,2,3 not 1,2,2,4), the current user flagged, and the gap to the next-higher count surfaced
+// for the "nur noch X bis Platz N" line.
 public static class LeaderboardCalculator
 {
     [Pure]
     public static Leaderboard Rank(IReadOnlyList<LeaderboardEntryInput> entries, Guid currentUserId)
     {
         var ordered = entries.OrderByDescending(e => e.Count).ToArray();
+        var rankByCount = DenseRankByCount(ordered);
 
-        var rows = new List<LeaderboardRow>(ordered.Length);
-        foreach (var entry in ordered)
-        {
-            var rank = 1 + ordered.Count(other => other.Count > entry.Count);
-            rows.Add(
-                new LeaderboardRow(
-                    entry.UserId,
-                    entry.DisplayName,
-                    NameFormatter.InitialsOf(entry.DisplayName),
-                    entry.Count,
-                    rank,
-                    entry.UserId == currentUserId
-                )
-            );
-        }
+        var rows = ordered
+            .Select(entry => new LeaderboardRow(
+                entry.UserId,
+                entry.DisplayName,
+                NameFormatter.InitialsOf(entry.DisplayName),
+                entry.Count,
+                rankByCount[entry.Count],
+                entry.UserId == currentUserId
+            ))
+            .ToList();
 
-        var (nextRankDiff, nextRank) = ComputeNextRank(ordered, currentUserId);
+        var (nextRankDiff, nextRank) = ComputeNextRank(ordered, rankByCount, currentUserId);
 
         return new Leaderboard(
             new ReadOnlyCollection<LeaderboardRow>(rows),
@@ -38,9 +35,22 @@ public static class LeaderboardCalculator
         );
     }
 
+    // Maps each distinct count to its dense rank: the highest count is rank 1, the next distinct
+    // (lower) count rank 2, and so on — regardless of how many people tie at any given count.
+    [Pure]
+    private static IReadOnlyDictionary<int, int> DenseRankByCount(
+        IReadOnlyList<LeaderboardEntryInput> ordered
+    ) =>
+        ordered
+            .Select(entry => entry.Count)
+            .Distinct()
+            .Select((count, index) => (count, rank: index + 1))
+            .ToDictionary(pair => pair.count, pair => pair.rank);
+
     [Pure]
     private static (int? Diff, int? Rank) ComputeNextRank(
         IReadOnlyList<LeaderboardEntryInput> ordered,
+        IReadOnlyDictionary<int, int> rankByCount,
         Guid currentUserId
     )
     {
@@ -53,8 +63,7 @@ public static class LeaderboardCalculator
             return (null, null);
 
         var nextCount = higherCounts.Min();
-        var nextRank = 1 + ordered.Count(e => e.Count > nextCount);
 
-        return (nextCount - current.Count, nextRank);
+        return (nextCount - current.Count, rankByCount[nextCount]);
     }
 }

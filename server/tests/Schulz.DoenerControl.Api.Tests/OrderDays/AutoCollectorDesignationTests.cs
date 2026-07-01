@@ -8,10 +8,10 @@ using Xunit;
 namespace Schulz.DoenerControl.Api.Tests.OrderDays;
 
 // Auto-designate: the order-form pickup toggle (PutMyOrder → IsPickup) makes the pickup person the
-// day's collector when none is set yet, and clears it when the collector releases pickup. This is the
-// missing wiring that previously left CollectorUserId null forever (only SetCollector touched it), so
-// the close buttons and the Abholer PayPal block never appeared. Each scenario consumes one OrderDay
-// (unique Date index), so each lives in its own fresh-DB test class.
+// day's collector, and clears it when the collector releases pickup. Claiming pickup is a unified
+// take-over (identical to the dashboard "ich hole ab" button): the latest claimer becomes the sole
+// Abholer, displacing any prior collector. Each scenario consumes one OrderDay (unique Date index),
+// so each lives in its own fresh-DB test class.
 
 public sealed class AutoCollectorDesignationOnOrderTests : DoenerControlTestBase
 {
@@ -84,33 +84,41 @@ public sealed class AutoCollectorReleaseOnOrderTests : DoenerControlTestBase
     }
 }
 
-public sealed class AutoCollectorKeepsExistingTests : DoenerControlTestBase
+public sealed class AutoCollectorTakeOverTests : DoenerControlTestBase
 {
     private const string TodayUrl = "/api/order-days/today";
 
-    public AutoCollectorKeepsExistingTests(DoenerControlApp app)
+    public AutoCollectorTakeOverTests(DoenerControlApp app)
         : base(app) { }
 
     [Fact]
-    public async Task Should_Not_Steal_Designation_From_An_Existing_Collector()
+    public async Task Should_Take_Over_Designation_From_An_Existing_Collector()
     {
         var chef = await DebtTestHelpers.LoginAsChefAsync(App);
         var dayId = await DebtTestHelpers.OpenTodayAsync(chef);
         // Chef picks up first → becomes the collector.
         await DebtTestHelpers.PlaceOrderAsync(chef, dayId, priceCents: 950, isPickup: true);
 
-        // A second person also picks up — must NOT take over the existing designation.
+        // A second person picks up via the order form — unified take-over: they become the sole Abholer.
         var lukas = await DebtTestHelpers.LoginAsColleagueAsync(App, "l.brandt", "kollegePw11");
         await DebtTestHelpers.PlaceOrderAsync(lukas, dayId, priceCents: 760, isPickup: true);
 
+        // Lukas is now the collector...
         var lukasToday = await lukas.GetAsync(TodayUrl);
         var lukasBody = await lukasToday.Content.ReadFromJsonAsync<GetTodayOrderDayResponse>(
             TestContext.Current.CancellationToken
         );
-
         Assert.Equal(HttpStatusCode.OK, lukasToday.StatusCode);
-        Assert.False(lukasBody!.Day!.AmICollector);
+        Assert.True(lukasBody!.Day!.AmICollector);
         Assert.NotNull(lukasBody.Day.Abholer);
-        Assert.Equal(TestSeeding.ChefDisplayName, lukasBody.Day.Abholer!.Name);
+        Assert.Equal("Lukas Brandt", lukasBody.Day.Abholer!.Name);
+
+        // ...and the chef has been displaced (single Abholer, latest claim wins).
+        var chefToday = await chef.GetAsync(TodayUrl);
+        var chefBody = await chefToday.Content.ReadFromJsonAsync<GetTodayOrderDayResponse>(
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(HttpStatusCode.OK, chefToday.StatusCode);
+        Assert.False(chefBody!.Day!.AmICollector);
     }
 }

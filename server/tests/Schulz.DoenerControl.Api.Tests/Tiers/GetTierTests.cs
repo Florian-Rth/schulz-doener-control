@@ -169,6 +169,23 @@ public sealed class GetTierTests : DoenerControlTestBase
                         },
                     }
                 );
+                // A settled debt so the order counts under the fail-safe stats rule (day closed AND,
+                // for a non-pickup order, its debt settled).
+                database.Debts.Add(
+                    new Debt
+                    {
+                        Id = Guid.NewGuid(),
+                        DebtorUserId = chefId,
+                        CreditorUserId = chefId,
+                        OrderId = orderId,
+                        OrderDayId = day.Id,
+                        AmountCents = 800,
+                        Reason = "Döner-Tag",
+                        Status = PaymentStatus.Settled,
+                        CreatedAt = occurredOn,
+                        SettledAt = occurredOn,
+                    }
+                );
                 dayOffset++;
             }
         });

@@ -2,22 +2,20 @@ import Alert from "@mui/material/Alert";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { FC } from "react";
-import { Avatar, PayPalButton } from "@/components";
-import { cashFallbackSentence, successCopy } from "../../../copy";
+import { Avatar } from "@/components";
+import { successCopy } from "../../../copy";
 import { formatEur } from "../../../money";
 import type { Abholer } from "../../../types";
 
 interface OwesAbholerCardProps {
   abholer: Abholer;
   priceCents: number;
-  payPalUrl: string | null;
 }
 
-// "I owe the abholer" card: avatar + name + big amount + the prefilled PayPal
-// CTA. Shown when the caller is not the pickup person. When the abholer has no
-// PayPal handle (payPalUrl === null) the CTA is replaced by a cash-fallback
-// warning Alert instead of a dead, disabled button.
-export const OwesAbholerCard: FC<OwesAbholerCardProps> = ({ abholer, priceCents, payPalUrl }) => {
+// "I owe the abholer" card: avatar + name + big amount + an info note. No pay
+// button here — a payer reimburses the Abholer on the home screen once the
+// Abholer closes ordering (orders frozen), so the PayPal link only appears then.
+export const OwesAbholerCard: FC<OwesAbholerCardProps> = ({ abholer, priceCents }) => {
   const priceLabel = formatEur(priceCents);
   return (
     <Stack
@@ -44,20 +42,9 @@ export const OwesAbholerCard: FC<OwesAbholerCardProps> = ({ abholer, priceCents,
       >
         {priceLabel}
       </Typography>
-      {payPalUrl === null ? (
-        <Alert severity="warning" sx={{ width: "100%" }}>
-          {cashFallbackSentence(abholer.name, priceLabel)}
-        </Alert>
-      ) : (
-        <>
-          <PayPalButton href={payPalUrl}>
-            {`${successCopy.payButtonPrefix} ${priceLabel} ${successCopy.payButtonSuffix}`}
-          </PayPalButton>
-          <Typography sx={{ fontSize: "0.6875rem", color: "muted.main" }}>
-            {successCopy.owesCaption}
-          </Typography>
-        </>
-      )}
+      <Alert severity="info" sx={{ width: "100%" }}>
+        {successCopy.owesInfoNote}
+      </Alert>
     </Stack>
   );
 };

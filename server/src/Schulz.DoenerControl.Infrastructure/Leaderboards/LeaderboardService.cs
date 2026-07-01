@@ -3,12 +3,14 @@ using Schulz.DoenerControl.Application.Calculators;
 using Schulz.DoenerControl.Application.Leaderboards;
 using Schulz.DoenerControl.Application.Tiers;
 using Schulz.DoenerControl.Core;
+using Schulz.DoenerControl.Infrastructure.Orders;
 using Schulz.DoenerControl.Infrastructure.Persistence;
 
 namespace Schulz.DoenerControl.Infrastructure.Leaderboards;
 
 // Derives the per-year Döner-Bestenliste live from the Order rows (nothing aggregate is stored):
-// every active user's year-tagged orders are pulled to memory, grouped into per-user tallies, ranked
+// every active user's year-tagged orders that COUNT (fail-safe: day closed and, for non-pickup
+// orders, the debt settled — see StatsOrderFilter) are pulled to memory, grouped into per-user tallies, ranked
 // by the pure LeaderboardCalculator, then enriched with each user's stored avatar colour and their
 // Döner-Tier emoji over the rolling 90-day window (the TierService applies the same pattern + global
 // Packesel logic the dashboard tier card uses, so the two always agree). Order instants are projected
@@ -33,6 +35,7 @@ public sealed class LeaderboardService : ILeaderboardService
         var yearOrders = await database
             .Orders.AsNoTracking()
             .Where(order => order.User != null && order.User.IsActive)
+            .CountingTowardStats(database)
             .Select(order => new YearOrder(
                 order.UserId,
                 order.User!.DisplayName,

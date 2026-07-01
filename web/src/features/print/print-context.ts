@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import type { OrderRow } from "@/features/home";
+import type { PrintLine, PrintSummaryLine } from "@/features/home";
 
 // The fully-derived view model the printable list consumes. All display strings
 // are computed in the logic layer (use-print-list) so the UI pieces stay dumb.
@@ -10,8 +10,10 @@ export interface PrintListContextValue {
   subline: string;
   /** Comma-joined Abholer names; empty string when none designated. */
   abholerNames: string;
-  /** One row per order, in payload order. */
-  orders: OrderRow[];
+  /** One numbered line per package, article-type ordered (the shop can be worked group by group). */
+  lines: PrintLine[];
+  /** Grouped "n× …" shop summary for reading the whole order out at the counter. */
+  summary: PrintSummaryLine[];
   /** Grand total as German money, e.g. "25,00 €". */
   totalLabel: string;
   /** Fires window.print(). */

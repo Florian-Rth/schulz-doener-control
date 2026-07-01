@@ -46,7 +46,6 @@ const owesResult: OrderResult = {
   },
   collectCents: 0,
   collectCount: 0,
-  myPayPalUrl: "https://paypal.me/LukasBrandtHB/26.00EUR",
 };
 
 const pickupResult: OrderResult = {
@@ -64,26 +63,12 @@ const pickupResult: OrderResult = {
   abholer: null,
   collectCents: 1550,
   collectCount: 2,
-  myPayPalUrl: null,
-};
-
-// Owes the abholer, but that abholer has no PayPal handle on file → cash fallback.
-const owesCashResult: OrderResult = {
-  ...owesResult,
-  abholer: {
-    name: "Lukas Brandt",
-    initials: "LB",
-    colorHex: "#00728E",
-    payPalHandle: null,
-  },
-  myPayPalUrl: null,
 };
 
 // Not the pickup person and no abholer designated yet → info card, no payment.
 const noAbholerResult: OrderResult = {
   ...owesResult,
   abholer: null,
-  myPayPalUrl: null,
 };
 
 const useSuccessHandlers = (result: OrderResult): void => {
@@ -94,9 +79,9 @@ const useSuccessHandlers = (result: OrderResult): void => {
 };
 
 describe("SuccessPage", () => {
-  it("zeigt den PayPal-Button mit korrektem href, wenn der Chef nicht abholt", async () => {
+  it("zeigt den Betrag und einen Hinweis statt eines PayPal-Buttons, wenn der Chef nicht abholt", async () => {
     useSuccessHandlers(owesResult);
-    const { findByRole, findByText } = renderApp({
+    const { findAllByText, findByText, queryByRole } = renderApp({
       initialPath: `/erledigt?orderId=${ORDER_ID}`,
     });
 
@@ -105,10 +90,15 @@ describe("SuccessPage", () => {
     expect(await findByText("Dürüm Kalb")).toBeInTheDocument();
     expect(await findByText("2× Pizza Margherita")).toBeInTheDocument();
 
-    const payLink = await findByRole("link", { name: /per PayPal senden/ });
-    expect(payLink).toHaveAttribute("href", "https://paypal.me/LukasBrandtHB/26.00EUR");
-    expect(payLink).toHaveAttribute("target", "_blank");
+    // The amount stays prominent (big amount + Gesamt line), the Abholer is named, and the info
+    // note points to the home screen — but NO pay button/link appears here.
+    expect((await findAllByText("26,00 €")).length).toBeGreaterThanOrEqual(2);
     expect(await findByText("Lukas Brandt")).toBeInTheDocument();
+    expect(
+      await findByText(/Bezahlen kannst du auf der Startseite, sobald der Abholer/),
+    ).toBeInTheDocument();
+    expect(queryByRole("link", { name: /per PayPal senden/ })).not.toBeInTheDocument();
+    expect(queryByRole("button", { name: /per PayPal senden/ })).not.toBeInTheDocument();
   });
 
   it("zeigt die Abholer-Sammelkarte, wenn der Chef selbst abholt", async () => {
@@ -121,23 +111,6 @@ describe("SuccessPage", () => {
     expect(await findByText(/Du sammelst 15,50 € von 2 Kollegen ein\./)).toBeInTheDocument();
     // No pay-to-abholer button in the pickup branch.
     expect(queryByRole("link", { name: /per PayPal senden/ })).not.toBeInTheDocument();
-  });
-
-  it("zeigt eine Bar-Warnung statt eines toten PayPal-Buttons, wenn der Abholer kein PayPal hat", async () => {
-    useSuccessHandlers(owesCashResult);
-    const { findAllByText, findByText, queryByRole } = renderApp({
-      initialPath: `/erledigt?orderId=${ORDER_ID}`,
-    });
-
-    // The amount stays prominent (the big amount + the Gesamt line) and the cash
-    // fallback names the abholer.
-    expect((await findAllByText("26,00 €")).length).toBeGreaterThanOrEqual(2);
-    expect(
-      await findByText(/Kein PayPal hinterlegt — bitte Lukas Brandt 26,00 € in bar geben, Chef\./),
-    ).toBeInTheDocument();
-    // No PayPal button at all — neither link nor disabled button.
-    expect(queryByRole("link", { name: /per PayPal senden/ })).not.toBeInTheDocument();
-    expect(queryByRole("button", { name: /per PayPal senden/ })).not.toBeInTheDocument();
   });
 
   it("zeigt einen Hinweis, wenn noch kein Abholer festgelegt ist", async () => {

@@ -3,8 +3,9 @@ using Xunit;
 
 namespace Schulz.DoenerControl.Api.Tests;
 
-// Pure-logic unit tests for leaderboard ranking: per-user counts -> ordered rows with competition
-// ranks (medals top-3), the current-user highlight, and the "nur noch X bis Platz N" diff.
+// Pure-logic unit tests for leaderboard ranking: per-user counts -> ordered rows with DENSE ranks
+// (ties share a rank, the next distinct count is the very next rank — 1,2,2,3, never skipping), the
+// current-user highlight, and the "nur noch X bis Platz N" diff.
 public sealed class LeaderboardCalculatorTests
 {
     private static readonly Guid Tobias = Guid.Parse("11111111-1111-1111-1111-111111111111");
@@ -78,7 +79,7 @@ public sealed class LeaderboardCalculatorTests
     }
 
     [Fact]
-    public void Should_Use_Competition_Ranking_When_Tie_For_First()
+    public void Should_Use_Dense_Ranking_When_Tie_For_First()
     {
         var counts = new[]
         {
@@ -89,10 +90,30 @@ public sealed class LeaderboardCalculatorTests
 
         var board = LeaderboardCalculator.Rank(counts, Sara);
 
-        // Two tied at rank 1, the next distinct count is rank 3 (standard competition ranking).
+        // Two tied at rank 1, the next distinct count is rank 2 (dense ranking — never skips a rank).
         Assert.Equal(1, board.Rows.Single(r => r.UserId == Tobias).Rank);
         Assert.Equal(1, board.Rows.Single(r => r.UserId == Lukas).Rank);
-        Assert.Equal(3, board.Rows.Single(r => r.UserId == Sara).Rank);
+        Assert.Equal(2, board.Rows.Single(r => r.UserId == Sara).Rank);
+    }
+
+    [Fact]
+    public void Should_Not_Skip_A_Rank_After_A_Middle_Tie()
+    {
+        // The exact scenario from the bug report: 3, 2, 2, 1, 1 → ranks 1, 2, 2, 3, 3 (never a gap).
+        var counts = new[]
+        {
+            new LeaderboardEntryInput(Tobias, "Tobias Klein", 3),
+            new LeaderboardEntryInput(Lukas, "Lukas Brandt", 2),
+            new LeaderboardEntryInput(Sara, "Sara Yılmaz", 2),
+            new LeaderboardEntryInput(Markus, "Markus Wagner", 1),
+        };
+
+        var board = LeaderboardCalculator.Rank(counts, Markus);
+
+        Assert.Equal(1, board.Rows.Single(r => r.UserId == Tobias).Rank);
+        Assert.Equal(2, board.Rows.Single(r => r.UserId == Lukas).Rank);
+        Assert.Equal(2, board.Rows.Single(r => r.UserId == Sara).Rank);
+        Assert.Equal(3, board.Rows.Single(r => r.UserId == Markus).Rank);
     }
 
     [Fact]

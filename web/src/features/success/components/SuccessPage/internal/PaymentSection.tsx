@@ -20,11 +20,5 @@ export const PaymentSection: FC<PaymentSectionProps> = ({ result }) => {
   if (result.abholer === null) {
     return <NoAbholerCard />;
   }
-  return (
-    <OwesAbholerCard
-      abholer={result.abholer}
-      priceCents={result.priceCents}
-      payPalUrl={result.myPayPalUrl}
-    />
-  );
+  return <OwesAbholerCard abholer={result.abholer} priceCents={result.priceCents} />;
 };

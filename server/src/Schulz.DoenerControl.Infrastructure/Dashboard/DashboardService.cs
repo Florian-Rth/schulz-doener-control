@@ -8,6 +8,7 @@ using Schulz.DoenerControl.Application.Tiers;
 using Schulz.DoenerControl.Application.Users;
 using Schulz.DoenerControl.Core;
 using Schulz.DoenerControl.Infrastructure.OrderDays;
+using Schulz.DoenerControl.Infrastructure.Orders;
 using Schulz.DoenerControl.Infrastructure.Persistence;
 
 namespace Schulz.DoenerControl.Infrastructure.Dashboard;
@@ -15,7 +16,8 @@ namespace Schulz.DoenerControl.Infrastructure.Dashboard;
 // Composes the home-screen aggregate (PLAN #8) by reusing the granular services so each figure stays
 // single-sourced: the caller identity (greeting + avatar), the caller's Döner-Tier, the current-year
 // leaderboard, today's Döner-Tag and the caller's open debts. Only the four stat tiles are derived
-// here, live from the caller's own Order rows (nothing aggregate is stored). The caller orders are
+// here, live from the caller's own Order rows that COUNT (fail-safe: day closed and, for non-pickup
+// orders, the debt settled — see StatsOrderFilter; nothing aggregate is stored). The caller orders are
 // projected to memory before any month filtering because SQLite cannot translate DateTimeOffset
 // comparisons reliably — the per-office data volume makes that trivial.
 public sealed class DashboardService : IDashboardService
@@ -99,6 +101,7 @@ public sealed class DashboardService : IDashboardService
         var callerOrders = await database
             .Orders.AsNoTracking()
             .Where(order => order.UserId == callerId)
+            .CountingTowardStats(database)
             .Select(order => new CallerOrder(
                 order.OccurredOn,
                 order.Lines.Sum(line => line.Quantity * line.PriceCents)

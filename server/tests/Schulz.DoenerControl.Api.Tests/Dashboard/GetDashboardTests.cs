@@ -144,9 +144,10 @@ public sealed class GetDashboardTests : DoenerControlTestBase
         Assert.DoesNotContain("€", debtRow.AmountLabel);
     }
 
-    // Adds one closed OrderDay + one doener Order for the user. The OrderDay's Date is made unique
-    // via dayOffset (one day apart) so the unique Date index never trips; the Order's OccurredOn is
-    // the business instant that every derived stat reads.
+    // Adds one closed OrderDay + one doener Order for the user, plus a settled debt so the order
+    // counts under the fail-safe stats rule (day closed AND, for a non-pickup order, its debt
+    // settled). The OrderDay's Date is made unique via dayOffset (one day apart) so the unique Date
+    // index never trips; the Order's OccurredOn is the business instant that every derived stat reads.
     private static void AddDoenerOrder(
         AppDbContext database,
         Guid userId,
@@ -197,6 +198,21 @@ public sealed class GetDashboardTests : DoenerControlTestBase
                         Quantity = 1,
                     },
                 },
+            }
+        );
+        database.Debts.Add(
+            new Debt
+            {
+                Id = Guid.NewGuid(),
+                DebtorUserId = userId,
+                CreditorUserId = userId,
+                OrderId = orderId,
+                OrderDayId = day.Id,
+                AmountCents = priceCents,
+                Reason = "Döner-Tag",
+                Status = PaymentStatus.Settled,
+                CreatedAt = occurredOn,
+                SettledAt = occurredOn,
             }
         );
     }

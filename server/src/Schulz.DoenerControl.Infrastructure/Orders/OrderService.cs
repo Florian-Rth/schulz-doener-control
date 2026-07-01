@@ -217,12 +217,9 @@ public sealed class OrderService : IOrderService
         var collector = await ResolveCollector(day, ct);
         var abholer = collector is null ? null : BuildAbholer(collector);
 
-        // The collector's pay link, reconstructed from their handle with the caller's own order total
-        // as the amount — only when the caller is a non-pickup payer and the collector set a handle.
-        var myPayPalUrl =
-            order.IsPickup || collector is null
-                ? null
-                : PayPalLinkBuilder.BuildLink(collector.PayPalHandle, orderTotal);
+        // No pay link on the success screen: a non-pickup payer only reimburses the Abholer later, on
+        // the home screen, once ordering is closed and the orders are frozen (avoids paying before the
+        // order set — and thus the amount — is final).
 
         // When the caller is the designated collector, sum what the non-pickup colleagues owe them.
         var (collectCents, collectCount) = await ResolveCollectTotals(day, order, collector, ct);
@@ -234,8 +231,7 @@ public sealed class OrderService : IOrderService
                 order.IsPickup,
                 abholer,
                 collectCents,
-                collectCount,
-                myPayPalUrl
+                collectCount
             )
         );
     }

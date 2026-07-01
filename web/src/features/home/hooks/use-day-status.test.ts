@@ -39,6 +39,8 @@ const buildDay = (overrides: Partial<DashboardDay> = {}): DashboardDay => ({
     payPalUrl: "https://paypal.me/LukasBrandtHB/7.60EUR",
   },
   orders: [buildOrder()],
+  printLines: [],
+  printSummary: [],
   ...overrides,
 });
 

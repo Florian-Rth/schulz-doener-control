@@ -93,7 +93,9 @@ public sealed class PackeselTierTests : DoenerControlTestBase
 
     // Adds one closed OrderDay + one doener Order for the user, flagged as a pickup or not. The
     // OrderDay's Date is made unique via dayOffset so the unique Date index never trips; the Order's
-    // OccurredOn is the business instant the 90-day window keys off.
+    // OccurredOn is the business instant the 90-day window keys off. A non-pickup order gets a settled
+    // debt so it counts under the fail-safe stats rule (a pickup order needs no debt — the collector
+    // owes no one).
     private static void AddOrder(
         AppDbContext database,
         Guid userId,
@@ -145,6 +147,25 @@ public sealed class PackeselTierTests : DoenerControlTestBase
                 },
             }
         );
+
+        if (!isPickup)
+        {
+            database.Debts.Add(
+                new Debt
+                {
+                    Id = Guid.NewGuid(),
+                    DebtorUserId = userId,
+                    CreditorUserId = userId,
+                    OrderId = orderId,
+                    OrderDayId = day.Id,
+                    AmountCents = 800,
+                    Reason = "Döner-Tag",
+                    Status = PaymentStatus.Settled,
+                    CreatedAt = occurredOn,
+                    SettledAt = occurredOn,
+                }
+            );
+        }
     }
 
     private async Task SeedAsync(Action<AppDbContext> seed)

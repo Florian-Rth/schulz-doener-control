@@ -4,12 +4,14 @@ using Schulz.DoenerControl.Application.Tiers;
 using Schulz.DoenerControl.Core;
 using Schulz.DoenerControl.Core.Enums;
 using Schulz.DoenerControl.Infrastructure.OrderDays;
+using Schulz.DoenerControl.Infrastructure.Orders;
 using Schulz.DoenerControl.Infrastructure.Persistence;
 
 namespace Schulz.DoenerControl.Infrastructure.Tiers;
 
 // Backs the two tier endpoints (PLAN F13). The caller's Döner-Tier is derived live from their Order
-// rows over the rolling 90-day window on OccurredOn (nothing aggregate is stored) using the pure
+// rows that COUNT (fail-safe: day closed and, for non-pickup orders, the debt settled — see
+// StatsOrderFilter) over the rolling 90-day window on OccurredOn (nothing aggregate is stored) using the pure
 // TierCalculator, then the global 🐎 Packesel superlative is layered on top: a user who is the top
 // pickup person across all users over the same window wears the Packesel regardless of their order
 // pattern. ComputeTiersAsync does the same for a batch of users so the leaderboard derives each
@@ -115,11 +117,23 @@ public sealed class TierService : ITierService
     {
         var ids = userIds.ToHashSet();
 
+        // Fail-safe gate: only lines whose header order counts (day closed + debt settled for
+        // non-pickup) may feed the pattern tier. Resolved once as an id set the in-memory pass filters on.
+        var countedOrderIds = (
+            await database
+                .Orders.AsNoTracking()
+                .Where(order => ids.Contains(order.UserId))
+                .CountingTowardStats(database)
+                .Select(order => order.Id)
+                .ToListAsync(ct)
+        ).ToHashSet();
+
         var lines = await database
             .OrderLines.AsNoTracking()
             .Where(line => ids.Contains(line.Order!.UserId))
             .Select(line => new WindowLine(
                 line.Order!.UserId,
+                line.OrderId,
                 line.Order!.OccurredOn,
                 line.ProductId,
                 line.Kind,
@@ -132,6 +146,7 @@ public sealed class TierService : ITierService
         // A line with Quantity N counts as N of that product (e.g. 2x Pizza = 2 toward Pizza-Verräter),
         // so each in-window line is expanded into Quantity TierOrderInput entries before grouping.
         return lines
+            .Where(line => countedOrderIds.Contains(line.OrderId))
             .Where(line => DateOnly.FromDateTime(line.OccurredOn.UtcDateTime) >= windowStart)
             .GroupBy(line => line.UserId)
             .ToDictionary(
@@ -176,6 +191,7 @@ public sealed class TierService : ITierService
         var pickups = await database
             .Orders.AsNoTracking()
             .Where(order => order.IsPickup)
+            .CountingTowardStats(database)
             .Select(order => new PickupOrder(order.UserId, order.OccurredOn))
             .ToListAsync(ct);
 
@@ -187,6 +203,7 @@ public sealed class TierService : ITierService
 
     private sealed record WindowLine(
         Guid UserId,
+        Guid OrderId,
         DateTimeOffset OccurredOn,
         string ProductId,
         ProductKind Kind,

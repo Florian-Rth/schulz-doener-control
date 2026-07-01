@@ -8,6 +8,7 @@ import { LeaderboardCard } from "./internal/LeaderboardCard";
 import { MyRecentPaymentsCard } from "./internal/MyRecentPaymentsCard";
 import { OpenPaymentsCard } from "./internal/OpenPaymentsCard";
 import { PayPalNudge } from "./internal/PayPalNudge";
+import { PushNudge } from "./internal/PushNudge";
 import { ReceivablesCard } from "./internal/ReceivablesCard";
 import { StatsGrid } from "./internal/StatsGrid";
 import { TierSection } from "./internal/TierSection";
@@ -23,6 +24,7 @@ export const DashboardPage: FC = () => {
         {toast !== null ? <PushToast message={toast} onDismiss={dismissToast} /> : null}
         <DashboardHeader isDayOpen={day.isOpen} />
         <GreetingBar />
+        <PushNudge />
         <PayPalNudge />
         {/* The time-sensitive ritual leads: the running/open-day card sits first
             under the greeting, with the open payments right beneath it (they
