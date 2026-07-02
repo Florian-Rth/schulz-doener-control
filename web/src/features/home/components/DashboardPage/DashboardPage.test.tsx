@@ -166,7 +166,6 @@ const openDay = {
     },
   ],
   printLines: [],
-  printSummary: [],
 };
 
 const closedDay = {
@@ -183,7 +182,6 @@ const closedDay = {
   abholer: null,
   orders: [],
   printLines: [],
-  printSummary: [],
 };
 
 // Read-only settled-payment history (GET /api/debts/history). Newest-settled

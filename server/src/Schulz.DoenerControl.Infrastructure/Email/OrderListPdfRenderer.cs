@@ -39,16 +39,6 @@ public sealed class OrderListPdfRenderer
                     .PaddingVertical(12)
                     .Column(content =>
                     {
-                        if (day.PrintList.Summary.Count > 0)
-                        {
-                            content.Item().Text("Für die Theke").Bold().FontSize(13);
-                            foreach (var group in day.PrintList.Summary)
-                            {
-                                content.Item().Text($"{group.Quantity}× {group.Label}");
-                            }
-                            content.Item().PaddingTop(12);
-                        }
-
                         content.Item().Table(table => BuildLineTable(table, day));
                     });
             });

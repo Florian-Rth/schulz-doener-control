@@ -25,7 +25,6 @@ export type {
   PaymentHistory,
   PaymentHistoryRow,
   PrintLine,
-  PrintSummaryLine,
   ReceivableRow,
   Receivables,
 } from "./types";

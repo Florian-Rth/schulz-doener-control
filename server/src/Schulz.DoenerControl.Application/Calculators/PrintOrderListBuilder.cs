@@ -19,14 +19,10 @@ public sealed record PrintLineInput(
 
 // Turns the day's raw order lines into the Abholer's order sheet: sorts every line into article-type
 // order (menu SortOrder, then product label, then description, then person) so the shop can be worked
-// group by group, numbers them 1..N in that order (the number goes on each bag at handoff), and rolls
-// identical items up into a "n× …" shop summary. Pure — the caller resolves labels + sort keys first.
+// group by group, and numbers them 1..N in that order (the number goes on each bag at handoff). Pure
+// — the caller resolves labels + sort keys first.
 public static class PrintOrderListBuilder
 {
-    // Mirrors OrderLabelBuilder's empty-description fallback: kept out of the grouped summary label so
-    // a plain item reads "Döner Kalb", not "Döner Kalb · Standard".
-    private const string StandardDescription = "Standard";
-
     [Pure]
     public static OrderPrintList Build(IReadOnlyList<PrintLineInput> lines)
     {
@@ -58,24 +54,6 @@ public static class PrintOrderListBuilder
             )
             .ToList();
 
-        var summary = ordered
-            .GroupBy(line => (line.SortOrder, line.Section, line.ProductLabel, line.Description))
-            .OrderBy(group => group.Key.SortOrder)
-            .ThenBy(group => group.Key.Section, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(group => group.Key.ProductLabel, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(group => group.Key.Description, StringComparer.OrdinalIgnoreCase)
-            .Select(group => new PrintSummaryLine(
-                SummaryLabel(group.Key.ProductLabel, group.Key.Description),
-                group.Sum(line => line.Quantity)
-            ))
-            .ToList();
-
-        return new OrderPrintList(numbered, summary);
+        return new OrderPrintList(numbered);
     }
-
-    [Pure]
-    private static string SummaryLabel(string productLabel, string description) =>
-        string.IsNullOrWhiteSpace(description) || description == StandardDescription
-            ? productLabel
-            : $"{productLabel} · {description}";
 }

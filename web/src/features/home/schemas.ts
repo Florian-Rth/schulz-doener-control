@@ -73,12 +73,6 @@ const PrintLineSchema = z.object({
   isPickup: z.boolean(),
 });
 
-// One grouped "n× …" line of the shop summary (identical items folded together).
-const PrintSummarySchema = z.object({
-  label: z.string(),
-  quantity: z.number().int(),
-});
-
 // The designated Abholer (pickup person) for the day. `payPalUrl` is the
 // prefilled paypal.me link the caller can pay their share through; it is null
 // when the caller IS the collector, hasn't ordered, or the collector has no
@@ -110,9 +104,8 @@ const DashboardDaySchema = z.object({
   abholer: DayAbholerSchema.nullable(),
   orders: z.array(OrderRowSchema),
   // The Abholer's printable order sheet, built server-side (also drives the e-mailed PDF): numbered
-  // per-package lines in article-type order + the grouped "für die Theke" shop summary.
+  // per-package lines in article-type order.
   printLines: z.array(PrintLineSchema),
-  printSummary: z.array(PrintSummarySchema),
 });
 
 // One open debt the caller owes ("Offene Zahlungen"). `paypalUrl` is null when

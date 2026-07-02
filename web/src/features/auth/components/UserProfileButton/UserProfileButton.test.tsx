@@ -60,7 +60,6 @@ const closedDashboard: Dashboard = {
     abholer: null,
     orders: [],
     printLines: [],
-    printSummary: [],
   },
   debts: { openCount: 0, totalCents: 0, totalLabel: "0,00", rows: [] },
   toast: null,

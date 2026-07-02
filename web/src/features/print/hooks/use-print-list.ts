@@ -50,7 +50,6 @@ export const usePrintList = ({ day, emailPdfEnabled }: UsePrintListArgs): PrintL
     subline: orderCountSubline(day.orders.length),
     abholerNames: day.pickupNames.join(", "),
     lines: day.printLines,
-    summary: day.printSummary,
     totalLabel: formatEur(totalCents),
     print: () => {
       window.print();

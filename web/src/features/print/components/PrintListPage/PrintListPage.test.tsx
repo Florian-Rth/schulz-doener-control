@@ -102,7 +102,7 @@ const openDay = {
       isPickup: false,
     },
   ],
-  // The server-built print sheet: numbered per-package lines in article-type order + shop summary.
+  // The server-built print sheet: numbered per-package lines in article-type order.
   printLines: [
     {
       number: 1,
@@ -135,11 +135,6 @@ const openDay = {
       isPickup: false,
     },
   ],
-  printSummary: [
-    { label: "Döner Hähnchen · ohne Soße", quantity: 1 },
-    { label: "Dürüm Kalb · Knoblauch, scharf", quantity: 1 },
-    { label: "Pizza Salami", quantity: 1 },
-  ],
 };
 
 const closedDay = {
@@ -156,7 +151,6 @@ const closedDay = {
   abholer: null,
   orders: [],
   printLines: [],
-  printSummary: [],
 };
 
 const buildDashboard = (overrides: Partial<Dashboard> = {}): Dashboard => ({
@@ -231,11 +225,6 @@ describe("PrintListPage", () => {
     expect(getAllByText("Döner").length).toBeGreaterThanOrEqual(1);
     expect(getByText("Dürüm")).toBeInTheDocument();
     expect(getByText("Pizza")).toBeInTheDocument();
-
-    // "für die Theke" grouped shop summary + its numbering hint.
-    expect(getByText(/Für die Theke/)).toBeInTheDocument();
-    expect(getByText("1× Pizza Salami")).toBeInTheDocument();
-    expect(getByText(/Nummer steht auf jeder Tüte/)).toBeInTheDocument();
 
     // grand total: 8,50 + 9,00 + 7,50 = 25,00 €
     expect(getByText("Gesamt")).toBeInTheDocument();

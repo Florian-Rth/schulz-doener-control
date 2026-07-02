@@ -10,9 +10,6 @@ export const printCopy = {
   colProduct: "Produkt",
   colDetails: "Details",
   colPrice: "Preis",
-  // The grouped shop summary that sits above the per-package list.
-  summaryHeading: "Für die Theke",
-  summaryHint: "Nummer steht auf jeder Tüte — so weiß jeder, was ihm gehört.",
   // Header + actions.
   abholerLabel: "Abholer:",
   totalLabel: "Gesamt",

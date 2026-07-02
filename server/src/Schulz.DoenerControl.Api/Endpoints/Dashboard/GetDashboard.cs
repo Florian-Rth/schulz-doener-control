@@ -65,9 +65,8 @@ public sealed record DashboardDayDto(
     DashboardAbholerDto? Abholer,
     IReadOnlyList<DashboardOrderRowDto> Orders,
     // The Abholer's printable order sheet, built server-side: numbered per-package lines in
-    // article-type order + the grouped "für die Theke" shop summary (identical to the e-mailed PDF).
-    IReadOnlyList<DashboardPrintLineDto> PrintLines,
-    IReadOnlyList<DashboardPrintSummaryDto> PrintSummary
+    // article-type order (also drives the e-mailed PDF).
+    IReadOnlyList<DashboardPrintLineDto> PrintLines
 );
 
 public sealed record DashboardAbholerDto(
@@ -101,9 +100,6 @@ public sealed record DashboardPrintLineDto(
     int LineTotalCents,
     bool IsPickup
 );
-
-// One grouped "n× …" line of the shop summary.
-public sealed record DashboardPrintSummaryDto(string Label, int Quantity);
 
 public sealed record DashboardDebtRowDto(
     Guid Id,
@@ -237,8 +233,7 @@ public sealed class GetDashboard : EndpointWithoutRequest<GetDashboardResponse>
                 AmICollector: false,
                 Abholer: null,
                 Orders: [],
-                PrintLines: [],
-                PrintSummary: []
+                PrintLines: []
             );
         }
 
@@ -255,8 +250,7 @@ public sealed class GetDashboard : EndpointWithoutRequest<GetDashboardResponse>
             day.AmICollector,
             MapAbholer(day.Abholer),
             day.Orders.Select(MapOrderRow).ToList(),
-            day.PrintList.Lines.Select(MapPrintLine).ToList(),
-            day.PrintList.Summary.Select(MapPrintSummary).ToList()
+            day.PrintList.Lines.Select(MapPrintLine).ToList()
         );
     }
 
@@ -271,9 +265,6 @@ public sealed class GetDashboard : EndpointWithoutRequest<GetDashboardResponse>
             line.LineTotalCents,
             line.IsPickup
         );
-
-    private static DashboardPrintSummaryDto MapPrintSummary(PrintSummaryLine line) =>
-        new(line.Label, line.Quantity);
 
     private static DashboardAbholerDto? MapAbholer(AbholerSummary? abholer) =>
         abholer is null
