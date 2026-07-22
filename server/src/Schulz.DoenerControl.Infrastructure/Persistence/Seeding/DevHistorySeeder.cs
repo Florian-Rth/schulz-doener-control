@@ -8,34 +8,26 @@ namespace Schulz.DoenerControl.Infrastructure.Persistence.Seeding;
 // mock so the seeded admin's computed Doener-Tier matches the mock (🐺 Der Knoblauch-Wolf), and
 // gives the dashboard/leaderboard realistic non-empty data. The orders are attributed to the
 // single seeded admin (the dev "Chef"). Never runs in Testing or Production — tests build their
-// own minimal fixtures.
+// own minimal fixtures. Lines now carry the generic Answers payload (meat/sauce option keys) rather
+// than the retired typed columns; the tier projection reads it back identically.
 public sealed class DevHistorySeeder
 {
-    // The Chef's last-3-months history, copied verbatim from the mock's MY_HISTORY array.
-    private static readonly (
-        string ProductId,
-        ProductKind Kind,
-        MeatType Meat,
-        Sauce Sauces
-    )[] ChefHistory = new[]
+    // The Chef's last-3-months history, copied verbatim from the mock's MY_HISTORY array. Meat/sauce
+    // are expressed as the reserved option keys the answers payload stores.
+    private static readonly (string ProductId, string Meat, string[] Sauces)[] ChefHistory = new[]
     {
-        ("doener", ProductKind.Doener, MeatType.Kalb, Sauce.Knoblauch | Sauce.Kraeuter),
-        ("doener", ProductKind.Doener, MeatType.Kalb, Sauce.Knoblauch | Sauce.Scharf),
-        (
-            "duerum",
-            ProductKind.Doener,
-            MeatType.Kalb,
-            Sauce.Knoblauch | Sauce.Kraeuter | Sauce.Scharf
-        ),
-        ("doener", ProductKind.Doener, MeatType.Kalb, Sauce.Knoblauch),
-        ("big", ProductKind.Doener, MeatType.Kalb, Sauce.Knoblauch | Sauce.Scharf),
-        ("doener", ProductKind.Doener, MeatType.Haehnchen, Sauce.Knoblauch | Sauce.Kraeuter),
-        ("box", ProductKind.Doener, MeatType.Kalb, Sauce.Knoblauch),
-        ("doener", ProductKind.Doener, MeatType.Kalb, Sauce.Kraeuter),
-        ("doener", ProductKind.Doener, MeatType.Kalb, Sauce.Knoblauch | Sauce.Scharf),
-        ("duerum", ProductKind.Doener, MeatType.Kalb, Sauce.Knoblauch | Sauce.Kraeuter),
-        ("doener", ProductKind.Doener, MeatType.Kalb, Sauce.Knoblauch | Sauce.Scharf),
-        ("doener", ProductKind.Doener, MeatType.Kalb, Sauce.Knoblauch),
+        ("doener", "kalb", new[] { "knoblauch", "kraeuter" }),
+        ("doener", "kalb", new[] { "knoblauch", "scharf" }),
+        ("duerum", "kalb", new[] { "knoblauch", "kraeuter", "scharf" }),
+        ("doener", "kalb", new[] { "knoblauch" }),
+        ("big", "kalb", new[] { "knoblauch", "scharf" }),
+        ("doener", "haehnchen", new[] { "knoblauch", "kraeuter" }),
+        ("box", "kalb", new[] { "knoblauch" }),
+        ("doener", "kalb", new[] { "kraeuter" }),
+        ("doener", "kalb", new[] { "knoblauch", "scharf" }),
+        ("duerum", "kalb", new[] { "knoblauch", "kraeuter" }),
+        ("doener", "kalb", new[] { "knoblauch", "scharf" }),
+        ("doener", "kalb", new[] { "knoblauch" }),
     };
 
     private readonly AppDbContext database;
@@ -68,6 +60,11 @@ public sealed class DevHistorySeeder
             item => item.DefaultPriceCents,
             ct
         );
+        var storeId = await database
+            .Stores.AsNoTracking()
+            .OrderBy(store => store.SortOrder)
+            .Select(store => (Guid?)store.Id)
+            .FirstOrDefaultAsync(ct);
 
         var now = timeProvider.GetUtcNow();
         var weekStart = now.AddDays(-7 * ChefHistory.Length);
@@ -75,11 +72,12 @@ public sealed class DevHistorySeeder
         for (var index = 0; index < ChefHistory.Length; index++)
         {
             var occurredOn = weekStart.AddDays(7 * index);
-            var (productId, kind, meat, sauces) = ChefHistory[index];
+            var (productId, meat, sauces) = ChefHistory[index];
 
             var day = new OrderDay
             {
                 Id = Guid.NewGuid(),
+                StoreId = storeId,
                 Date = DateOnly.FromDateTime(occurredOn.UtcDateTime),
                 Status = OrderDayStatus.Closed,
                 Synonym = "Drehspieß-Tasche",
@@ -108,12 +106,8 @@ public sealed class DevHistorySeeder
                             Id = Guid.NewGuid(),
                             OrderId = orderId,
                             ProductId = productId,
-                            Kind = kind,
-                            Meat = meat,
-                            PizzaVariant = null,
-                            Sauces = sauces,
+                            Answers = BuildAnswers(meat, sauces),
                             PriceCents = priceByProduct.GetValueOrDefault(productId, 0),
-                            Extra = null,
                             Quantity = 1,
                         },
                     },
@@ -123,4 +117,13 @@ public sealed class DevHistorySeeder
 
         await database.SaveChangesAsync(ct);
     }
+
+    private static LineAnswers BuildAnswers(string meat, string[] sauces) =>
+        new(
+            new Dictionary<string, AnswerValue>
+            {
+                ["meat"] = AnswerValue.FromOptions(meat),
+                ["sauce"] = AnswerValue.FromOptions(sauces),
+            }
+        );
 }

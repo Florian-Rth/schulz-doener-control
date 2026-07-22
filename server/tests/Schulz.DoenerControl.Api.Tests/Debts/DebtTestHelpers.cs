@@ -89,11 +89,12 @@ internal static class DebtTestHelpers
                     new
                     {
                         ProductId = "doener",
-                        Meat = (string?)"Kalb",
-                        PizzaVariant = (string?)null,
-                        Sauces = new[] { "Knoblauch" },
+                        Answers = new Dictionary<string, object>
+                        {
+                            ["meat"] = new { options = new[] { "kalb" } },
+                            ["sauce"] = new { options = new[] { "knoblauch" } },
+                        },
                         PriceCents = priceCents,
-                        Extra = (string?)null,
                         Quantity = 1,
                     },
                 },

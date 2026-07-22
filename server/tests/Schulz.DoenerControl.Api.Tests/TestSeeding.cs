@@ -46,9 +46,10 @@ internal static class TestSeeding
         new TestUser("h.neumann", "Hanna Neumann", "#8E24AA", null),
     };
 
-    // The menu used to ride in on the migration via HasData; it is now planted at runtime by
-    // MenuSeeder. The harness applies only the migration (MigrateAsync, no production seed), so it
-    // seeds the canonical menu itself — exactly as production does through DatabaseSeeder.
+    // The menu + generic field/category engine is planted at runtime by GenericMenuSeeder (scoped to
+    // the store the AddStore migration already inserted). The harness applies only the migration
+    // (MigrateAsync, no production seed), so it seeds the canonical menu itself — exactly as
+    // production does through DatabaseSeeder.
     public static async Task SeedMenuAsync(
         this IServiceProvider services,
         CancellationToken ct = default
@@ -56,7 +57,7 @@ internal static class TestSeeding
     {
         using var scope = services.CreateScope();
         var database = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var menuSeeder = new MenuSeeder(database);
+        var menuSeeder = new GenericMenuSeeder(database);
         await menuSeeder.SeedAsync(ct);
     }
 

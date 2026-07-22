@@ -17,10 +17,15 @@ export const adminCopy = {
       description: "Döner, Pizza & Insider-Spezialitäten pflegen.",
       icon: "restaurant",
     },
-    pizzaVariants: {
-      title: "Pizza-Sorten",
-      description: "Die Sorten pflegen, die bei der Pizza zur Wahl stehen.",
-      icon: "local_pizza",
+    kategorien: {
+      title: "Kategorien",
+      description: "Kategorien pflegen und ihnen Felder zuweisen.",
+      icon: "category",
+    },
+    felder: {
+      title: "Felder",
+      description: "Die Felder & Optionen pflegen, aus denen die Bestellung besteht.",
+      icon: "tune",
     },
     tiere: {
       title: "Döner-Tiere",
@@ -140,13 +145,11 @@ export const menuCopy = {
   loadError: "Die Karte konnte nicht geladen werden, Chef. Versuch es nochmal.",
   empty: "Noch nichts auf der Karte, Chef. Leg das erste Gericht an.",
   addButton: "Gericht anlegen",
-  // Kinds
-  kindDoener: "Döner",
-  kindPizza: "Pizza",
   // Status badges
   available: "Verfügbar",
   retired: "Nicht verfügbar",
   insider: "Insider",
+  noCategory: "Ohne Kategorie",
   sortLabel: (order: number): string => `Reihenfolge ${order}`,
   // Per-row actions
   actionEdit: "Bearbeiten",
@@ -159,7 +162,14 @@ export const menuCopy = {
   namePlaceholder: "z. B. Dürüm Kalb",
   priceLabel: "Preis (€)",
   pricePlaceholder: "z. B. 8,50",
-  kindLabel: "Art",
+  categoryLabel: "Kategorie",
+  categoryNone: "Ohne Kategorie",
+  baseItemLabel: "Basis-Gericht (optional)",
+  baseItemNone: "Kein Basis-Gericht",
+  baseItemHint: "Wähl ein Gericht, wenn dies eine Voreinstellung davon ist, Chef.",
+  defaultAnswersLabel: "Voreinstellungen",
+  defaultAnswersHint: "Diese Auswahl ist beim Bestellen schon gesetzt, Chef.",
+  answerNone: "— keine —",
   iconLabel: "Symbol",
   noteLabel: "Notiz (optional)",
   notePlaceholder: "z. B. nur freitags",
@@ -187,47 +197,147 @@ export const menuCopy = {
   errorGeneric: "Hat nicht geklappt, Chef. Versuch es nochmal.",
 } as const;
 
-// German UI strings for the pizza-variant screen (/admin/pizza-variants). These are the sorts the
-// order form offers when a colleague picks a pizza; the catalog is fully admin-managed.
-export const pizzaVariantsCopy = {
-  title: "Pizza-Sorten",
-  subtitle: "Sorten pflegen",
+// German UI strings for the category screen (/admin/kategorien). A category groups the fields a
+// menu item's order form renders; the field-assignment editor lives inside the edit dialog.
+export const categoriesCopy = {
+  title: "Kategorien",
+  subtitle: "Kategorien pflegen",
   intro:
-    "Hier pflegst du die Pizza-Sorten, Chef. Was hier verfügbar ist, taucht in der Bestellung als Auswahl auf.",
-  loading: "Sorten werden geladen …",
-  loadError: "Die Sorten konnten nicht geladen werden, Chef. Versuch es nochmal.",
-  empty: "Noch keine Pizza-Sorten, Chef. Leg die erste an.",
-  addButton: "Sorte anlegen",
+    "Hier pflegst du die Kategorien, Chef. Jede Kategorie bündelt die Felder, die beim Bestellen abgefragt werden.",
+  loading: "Kategorien werden geladen …",
+  loadError: "Die Kategorien konnten nicht geladen werden, Chef. Versuch es nochmal.",
+  empty: "Noch keine Kategorien, Chef. Leg die erste an.",
+  addButton: "Kategorie anlegen",
   // Status badges
   available: "Verfügbar",
   unavailable: "Nicht verfügbar",
   sortLabel: (order: number): string => `Reihenfolge ${order}`,
+  keyLabelShort: (key: string): string => `Schlüssel: ${key}`,
+  fieldsCount: (count: number): string =>
+    count === 1 ? "1 Feld zugewiesen" : `${count} Felder zugewiesen`,
   // Per-row actions
   actionEdit: "Bearbeiten",
   actionDelete: "Entfernen",
   // Field labels (shared create/edit)
+  keyLabel: "Schlüssel",
+  keyPlaceholder: "z. B. doener",
+  keyLocked: "Der Schlüssel lässt sich nach dem Anlegen nicht mehr ändern, Chef.",
   nameLabel: "Name",
-  namePlaceholder: "z. B. Margherita",
-  iconLabel: "Symbol (optional)",
+  namePlaceholder: "z. B. Döner",
   sortOrderLabel: "Reihenfolge",
   availableLabel: "Verfügbar",
+  // Field-assignment editor
+  fieldsSectionTitle: "Felder zuweisen",
+  fieldsSectionHint:
+    "Wähl die Felder, die diese Kategorie abfragt, und bring sie in Reihenfolge, Chef.",
+  fieldsEmpty: "Noch keine Felder angelegt, Chef. Leg sie erst unter „Felder“ an.",
+  requiredLabel: "Pflicht",
+  moveUp: "Nach oben",
+  moveDown: "Nach unten",
+  fieldsSave: "Felder speichern",
+  fieldsSaving: "Wird gespeichert …",
+  fieldsSaved: "Felder gespeichert, Chef.",
   // Create dialog
-  createTitle: "Neue Sorte anlegen",
+  createTitle: "Neue Kategorie anlegen",
   createSubmit: "Anlegen",
   createSubmitting: "Wird angelegt …",
   // Edit dialog
-  editTitle: "Sorte bearbeiten",
+  editTitle: "Kategorie bearbeiten",
   editSubmit: "Speichern",
   editSubmitting: "Speichern …",
   // Delete confirmation
-  deleteTitle: "Sorte entfernen?",
+  deleteTitle: "Kategorie entfernen?",
   deleteBody: (name: string): string =>
-    `Soll die Pizza-Sorte „${name}" wirklich weg, Chef? Sorten, die in früheren Bestellungen vorkommen, werden nur ausgeblendet (stillgelegt) statt gelöscht – die alten Bestellungen bleiben heil.`,
+    `Soll die Kategorie „${name}" wirklich weg, Chef? Das geht nur, wenn kein Gericht sie mehr nutzt.`,
   deleteConfirm: "Ja, entfernen",
   deleting: "Wird entfernt …",
   cancel: "Abbrechen",
   // Server-error mappings
-  errorDuplicate: "Diese Sorte gibt es schon, Chef. Wähl einen anderen Namen.",
+  errorDuplicate: "Diesen Schlüssel gibt es schon, Chef. Wähl einen anderen.",
+  errorReferenced: "Diese Kategorie wird noch von einem Gericht genutzt, Chef. Erst umhängen.",
+  errorValidation: "Die Eingaben passen nicht, Chef. Prüf die Felder.",
+  errorGeneric: "Hat nicht geklappt, Chef. Versuch es nochmal.",
+} as const;
+
+// German UI strings for the fields screen (/admin/felder). Fields and their options are the order
+// vocabulary; the meat/sauce fields (and their standard options) are reserved for the Tier engine.
+export const fieldsCopy = {
+  title: "Felder",
+  subtitle: "Felder & Optionen pflegen",
+  intro:
+    "Hier pflegst du die Felder und ihre Optionen, Chef. Fleisch und Soße sind fürs Tier-System gesperrt – Texte und Preise darfst du trotzdem anpassen.",
+  loading: "Felder werden geladen …",
+  loadError: "Die Felder konnten nicht geladen werden, Chef. Versuch es nochmal.",
+  empty: "Noch keine Felder, Chef. Leg das erste an.",
+  addButton: "Feld anlegen",
+  // Type / display labels
+  typeSingle: "Einfachauswahl",
+  typeMulti: "Mehrfachauswahl",
+  typeText: "Freitext",
+  displaySegmented: "Segmentiert",
+  displayChips: "Chips",
+  displayDropdown: "Dropdown",
+  displayTextarea: "Textfeld",
+  // Status badges / locks
+  available: "Verfügbar",
+  unavailable: "Nicht verfügbar",
+  reserved: "Gesperrt",
+  reservedFieldHint:
+    "Fleisch und Soße sind fürs Tier-System gesperrt und lassen sich nicht löschen, Chef.",
+  reservedOptionHint: "Diese Option ist fürs Tier-System gesperrt, Chef.",
+  sortLabel: (order: number): string => `Reihenfolge ${order}`,
+  priceDeltaLabel: (label: string): string => `Aufpreis ${label}`,
+  // Per-row actions
+  actionEdit: "Bearbeiten",
+  actionDelete: "Entfernen",
+  // Field dialog labels
+  keyLabel: "Schlüssel",
+  keyPlaceholder: "z. B. meat",
+  keyLocked: "Der Schlüssel lässt sich nach dem Anlegen nicht mehr ändern, Chef.",
+  labelLabel: "Bezeichnung",
+  labelPlaceholder: "z. B. Fleisch",
+  typeLabel: "Typ",
+  typeLocked: "Der Typ lässt sich nach dem Anlegen nicht mehr ändern, Chef.",
+  displayLabel: "Darstellung",
+  maxLengthLabel: "Max. Zeichen",
+  maxLengthHint: "Nur für Freitext-Felder, Chef.",
+  // Options
+  optionsTitle: "Optionen",
+  optionsEmpty: "Noch keine Optionen, Chef.",
+  addOption: "Option anlegen",
+  optionKeyLabel: "Schlüssel",
+  optionKeyPlaceholder: "z. B. kalb",
+  optionLabelLabel: "Bezeichnung",
+  optionLabelPlaceholder: "z. B. Kalb",
+  optionIconLabel: "Symbol (optional)",
+  optionIconPlaceholder: "z. B. 🥩 oder local_fire_department",
+  optionPriceLabel: "Aufpreis (€)",
+  optionSortOrderLabel: "Reihenfolge",
+  optionAvailableLabel: "Verfügbar",
+  // Create/edit field dialog
+  createTitle: "Neues Feld anlegen",
+  createSubmit: "Anlegen",
+  createSubmitting: "Wird angelegt …",
+  editTitle: "Feld bearbeiten",
+  editSubmit: "Speichern",
+  editSubmitting: "Speichern …",
+  // Create/edit option dialog
+  optionCreateTitle: "Neue Option anlegen",
+  optionEditTitle: "Option bearbeiten",
+  // Delete confirmations
+  deleteFieldTitle: "Feld entfernen?",
+  deleteFieldBody: (label: string): string =>
+    `Soll das Feld „${label}" wirklich weg, Chef? Das geht nur, wenn keine Kategorie es mehr nutzt.`,
+  deleteOptionTitle: "Option entfernen?",
+  deleteOptionBody: (label: string): string =>
+    `Soll die Option „${label}" wirklich weg, Chef? Sie wird stillgelegt, alte Bestellungen bleiben heil.`,
+  deleteConfirm: "Ja, entfernen",
+  deleting: "Wird entfernt …",
+  cancel: "Abbrechen",
+  // Server-error mappings
+  errorDuplicate: "Diesen Schlüssel gibt es schon, Chef. Wähl einen anderen.",
+  errorReserved: "Das ist fürs Tier-System gesperrt, Chef. Das lässt sich nicht löschen.",
+  errorReferenced: "Dieses Feld wird noch von einer Kategorie genutzt, Chef. Erst abhängen.",
   errorValidation: "Die Eingaben passen nicht, Chef. Prüf die Felder.",
   errorGeneric: "Hat nicht geklappt, Chef. Versuch es nochmal.",
 } as const;

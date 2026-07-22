@@ -20,45 +20,52 @@ public sealed class MenuService : IMenuService
 
     public async Task<Result<MenuDetails>> GetMenuAsync(CancellationToken ct)
     {
+        var storeId = await ActiveStoreIdAsync(ct);
+
+        var categories = await database
+            .Categories.AsNoTracking()
+            .Where(category => category.StoreId == storeId)
+            .Include(category => category.Fields!)
+                .ThenInclude(link => link.FieldDefinition!)
+                    .ThenInclude(field => field.Options!)
+            .OrderBy(category => category.SortOrder)
+            .ToListAsync(ct);
+
+        var categoryKeyById = categories.ToDictionary(
+            category => category.Id,
+            category => category.Key
+        );
+        var categoryDetails = categories
+            .Where(category => category.IsAvailable)
+            .Select(MapCategory)
+            .ToList();
+
         // The public order form must never offer a retired item, so only available rows are returned.
         var items = await database
             .MenuItems.AsNoTracking()
-            .Where(item => item.IsAvailable)
+            .Where(item => item.IsAvailable && item.StoreId == storeId)
             .OrderBy(item => item.SortOrder)
             .ToListAsync(ct);
 
-        // Pizza variants are admin-managed reference data: only available ones, by SortOrder, as the
-        // {value,label} pairs the SPA renders (value = the stable variant id string a pizza line
-        // submits on the wire). The id is formatted in memory (not in SQL) so it is the canonical
-        // lowercase Guid string, matching how the admin DTO serializes the same id.
-        var variantRows = await database
-            .PizzaVariants.AsNoTracking()
-            .Where(variant => variant.IsAvailable)
-            .OrderBy(variant => variant.SortOrder)
-            .Select(variant => new { variant.Id, variant.Name })
-            .ToListAsync(ct);
-        var pizzaVariants = variantRows
-            .Select(variant => new PizzaVariantOption(variant.Id.ToString(), variant.Name))
-            .ToList();
+        var itemSummaries = items.Select(item => MapSummary(item, categoryKeyById)).ToList();
 
-        var details = new MenuDetails(
-            items.Select(MapSummary).ToList(),
-            pizzaVariants,
-            OrderVocabulary.SauceOptions,
-            OrderVocabulary.MeatOptions
-        );
-
-        return Result<MenuDetails>.Success(details);
+        return Result<MenuDetails>.Success(new MenuDetails(categoryDetails, itemSummaries));
     }
 
     public async Task<Result<IReadOnlyList<MenuItemDetails>>> ListAllAsync(CancellationToken ct)
     {
+        var categoryKeyById = await database
+            .Categories.AsNoTracking()
+            .ToDictionaryAsync(category => category.Id, category => category.Key, ct);
+
         var items = await database
             .MenuItems.AsNoTracking()
             .OrderBy(item => item.SortOrder)
             .ToListAsync(ct);
 
-        IReadOnlyList<MenuItemDetails> details = items.Select(MapDetails).ToList();
+        IReadOnlyList<MenuItemDetails> details = items
+            .Select(item => MapDetails(item, categoryKeyById))
+            .ToList();
         return Result<IReadOnlyList<MenuItemDetails>>.Success(details);
     }
 
@@ -82,23 +89,34 @@ public sealed class MenuService : IMenuService
             );
         }
 
+        var storeId = await ActiveStoreIdAsync(ct);
+        var categoryResult = await ResolveCategoryIdAsync(command.CategoryKey, storeId, ct);
+        if (!categoryResult.IsSuccess)
+            return Result<MenuItemDetails>.Validation(categoryResult.Error!);
+
         var item = new MenuItem
         {
             Id = id,
+            StoreId = storeId,
+            CategoryId = categoryResult.Value,
+            BaseItemId = NormalizeOptional(command.BaseItemId),
             Name = command.Name.Trim(),
             DefaultPriceCents = command.DefaultPriceCents,
-            Kind = command.Kind,
             MaterialIcon = command.MaterialIcon.Trim(),
-            Note = NormalizeNote(command.Note),
+            Note = NormalizeOptional(command.Note),
             IsInsider = command.IsInsider,
             SortOrder = command.SortOrder,
             IsAvailable = command.IsAvailable,
+            DefaultAnswers = command.DefaultAnswers,
         };
 
         database.MenuItems.Add(item);
         await database.SaveChangesAsync(ct);
 
-        return Result<MenuItemDetails>.Success(MapDetails(item));
+        var categoryKeyById = await database
+            .Categories.AsNoTracking()
+            .ToDictionaryAsync(category => category.Id, category => category.Key, ct);
+        return Result<MenuItemDetails>.Success(MapDetails(item, categoryKeyById));
     }
 
     public async Task<Result<MenuItemDetails>> UpdateAsync(
@@ -117,18 +135,28 @@ public sealed class MenuService : IMenuService
             );
         }
 
+        var storeId = item.StoreId ?? await ActiveStoreIdAsync(ct);
+        var categoryResult = await ResolveCategoryIdAsync(command.CategoryKey, storeId, ct);
+        if (!categoryResult.IsSuccess)
+            return Result<MenuItemDetails>.Validation(categoryResult.Error!);
+
         item.Name = command.Name.Trim();
+        item.CategoryId = categoryResult.Value;
+        item.BaseItemId = NormalizeOptional(command.BaseItemId);
         item.DefaultPriceCents = command.DefaultPriceCents;
-        item.Kind = command.Kind;
         item.MaterialIcon = command.MaterialIcon.Trim();
-        item.Note = NormalizeNote(command.Note);
+        item.Note = NormalizeOptional(command.Note);
         item.IsInsider = command.IsInsider;
         item.SortOrder = command.SortOrder;
         item.IsAvailable = command.IsAvailable;
+        item.DefaultAnswers = command.DefaultAnswers;
 
         await database.SaveChangesAsync(ct);
 
-        return Result<MenuItemDetails>.Success(MapDetails(item));
+        var categoryKeyById = await database
+            .Categories.AsNoTracking()
+            .ToDictionaryAsync(category => category.Id, category => category.Key, ct);
+        return Result<MenuItemDetails>.Success(MapDetails(item, categoryKeyById));
     }
 
     public async Task<Result<MenuItemRemoval>> RemoveAsync(string id, CancellationToken ct)
@@ -154,35 +182,115 @@ public sealed class MenuService : IMenuService
         return Result<MenuItemRemoval>.Success(MenuItemRemoval.Deleted);
     }
 
-    private static MenuItemSummary MapSummary(MenuItem item) =>
+    private async Task<Guid?> ActiveStoreIdAsync(CancellationToken ct) =>
+        await database
+            .Stores.AsNoTracking()
+            .Where(store => store.IsActive)
+            .OrderBy(store => store.SortOrder)
+            .Select(store => (Guid?)store.Id)
+            .FirstOrDefaultAsync(ct);
+
+    // Resolves a category key to its id within the store; null key → null id (unassigned). An unknown
+    // key is a validation failure so the admin can't point an item at a non-existent category.
+    private async Task<Result<Guid?>> ResolveCategoryIdAsync(
+        string? categoryKey,
+        Guid? storeId,
+        CancellationToken ct
+    )
+    {
+        var key = NormalizeOptional(categoryKey);
+        if (key is null)
+            return Result<Guid?>.Success(null);
+
+        var categoryId = await database
+            .Categories.AsNoTracking()
+            .Where(category => category.StoreId == storeId && category.Key == key)
+            .Select(category => (Guid?)category.Id)
+            .FirstOrDefaultAsync(ct);
+
+        return categoryId is null
+            ? Result<Guid?>.Validation($"Unbekannte Kategorie '{key}', Chef.")
+            : Result<Guid?>.Success(categoryId);
+    }
+
+    private static MenuCategoryDetails MapCategory(Category category) =>
         new(
-            item.Id,
-            item.Name,
-            item.DefaultPriceCents,
-            MoneyFormatter.ToGermanString(item.DefaultPriceCents),
-            KindToString(item.Kind),
-            item.MaterialIcon,
-            item.Note,
-            item.IsInsider,
-            item.SortOrder
+            category.Key,
+            category.Name,
+            category.SortOrder,
+            (category.Fields ?? []).OrderBy(link => link.SortOrder).Select(MapField).ToList()
         );
 
-    private static MenuItemDetails MapDetails(MenuItem item) =>
+    private static MenuFieldDetails MapField(CategoryField link)
+    {
+        var field = link.FieldDefinition!;
+        return new MenuFieldDetails(
+            field.Key,
+            field.Label,
+            TypeToken(field.Type),
+            DisplayToken(field.Display),
+            field.MaxLength,
+            link.IsRequired,
+            (field.Options ?? [])
+                .Where(option => option.IsAvailable)
+                .OrderBy(option => option.SortOrder)
+                .Select(option => new MenuOptionDetails(
+                    option.Key,
+                    option.Label,
+                    option.Icon,
+                    option.PriceDeltaCents
+                ))
+                .ToList()
+        );
+    }
+
+    private static MenuItemSummary MapSummary(
+        MenuItem item,
+        IReadOnlyDictionary<Guid, string> categoryKeyById
+    ) =>
         new(
             item.Id,
             item.Name,
+            ResolveCategoryKey(item, categoryKeyById),
+            item.BaseItemId,
             item.DefaultPriceCents,
             MoneyFormatter.ToGermanString(item.DefaultPriceCents),
-            KindToString(item.Kind),
             item.MaterialIcon,
             item.Note,
             item.IsInsider,
             item.SortOrder,
-            item.IsAvailable
+            item.DefaultAnswers
         );
 
-    private static string? NormalizeNote(string? note) =>
-        string.IsNullOrWhiteSpace(note) ? null : note.Trim();
+    private static MenuItemDetails MapDetails(
+        MenuItem item,
+        IReadOnlyDictionary<Guid, string> categoryKeyById
+    ) =>
+        new(
+            item.Id,
+            item.Name,
+            ResolveCategoryKey(item, categoryKeyById),
+            item.BaseItemId,
+            item.DefaultPriceCents,
+            MoneyFormatter.ToGermanString(item.DefaultPriceCents),
+            item.MaterialIcon,
+            item.Note,
+            item.IsInsider,
+            item.SortOrder,
+            item.IsAvailable,
+            item.DefaultAnswers
+        );
+
+    private static string? ResolveCategoryKey(
+        MenuItem item,
+        IReadOnlyDictionary<Guid, string> categoryKeyById
+    ) =>
+        item.CategoryId is { } categoryId && categoryKeyById.TryGetValue(categoryId, out var key)
+            ? key
+            : null;
+
+    private static string? NormalizeOptional(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     [Pure]
     private static string Slugify(string name)
@@ -203,11 +311,23 @@ public sealed class MenuService : IMenuService
     }
 
     [Pure]
-    private static string KindToString(ProductKind kind) =>
-        kind switch
+    private static string TypeToken(FieldType type) =>
+        type switch
         {
-            ProductKind.Doener => "doener",
-            ProductKind.Pizza => "pizza",
-            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+            FieldType.SingleSelect => "single",
+            FieldType.MultiSelect => "multi",
+            FieldType.Text => "text",
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
+        };
+
+    [Pure]
+    private static string DisplayToken(FieldDisplay display) =>
+        display switch
+        {
+            FieldDisplay.Segmented => "segmented",
+            FieldDisplay.Chips => "chips",
+            FieldDisplay.Dropdown => "dropdown",
+            FieldDisplay.Textarea => "textarea",
+            _ => throw new ArgumentOutOfRangeException(nameof(display), display, null),
         };
 }

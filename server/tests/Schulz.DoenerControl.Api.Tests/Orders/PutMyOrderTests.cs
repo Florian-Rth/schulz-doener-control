@@ -51,7 +51,7 @@ public sealed class PutMyOrderTests : DoenerControlTestBase
         var created = await ReadOrder(create);
         Assert.NotNull(created);
         var createdLine = Assert.Single(created!.Lines);
-        Assert.Equal("Döner Kalb", createdLine.ProductLabel);
+        Assert.Equal("Döner", createdLine.ProductLabel);
         Assert.Equal(750, createdLine.PriceCents);
         Assert.Equal(1, createdLine.Quantity);
         Assert.Equal(750, created.PriceCents);
@@ -63,26 +63,28 @@ public sealed class PutMyOrderTests : DoenerControlTestBase
             $"/api/order-days/{dayId}/orders/mine",
             new
             {
-                Lines = new[]
+                Lines = new object[]
                 {
                     new
                     {
                         ProductId = "duerum",
-                        Meat = (string?)"Haehnchen",
-                        PizzaVariant = (string?)null,
-                        Sauces = new[] { "Knoblauch", "Scharf" },
+                        Answers = new Dictionary<string, object>
+                        {
+                            ["meat"] = new { options = new[] { "haehnchen" } },
+                            ["sauce"] = new { options = new[] { "knoblauch", "scharf" } },
+                            ["extra"] = new { text = "ohne Zwiebeln" },
+                        },
                         PriceCents = 800,
-                        Extra = (string?)"ohne Zwiebeln",
                         Quantity = 1,
                     },
                     new
                     {
                         ProductId = "pizza",
-                        Meat = (string?)null,
-                        PizzaVariant = (string?)Admin.AdminPizzaVariantTestHelpers.SalamiId,
-                        Sauces = Array.Empty<string>(),
+                        Answers = new Dictionary<string, object>
+                        {
+                            ["variant"] = new { options = new[] { "salami" } },
+                        },
                         PriceCents = 900,
-                        Extra = (string?)null,
                         Quantity = 1,
                     },
                 },
@@ -94,8 +96,8 @@ public sealed class PutMyOrderTests : DoenerControlTestBase
         Assert.NotNull(edited);
         Assert.Equal(orderId, edited!.Id);
         Assert.Equal(2, edited.Lines.Count);
-        Assert.Equal("Dürüm Hähnchen", edited.Lines[0].ProductLabel);
-        Assert.Equal("Pizza Salami", edited.Lines[1].ProductLabel);
+        Assert.Equal("Dürüm", edited.Lines[0].ProductLabel);
+        Assert.Equal("Pizza", edited.Lines[1].ProductLabel);
         Assert.Equal(1700, edited.PriceCents);
         Assert.True(edited.IsPickup);
 
@@ -123,7 +125,7 @@ public sealed class PutMyOrderTests : DoenerControlTestBase
         );
         Assert.NotNull(summary);
         Assert.Equal(2, summary!.Lines.Count);
-        Assert.Equal("Dürüm Hähnchen", summary.Lines[0].ProductLabel);
+        Assert.Equal("Dürüm", summary.Lines[0].ProductLabel);
         Assert.Equal(1700, summary.PriceCents);
         Assert.True(summary.IsPickup);
 

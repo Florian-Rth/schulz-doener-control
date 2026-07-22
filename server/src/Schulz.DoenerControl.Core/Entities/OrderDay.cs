@@ -6,6 +6,11 @@ public sealed class OrderDay
 {
     public Guid Id { get; set; }
 
+    // The store this Döner-Tag belongs to. Nullable through the multi-store rollout: legacy rows are
+    // backfilled to the single seeded store by the migration, and new days are stamped with the
+    // active store at open time. Goes non-null once the store-selector work (a later RFC) lands.
+    public Guid? StoreId { get; set; }
+
     // The calendar business day. Unique index enforces one OrderDay per day.
     public DateOnly Date { get; set; }
 
@@ -32,6 +37,8 @@ public sealed class OrderDay
 
     // The single designated collector who pays the shop; null until designated.
     public Guid? CollectorUserId { get; set; }
+
+    public Store? Store { get; set; }
 
     public User? OpenedByUser { get; set; }
 

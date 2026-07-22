@@ -19,7 +19,7 @@ export const ProductGridField: FC = () => {
           key={item.id}
           icon={item.materialIcon}
           name={item.name}
-          sub={item.note ?? item.defaultPriceLabel}
+          sub={item.note ?? item.priceLabel}
           insider={item.isInsider}
           selected={selectedId === item.id}
           onSelect={() => {

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Schulz.DoenerControl.Application.Calculators;
 using Schulz.DoenerControl.Application.Tiers;
 using Schulz.DoenerControl.Core;
+using Schulz.DoenerControl.Core.Entities;
 using Schulz.DoenerControl.Core.Enums;
 using Schulz.DoenerControl.Infrastructure.OrderDays;
 using Schulz.DoenerControl.Infrastructure.Orders;
@@ -19,10 +20,40 @@ namespace Schulz.DoenerControl.Infrastructure.Tiers;
 // catalogue is the same static table with the caller's own tier flagged by name. Order instants are
 // projected to memory before the window filter because SQLite cannot translate DateTimeOffset
 // comparisons reliably; the per-office data volume makes this trivial.
+//
+// The tier math is unchanged by the generic-menu migration: TierOrderInput is now projected from the
+// line's Answers (meat/sauce option keys → the retained MeatType/Sauce value enums) and its product's
+// category membership (a category carrying the `meat` field is Döner-kind, else Pizza), so
+// TierCalculator keeps producing identical tiers on identical history.
 public sealed class TierService : ITierService
 {
     // The rolling tier window (PLAN default): the last 90 days, inclusive, on OccurredOn.
     private const int TierWindowDays = 90;
+
+    private const string MeatFieldKey = "meat";
+    private const string SauceFieldKey = "sauce";
+
+    // The reserved meat/sauce option keys are immutable (Tier contract §3), so mapping them onto the
+    // tier value enums here is stable.
+    private static readonly IReadOnlyDictionary<string, MeatType> MeatByKey = new Dictionary<
+        string,
+        MeatType
+    >
+    {
+        ["kalb"] = MeatType.Kalb,
+        ["haehnchen"] = MeatType.Haehnchen,
+        ["gemischt"] = MeatType.Gemischt,
+    };
+
+    private static readonly IReadOnlyDictionary<string, Sauce> SauceByKey = new Dictionary<
+        string,
+        Sauce
+    >
+    {
+        ["kraeuter"] = Sauce.Kraeuter,
+        ["knoblauch"] = Sauce.Knoblauch,
+        ["scharf"] = Sauce.Scharf,
+    };
 
     // A user with no in-window orders resolves to the fallback pattern tier (empty history).
     private static readonly DoenerTier EmptyPatternTier = TierCalculator.ComputeTier([]);
@@ -136,12 +167,15 @@ public sealed class TierService : ITierService
                 line.OrderId,
                 line.Order!.OccurredOn,
                 line.ProductId,
-                line.Kind,
-                line.Meat,
-                line.Sauces,
+                line.Answers,
                 line.Quantity
             ))
             .ToListAsync(ct);
+
+        var doenerKindProducts = await DoenerKindProductsAsync(
+            lines.Select(line => line.ProductId),
+            ct
+        );
 
         // A line with Quantity N counts as N of that product (e.g. 2x Pizza = 2 toward Pizza-Verräter),
         // so each in-window line is expanded into Quantity TierOrderInput entries before grouping.
@@ -156,18 +190,70 @@ public sealed class TierService : ITierService
                         group
                             .SelectMany(line =>
                                 Enumerable.Repeat(
-                                    new TierOrderInput(
-                                        line.ProductId,
-                                        line.Kind,
-                                        line.Meat,
-                                        line.Sauces
-                                    ),
+                                    ToTierInput(line, doenerKindProducts),
                                     line.Quantity
                                 )
                             )
                             .ToList()
                     )
             );
+    }
+
+    // The set of product ids whose category carries the reserved `meat` field — i.e. the Döner-kind
+    // products. Derived from category membership, replacing the dropped ProductKind column.
+    private async Task<HashSet<string>> DoenerKindProductsAsync(
+        IEnumerable<string> productIds,
+        CancellationToken ct
+    )
+    {
+        var ids = productIds.Distinct().ToList();
+        if (ids.Count == 0)
+            return [];
+
+        var meatCategoryIds = await database
+            .CategoryFields.AsNoTracking()
+            .Where(link => link.FieldDefinition!.Key == MeatFieldKey)
+            .Select(link => link.CategoryId)
+            .ToListAsync(ct);
+        var meatCategories = meatCategoryIds.ToHashSet();
+
+        var productCategories = await database
+            .MenuItems.AsNoTracking()
+            .Where(item => ids.Contains(item.Id) && item.CategoryId != null)
+            .Select(item => new { item.Id, CategoryId = item.CategoryId!.Value })
+            .ToListAsync(ct);
+
+        return productCategories
+            .Where(pair => meatCategories.Contains(pair.CategoryId))
+            .Select(pair => pair.Id)
+            .ToHashSet();
+    }
+
+    private static TierOrderInput ToTierInput(WindowLine line, HashSet<string> doenerKindProducts)
+    {
+        var kind = doenerKindProducts.Contains(line.ProductId)
+            ? ProductKind.Doener
+            : ProductKind.Pizza;
+        var meat = ParseMeat(line.Answers);
+        var sauces = ParseSauces(line.Answers);
+        return new TierOrderInput(line.ProductId, kind, meat, sauces);
+    }
+
+    private static MeatType? ParseMeat(LineAnswers answers)
+    {
+        var options = answers.OptionsFor(MeatFieldKey);
+        return options.Count > 0 && MeatByKey.TryGetValue(options[0], out var meat) ? meat : null;
+    }
+
+    private static Sauce ParseSauces(LineAnswers answers)
+    {
+        var combined = Sauce.None;
+        foreach (var optionKey in answers.OptionsFor(SauceFieldKey))
+        {
+            if (SauceByKey.TryGetValue(optionKey, out var sauce))
+                combined |= sauce;
+        }
+        return combined;
     }
 
     // The Packesel winner(s): the user(s) with the most pickups over the window (min 2, ties share).
@@ -206,9 +292,7 @@ public sealed class TierService : ITierService
         Guid OrderId,
         DateTimeOffset OccurredOn,
         string ProductId,
-        ProductKind Kind,
-        MeatType? Meat,
-        Sauce Sauces,
+        LineAnswers Answers,
         int Quantity
     );
 

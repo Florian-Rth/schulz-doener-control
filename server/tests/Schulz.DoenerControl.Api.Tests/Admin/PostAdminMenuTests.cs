@@ -1,13 +1,12 @@
 using System.Net;
 using System.Net.Http.Json;
 using Schulz.DoenerControl.Api.Endpoints.Admin.Menu;
-using Schulz.DoenerControl.Core.Enums;
 using Xunit;
 
 namespace Schulz.DoenerControl.Api.Tests.Admin;
 
 // POST /api/admin/menu creates a new item, persists it, derives an id from the name when none is
-// given, rejects a duplicate id with 409, and validates name/price/kind. Admin-only.
+// given, rejects a duplicate id with 409, and validates name/price/category. Admin-only.
 public sealed class PostAdminMenuTests : DoenerControlTestBase
 {
     public PostAdminMenuTests(DoenerControlApp app)
@@ -26,8 +25,8 @@ public sealed class PostAdminMenuTests : DoenerControlTestBase
             {
                 Id = "falafel",
                 Name = "Falafel",
+                CategoryKey = "doener",
                 DefaultPriceCents = 600,
-                Kind = "doener",
                 MaterialIcon = "eco",
                 Note = "Vegan",
                 IsInsider = false,
@@ -40,13 +39,13 @@ public sealed class PostAdminMenuTests : DoenerControlTestBase
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         Assert.NotNull(body);
         Assert.Equal("falafel", body!.Item.Id);
-        Assert.Equal("doener", body.Item.Kind);
+        Assert.Equal("doener", body.Item.CategoryKey);
         Assert.Equal("6,00 €", body.Item.DefaultPriceLabel);
 
         var stored = await AdminMenuTestHelpers.FindMenuItemAsync(App, "falafel");
         Assert.NotNull(stored);
         Assert.Equal("Falafel", stored!.Name);
-        Assert.Equal(ProductKind.Doener, stored.Kind);
+        Assert.NotNull(stored.CategoryId);
         Assert.Equal("Vegan", stored.Note);
         Assert.True(stored.IsAvailable);
     }
@@ -61,8 +60,8 @@ public sealed class PostAdminMenuTests : DoenerControlTestBase
             new
             {
                 Name = "Lahmacun Spezial",
+                CategoryKey = "doener",
                 DefaultPriceCents = 550,
-                Kind = "doener",
                 MaterialIcon = "flatware",
                 IsInsider = false,
                 SortOrder = 8,
@@ -87,8 +86,8 @@ public sealed class PostAdminMenuTests : DoenerControlTestBase
             {
                 Id = "doener",
                 Name = "Döner Zwei",
+                CategoryKey = "doener",
                 DefaultPriceCents = 800,
-                Kind = "doener",
                 MaterialIcon = "kebab_dining",
                 IsInsider = false,
                 SortOrder = 9,
@@ -109,8 +108,8 @@ public sealed class PostAdminMenuTests : DoenerControlTestBase
             new
             {
                 Name = "",
+                CategoryKey = "doener",
                 DefaultPriceCents = 600,
-                Kind = "doener",
                 MaterialIcon = "eco",
                 IsInsider = false,
                 SortOrder = 7,
@@ -131,8 +130,8 @@ public sealed class PostAdminMenuTests : DoenerControlTestBase
             new
             {
                 Name = "Falafel",
+                CategoryKey = "doener",
                 DefaultPriceCents = -1,
-                Kind = "doener",
                 MaterialIcon = "eco",
                 IsInsider = false,
                 SortOrder = 7,
@@ -144,7 +143,7 @@ public sealed class PostAdminMenuTests : DoenerControlTestBase
     }
 
     [Fact]
-    public async Task Should_Return400_When_Kind_Invalid()
+    public async Task Should_Return400_When_Category_Unknown()
     {
         var admin = await AdminUserTestHelpers.LoginAsAdminAsync(App);
 
@@ -153,8 +152,8 @@ public sealed class PostAdminMenuTests : DoenerControlTestBase
             new
             {
                 Name = "Falafel",
+                CategoryKey = "burger",
                 DefaultPriceCents = 600,
-                Kind = "burger",
                 MaterialIcon = "eco",
                 IsInsider = false,
                 SortOrder = 7,

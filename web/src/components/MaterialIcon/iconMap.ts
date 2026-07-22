@@ -2,13 +2,18 @@ import type { SvgIconComponent } from "@mui/icons-material";
 import AccountBalanceWalletOutlined from "@mui/icons-material/AccountBalanceWalletOutlined";
 import AddOutlined from "@mui/icons-material/AddOutlined";
 import ArrowBackOutlined from "@mui/icons-material/ArrowBackOutlined";
+import ArrowDownwardOutlined from "@mui/icons-material/ArrowDownwardOutlined";
+import ArrowUpwardOutlined from "@mui/icons-material/ArrowUpwardOutlined";
 import CampaignOutlined from "@mui/icons-material/CampaignOutlined";
 import CancelOutlined from "@mui/icons-material/CancelOutlined";
+import CategoryOutlined from "@mui/icons-material/CategoryOutlined";
 import CheckCircleOutlined from "@mui/icons-material/CheckCircleOutlined";
 import CheckOutlined from "@mui/icons-material/CheckOutlined";
 import ChevronRightOutlined from "@mui/icons-material/ChevronRightOutlined";
 import CloseOutlined from "@mui/icons-material/CloseOutlined";
+import DeleteOutlineOutlined from "@mui/icons-material/DeleteOutlineOutlined";
 import DirectionsCarOutlined from "@mui/icons-material/DirectionsCarOutlined";
+import EditOutlined from "@mui/icons-material/EditOutlined";
 import EmojiEventsOutlined from "@mui/icons-material/EmojiEventsOutlined";
 import EuroOutlined from "@mui/icons-material/EuroOutlined";
 import FastfoodOutlined from "@mui/icons-material/FastfoodOutlined";
@@ -27,6 +32,7 @@ import RemoveOutlined from "@mui/icons-material/RemoveOutlined";
 import RestaurantOutlined from "@mui/icons-material/RestaurantOutlined";
 import SetMealOutlined from "@mui/icons-material/SetMealOutlined";
 import TakeoutDiningOutlined from "@mui/icons-material/TakeoutDiningOutlined";
+import TuneOutlined from "@mui/icons-material/TuneOutlined";
 import WorkspacePremiumOutlined from "@mui/icons-material/WorkspacePremiumOutlined";
 import WrapTextOutlined from "@mui/icons-material/WrapTextOutlined";
 
@@ -38,13 +44,18 @@ export const ICON_MAP = {
   account_balance_wallet: AccountBalanceWalletOutlined,
   add: AddOutlined,
   arrow_back: ArrowBackOutlined,
+  arrow_downward: ArrowDownwardOutlined,
+  arrow_upward: ArrowUpwardOutlined,
   campaign: CampaignOutlined,
   cancel: CancelOutlined,
+  category: CategoryOutlined,
   check: CheckOutlined,
   check_circle: CheckCircleOutlined,
   chevron_right: ChevronRightOutlined,
   close: CloseOutlined,
+  delete: DeleteOutlineOutlined,
   directions_car: DirectionsCarOutlined,
+  edit: EditOutlined,
   emoji_events: EmojiEventsOutlined,
   euro: EuroOutlined,
   fastfood: FastfoodOutlined,
@@ -63,6 +74,7 @@ export const ICON_MAP = {
   restaurant: RestaurantOutlined,
   set_meal: SetMealOutlined,
   takeout_dining: TakeoutDiningOutlined,
+  tune: TuneOutlined,
   workspace_premium: WorkspacePremiumOutlined,
   wrap_text: WrapTextOutlined,
 } satisfies Record<string, SvgIconComponent>;

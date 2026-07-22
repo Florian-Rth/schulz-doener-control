@@ -19,51 +19,131 @@ const authenticatedSession = {
 
 const DAY_ID = "22222222-2222-2222-2222-222222222222";
 
+// A realistic generic menu: a Döner category (meat single / sauce multi / extra text)
+// and a Pizza category (variant single / extra text), plus three products, one of
+// which (Danny-Box) carries preset defaultAnswers. The "Extra Fleisch" sauce option
+// carries a +1,50 € price delta to exercise the live-price recompute.
 const menuResponse = {
+  categories: [
+    {
+      key: "doener",
+      name: "Döner",
+      sortOrder: 1,
+      fields: [
+        {
+          key: "meat",
+          label: "Fleisch",
+          type: "single",
+          display: "segmented",
+          maxLength: null,
+          required: true,
+          options: [
+            { key: "Kalb", label: "Kalb", icon: null, priceDeltaCents: 0 },
+            { key: "Haehnchen", label: "Hähnchen", icon: null, priceDeltaCents: 0 },
+            { key: "Gemischt", label: "Gemischt", icon: null, priceDeltaCents: 0 },
+          ],
+        },
+        {
+          key: "sauce",
+          label: "Soße",
+          type: "multi",
+          display: "chips",
+          maxLength: null,
+          required: false,
+          options: [
+            { key: "Kraeuter", label: "Kräuter", icon: "🌿", priceDeltaCents: 0 },
+            { key: "Knoblauch", label: "Knoblauch", icon: "🧄", priceDeltaCents: 0 },
+            { key: "Scharf", label: "Scharf", icon: "🌶", priceDeltaCents: 0 },
+            { key: "ExtraFleisch", label: "Extra Fleisch", icon: null, priceDeltaCents: 150 },
+          ],
+        },
+        {
+          key: "extra",
+          label: "Extrawünsche",
+          type: "text",
+          display: "textarea",
+          maxLength: 300,
+          required: false,
+          options: [],
+        },
+      ],
+    },
+    {
+      key: "pizza",
+      name: "Pizza",
+      sortOrder: 2,
+      fields: [
+        {
+          key: "variant",
+          label: "Sorte",
+          type: "single",
+          display: "chips",
+          maxLength: null,
+          required: true,
+          options: [
+            { key: "salami", label: "Salami", icon: null, priceDeltaCents: 0 },
+            { key: "margherita", label: "Margherita", icon: null, priceDeltaCents: 0 },
+            { key: "funghi", label: "Funghi", icon: null, priceDeltaCents: 0 },
+            { key: "tonno", label: "Tonno", icon: null, priceDeltaCents: 0 },
+            { key: "hawaii", label: "Hawaii", icon: null, priceDeltaCents: 0 },
+          ],
+        },
+        {
+          key: "extra",
+          label: "Extrawünsche",
+          type: "text",
+          display: "textarea",
+          maxLength: 300,
+          required: false,
+          options: [],
+        },
+      ],
+    },
+  ],
   items: [
     {
       id: "doener",
       name: "Döner",
-      defaultPriceCents: 750,
-      defaultPriceLabel: "7,50 €",
-      kind: "doener",
+      categoryKey: "doener",
+      baseItemKey: null,
+      priceCents: 750,
+      priceLabel: "7,50 €",
       materialIcon: "kebab_dining",
       note: null,
       isInsider: false,
       sortOrder: 1,
+      defaultAnswers: null,
     },
     {
       id: "danny",
       name: "Danny-Box",
-      defaultPriceCents: 600,
-      defaultPriceLabel: "6,00 €",
-      kind: "doener",
+      categoryKey: "doener",
+      baseItemKey: "doener",
+      priceCents: 600,
+      priceLabel: "6,00 €",
       materialIcon: "workspace_premium",
       note: "Pommes · Fleisch · Soße",
       isInsider: true,
       sortOrder: 5,
+      defaultAnswers: {
+        meat: { options: ["Kalb"] },
+        sauce: { options: ["Knoblauch"] },
+      },
     },
     {
       id: "pizza",
       name: "Pizza",
-      defaultPriceCents: 900,
-      defaultPriceLabel: "9,00 €",
-      kind: "pizza",
+      categoryKey: "pizza",
+      baseItemKey: null,
+      priceCents: 900,
+      priceLabel: "9,00 €",
       materialIcon: "local_pizza",
       note: null,
       isInsider: false,
       sortOrder: 6,
+      defaultAnswers: null,
     },
   ],
-  pizzaVariants: [
-    { value: "salami", label: "Salami" },
-    { value: "margherita", label: "Margherita" },
-    { value: "funghi", label: "Funghi" },
-    { value: "tonno", label: "Tonno" },
-    { value: "hawaii", label: "Hawaii" },
-  ],
-  sauceOptions: ["Kraeuter", "Knoblauch", "Scharf"],
-  meatOptions: ["Kalb", "Haehnchen", "Gemischt"],
 };
 
 interface OrderHandlerOptions {
@@ -91,13 +171,9 @@ const useOrderHandlers = ({ onSubmit }: OrderHandlerOptions = {}): void => {
           {
             productId: "doener",
             productLabel: "Döner Kalb",
-            kind: "doener",
-            meat: "Kalb",
-            pizzaVariant: null,
-            sauces: ["Knoblauch", "Scharf"],
+            answers: { meat: { options: ["Kalb"] }, sauce: { options: ["Knoblauch", "Scharf"] } },
             priceCents: 750,
             priceLabel: "7,50 €",
-            extra: null,
             quantity: 1,
             lineTotalCents: 750,
             lineTotalLabel: "7,50 €",
@@ -127,13 +203,9 @@ const existingOrder = {
       {
         productId: "doener",
         productLabel: "Döner Kalb",
-        kind: "doener",
-        meat: "Kalb",
-        pizzaVariant: null,
-        sauces: ["Knoblauch"],
+        answers: { meat: { options: ["Kalb"] }, sauce: { options: ["Knoblauch"] } },
         priceCents: 750,
         priceLabel: "7,50 €",
-        extra: null,
         quantity: 1,
         lineTotalCents: 750,
         lineTotalLabel: "7,50 €",
@@ -168,22 +240,22 @@ describe("OrderPage", () => {
     useOrderHandlers();
     const { findByRole } = renderApp({ initialPath: "/order" });
 
-    // Submit is disabled until a product is chosen (mock parity).
+    // Submit is disabled until a product is chosen.
     const submit = await findByRole("button", { name: /Bestellung abgeben/ });
     expect(submit).toBeDisabled();
 
-    // Conditional fields are hidden before any product is picked.
+    // Category fields are hidden before any product is picked.
     expect(await findByRole("button", { name: /^Döner/ })).toBeInTheDocument();
   });
 
-  it("zeigt bei Döner Fleisch + Soße und blendet die Pizza-Sorte aus", async () => {
+  it("rendert bei Döner die Kategorie-Felder Fleisch + Soße und blendet die Pizza-Sorte aus", async () => {
     useOrderHandlers();
     const user = userEvent.setup();
     const { findByRole, queryByRole } = renderApp({ initialPath: "/order" });
 
     await user.click(await findByRole("button", { name: /^Döner/ }));
 
-    // Meat segmented + sauce multi-select appear; the pizza variant chips do not.
+    // Meat segmented + sauce multi-select appear from the menu; the pizza variant chips do not.
     expect(await findByRole("button", { name: "Kalb" })).toBeInTheDocument();
     expect(await findByRole("button", { name: "Hähnchen" })).toBeInTheDocument();
     expect(await findByRole("button", { name: /Knoblauch/ })).toBeInTheDocument();
@@ -193,7 +265,7 @@ describe("OrderPage", () => {
     expect(await findByRole("button", { name: /Bestellung abgeben/ })).not.toBeDisabled();
   });
 
-  it("zeigt bei Pizza die Sorten-Chips und blendet Fleisch + Soße aus", async () => {
+  it("rendert bei Pizza die Sorten-Chips und blendet die Döner-Felder aus", async () => {
     useOrderHandlers();
     const user = userEvent.setup();
     const { findByRole, queryByRole } = renderApp({ initialPath: "/order" });
@@ -211,12 +283,44 @@ describe("OrderPage", () => {
     const user = userEvent.setup();
     const { findByRole, findByLabelText, findAllByText } = renderApp({ initialPath: "/order" });
 
-    // Picking the Pizza (9,00 €) seeds that line's price field from the default.
+    // Picking the Pizza (9,00 €) seeds that line's price field from the item base.
     await user.click(await findByRole("button", { name: /^Pizza/ }));
     const price = await findByLabelText("Preis");
     expect(price).toHaveValue("9,00");
     // Line total + order total both reflect the auto-filled price.
     expect((await findAllByText("9,00 €")).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("seedet die Standard-Antworten und den Preis eines Presets (Danny-Box)", async () => {
+    useOrderHandlers();
+    const user = userEvent.setup();
+    const { findByRole, findByLabelText } = renderApp({ initialPath: "/order" });
+
+    await user.click(await findByRole("button", { name: /Danny-Box/ }));
+
+    // defaultAnswers pre-selects Kalb + Knoblauch.
+    expect(await findByRole("button", { name: "Kalb" })).toHaveAttribute("aria-pressed", "true");
+    expect(await findByRole("button", { name: /Knoblauch/ })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    // Base price 6,00 € seeded.
+    expect(await findByLabelText("Preis")).toHaveValue("6,00");
+  });
+
+  it("rechnet den Preis live hoch, wenn eine Option mit Aufpreis gewählt wird", async () => {
+    useOrderHandlers();
+    const user = userEvent.setup();
+    const { findByRole, findByLabelText } = renderApp({ initialPath: "/order" });
+
+    await user.click(await findByRole("button", { name: /^Döner/ }));
+    expect(await findByLabelText("Preis")).toHaveValue("7,50");
+
+    // "Extra Fleisch" carries a +1,50 € delta → 7,50 € becomes 9,00 €.
+    await user.click(await findByRole("button", { name: /Extra Fleisch/ }));
+    await waitFor(async () => {
+      expect(await findByLabelText("Preis")).toHaveValue("9,00");
+    });
   });
 
   it("erhöht mit dem Mengen-Stepper Zeilen- und Gesamtbetrag", async () => {
@@ -268,14 +372,14 @@ describe("OrderPage", () => {
     const user = userEvent.setup();
     const { findByRole, findByText, router } = renderApp({ initialPath: "/order" });
 
-    // Pizza picked but no variant chosen → per-line superRefine blocks submit.
+    // Pizza picked but no variant chosen → the dynamic required-single rule blocks submit.
     await user.click(await findByRole("button", { name: /^Pizza/ }));
     await user.click(await findByRole("button", { name: /Bestellung abgeben/ }));
 
     // The now-visible variant error is surfaced below the chip row.
-    expect(await findByText("Welche Pizza, Chef?")).toBeInTheDocument();
+    expect(await findByText("Sorte wählen, Chef.")).toBeInTheDocument();
 
-    // The per-line pizza validation prevents the PUT and any navigation.
+    // The dynamic pizza validation prevents the PUT and any navigation.
     await waitFor(() => {
       expect(router.state.location.pathname).toBe("/order");
     });
@@ -293,7 +397,7 @@ describe("OrderPage", () => {
     const user = userEvent.setup();
     const { findByRole, findByText, router } = renderApp({ initialPath: "/order" });
 
-    // Döner picked but no meat chosen → per-line superRefine blocks submit.
+    // Döner picked but no meat chosen → the dynamic required-single rule blocks submit.
     await user.click(await findByRole("button", { name: /^Döner/ }));
     await user.click(await findByRole("button", { name: /Bestellung abgeben/ }));
 
@@ -306,7 +410,7 @@ describe("OrderPage", () => {
     expect(captured).toBeNull();
   });
 
-  it("sendet lines[] mit Menge im PUT-Payload und navigiert zur Erfolgsseite", async () => {
+  it("sendet lines[] mit answers + Menge im PUT-Payload und navigiert zur Erfolgsseite", async () => {
     seedXsrfCookie();
     let captured: unknown = null;
     useOrderHandlers({
@@ -333,11 +437,17 @@ describe("OrderPage", () => {
 
     const body = captured as {
       isPickup: boolean;
-      lines: { sauces: string[]; meat: string; priceCents: number; quantity: number }[];
+      lines: {
+        productId: string;
+        answers: Record<string, { options?: string[]; text?: string }>;
+        priceCents: number;
+        quantity: number;
+      }[];
     };
     expect(body.lines).toHaveLength(1);
-    expect(body.lines[0].sauces).toEqual(["Knoblauch", "Scharf"]);
-    expect(body.lines[0].meat).toBe("Kalb");
+    expect(body.lines[0].productId).toBe("doener");
+    expect(body.lines[0].answers.meat.options).toEqual(["Kalb"]);
+    expect(body.lines[0].answers.sauce.options).toEqual(["Knoblauch", "Scharf"]);
     expect(body.lines[0].priceCents).toBe(750);
     expect(body.lines[0].quantity).toBe(2);
   });

@@ -1,5 +1,3 @@
-import type { MeatType, SauceType } from "./types";
-
 // German UI strings for the order feature. Single-locale app — plain constants.
 export const orderCopy = {
   headerTitle: "Bestellung, Chef",
@@ -32,18 +30,5 @@ export const orderCopy = {
   removePending: "Wird entfernt …",
   removeCancel: "Doch nicht",
   removeFailed: "Bestellung konnte nicht entfernt werden, Chef.",
+  multiHint: "· Mehrfachauswahl",
 } as const;
-
-// UI labels for the meat enum (ASCII enum value -> accented German label).
-export const MEAT_LABELS: Record<MeatType, string> = {
-  Kalb: "Kalb",
-  Haehnchen: "Hähnchen",
-  Gemischt: "Gemischt",
-};
-
-// UI labels + emoji for the sauce enum.
-export const SAUCE_LABELS: Record<SauceType, { label: string; emoji: string }> = {
-  Kraeuter: { label: "Kräuter", emoji: "🌿" },
-  Knoblauch: { label: "Knoblauch", emoji: "🧄" },
-  Scharf: { label: "Scharf", emoji: "🌶" },
-};

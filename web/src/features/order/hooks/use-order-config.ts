@@ -1,17 +1,17 @@
-import type { ProductKind } from "../types";
+import type { Field, Menu } from "../types";
 
-interface OrderConfig {
-  kind: ProductKind | null;
-  meatVisible: boolean;
-  pizzaVisible: boolean;
-}
-
-// Derives the conditional-section visibility from the selected product's kind
-// (the mock's isDoener / isPizza). Pure value-in/value-out — no effects.
-export const useOrderConfig = (kind: ProductKind | null): OrderConfig => {
-  return {
-    kind,
-    meatVisible: kind === "doener",
-    pizzaVisible: kind === "pizza",
-  };
+// Resolves the ordered field defs to render for the line's selected product:
+// find the product, follow its categoryKey to the category, return that
+// category's fields. Empty when no product is picked or the product has no
+// category. Pure value-in/value-out — no effects.
+export const useOrderConfig = (menu: Menu, productId: string): Field[] => {
+  if (productId === "") {
+    return [];
+  }
+  const item = menu.items.find((entry) => entry.id === productId);
+  if (item === undefined || item.categoryKey === null) {
+    return [];
+  }
+  const category = menu.categories.find((entry) => entry.key === item.categoryKey);
+  return category?.fields ?? [];
 };

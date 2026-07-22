@@ -35,10 +35,16 @@ export const AdminHubPage: FC = () => {
           onClick={() => goTo("/admin/menue")}
         />
         <AdminNavCard
-          icon={cards.pizzaVariants.icon}
-          title={cards.pizzaVariants.title}
-          description={cards.pizzaVariants.description}
-          onClick={() => goTo("/admin/pizza-variants")}
+          icon={cards.kategorien.icon}
+          title={cards.kategorien.title}
+          description={cards.kategorien.description}
+          onClick={() => goTo("/admin/kategorien")}
+        />
+        <AdminNavCard
+          icon={cards.felder.icon}
+          title={cards.felder.title}
+          description={cards.felder.description}
+          onClick={() => goTo("/admin/felder")}
         />
         <AdminNavCard
           icon={cards.tiere.icon}

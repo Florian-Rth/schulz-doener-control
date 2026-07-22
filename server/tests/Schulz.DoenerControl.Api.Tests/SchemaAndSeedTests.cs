@@ -35,10 +35,13 @@ public sealed class SchemaAndSeedTests : DoenerControlTestBase
         var danny = menu.Single(item => item.Id == "danny");
         Assert.True(danny.IsInsider);
         Assert.Equal(600, danny.DefaultPriceCents);
-        Assert.Equal(ProductKind.Doener, danny.Kind);
+        Assert.NotNull(danny.CategoryId);
+        // Danny is a preset that prints as its base Dönerbox.
+        Assert.Equal("box", danny.BaseItemId);
+        Assert.NotNull(danny.DefaultAnswers);
 
         var pizza = menu.Single(item => item.Id == "pizza");
-        Assert.Equal(ProductKind.Pizza, pizza.Kind);
+        Assert.NotNull(pizza.CategoryId);
         Assert.Equal(900, pizza.DefaultPriceCents);
 
         // The canonical seed is all available; the public order form shows the full six.
@@ -46,23 +49,31 @@ public sealed class SchemaAndSeedTests : DoenerControlTestBase
     }
 
     [Fact]
-    public async Task Should_Seed_Five_Canonical_PizzaVariants_When_Migration_Applied()
+    public async Task Should_Seed_Generic_Categories_And_Fields_When_Migration_Applied()
     {
         using var scope = App.Services.CreateScope();
         var database = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        var variants = await database
-            .PizzaVariants.OrderBy(variant => variant.SortOrder)
+        var categories = await database
+            .Categories.OrderBy(category => category.SortOrder)
+            .Select(category => category.Key)
             .ToListAsync(Ct);
+        Assert.Equal(new[] { "doener", "doenerbox", "pizza" }, categories.ToArray());
 
+        var variantField = await database
+            .FieldDefinitions.Include(field => field.Options)
+            .SingleAsync(field => field.Key == "variant", Ct);
         Assert.Equal(
-            new[] { "Salami", "Margherita", "Funghi", "Tonno", "Hawaii" },
-            variants.Select(variant => variant.Name).ToArray()
+            new[] { "margherita", "funghi", "salami", "tonno", "hawaii" },
+            variantField
+                .Options!.OrderBy(option => option.SortOrder)
+                .Select(option => option.Key)
+                .ToArray()
         );
-        Assert.All(variants, variant => Assert.True(variant.IsAvailable));
 
-        // The Salami id is fixed by the migration (the stable wire value a pizza line carries).
-        Assert.Equal(new Guid("b1a7c0de-0001-4a01-9a01-000000000001"), variants[0].Id);
+        // The reserved meat/sauce fields the Tier contract depends on exist.
+        Assert.True(await database.FieldDefinitions.AnyAsync(field => field.Key == "meat", Ct));
+        Assert.True(await database.FieldDefinitions.AnyAsync(field => field.Key == "sauce", Ct));
     }
 
     [Fact]
@@ -175,7 +186,7 @@ public sealed class SchemaAndSeedTests : DoenerControlTestBase
     }
 
     [Fact]
-    public async Task Should_Roundtrip_Sauce_Flags_When_Order_Persisted()
+    public async Task Should_Roundtrip_Answers_Json_When_Order_Persisted()
     {
         using var scope = App.Services.CreateScope();
         var database = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -195,7 +206,12 @@ public sealed class SchemaAndSeedTests : DoenerControlTestBase
         database.OrderDays.Add(day);
 
         var order = BuildOrder(day.Id, user.Id, now);
-        order.Lines.Single().Sauces = Sauce.Knoblauch | Sauce.Scharf;
+        order.Lines.Single().Answers = TestAnswers.Build(
+            "kalb",
+            ["knoblauch", "scharf"],
+            null,
+            "ohne Zwiebeln"
+        );
         database.Orders.Add(order);
         await database.SaveChangesAsync(Ct);
         database.ChangeTracker.Clear();
@@ -203,11 +219,11 @@ public sealed class SchemaAndSeedTests : DoenerControlTestBase
         var stored = await database
             .Orders.Include(o => o.Lines)
             .SingleAsync(o => o.Id == order.Id, Ct);
-        var storedSauces = stored.Lines.Single().Sauces;
+        var answers = stored.Lines.Single().Answers;
 
-        Assert.True((storedSauces & Sauce.Knoblauch) != 0);
-        Assert.True((storedSauces & Sauce.Scharf) != 0);
-        Assert.True((storedSauces & Sauce.Kraeuter) == 0);
+        Assert.Equal(["kalb"], answers.OptionsFor("meat"));
+        Assert.Equal(["knoblauch", "scharf"], answers.OptionsFor("sauce"));
+        Assert.Equal("ohne Zwiebeln", answers.TextFor("extra"));
     }
 
     private static Order BuildOrder(Guid orderDayId, Guid userId, DateTimeOffset now)
@@ -229,12 +245,8 @@ public sealed class SchemaAndSeedTests : DoenerControlTestBase
                     Id = Guid.NewGuid(),
                     OrderId = orderId,
                     ProductId = "doener",
-                    Kind = ProductKind.Doener,
-                    Meat = MeatType.Kalb,
-                    PizzaVariant = null,
-                    Sauces = Sauce.Knoblauch,
+                    Answers = TestAnswers.Doener("kalb", "knoblauch"),
                     PriceCents = 750,
-                    Extra = null,
                     Quantity = 1,
                 },
             },

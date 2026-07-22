@@ -1,28 +1,34 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
 import {
+  AdminCategoriesResponseSchema,
+  AdminFieldsResponseSchema,
   AdminMenuResponseSchema,
   AdminNotificationTemplatesResponseSchema,
-  AdminPizzaVariantsResponseSchema,
   AdminRegistrationModeResponseSchema,
   AdminTiereResponseSchema,
   AdminUsersResponseSchema,
+  CategoryResponseSchema,
   CreateUserResponseSchema,
+  FieldResponseSchema,
   MenuItemResponseSchema,
   NotificationTemplateResponseSchema,
-  PizzaVariantResponseSchema,
   ResetPasswordResponseSchema,
   UpdateUserResponseSchema,
 } from "./schemas";
 import type {
+  AdminAnswers,
+  AdminCategory,
+  AdminField,
   AdminMenuItem,
   AdminNotificationTemplate,
-  AdminPizzaVariant,
   AdminRegistrationMode,
   AdminTiere,
   AdminUser,
+  CategoryFieldLink,
   CreateUserResponse,
-  MenuKind,
+  FieldDisplay,
+  FieldType,
   RegistrationModeNumber,
   ResetPasswordResponse,
   RoleNumber,
@@ -31,7 +37,8 @@ import type {
 export const adminKeys = {
   users: ["admin", "users"] as const,
   menu: ["admin", "menu"] as const,
-  pizzaVariants: ["admin", "pizza-variants"] as const,
+  categories: ["admin", "categories"] as const,
+  fields: ["admin", "fields"] as const,
   tiere: ["admin", "tiere"] as const,
   notificationTemplates: ["admin", "notification-templates"] as const,
   registrationMode: ["admin", "registration-mode"] as const,
@@ -43,8 +50,8 @@ export const adminKeys = {
 const clientConfigKey = ["config", "client"] as const;
 
 // The order feature's public menu query key (`orderKeys.menu`). Duplicated here (features never
-// import other features) so a pizza-variant mutation can invalidate the order form's menu
-// vocabulary, surfacing added / edited / removed variants without a reload.
+// import other features) so a category / field / option mutation can invalidate the order form's
+// menu vocabulary, surfacing added / edited / removed choices without a reload.
 const orderMenuKey = ["order", "menu"] as const;
 
 // Maps the form's PascalCase role to the numeric wire value the backend expects
@@ -162,15 +169,19 @@ export const useAdminMenu = () =>
 
 // The mutation payload. `id` is optional on create (slugified server-side when
 // omitted) and carried separately on update (in the path, not the body).
+// `categoryKey` / `baseItemId` are null when unset; `defaultAnswers` is null when
+// the item seeds no field answers.
 export interface MenuItemBody {
   name: string;
   defaultPriceCents: number;
-  kind: MenuKind;
+  categoryKey: string | null;
+  baseItemId: string | null;
   materialIcon: string;
   note?: string;
   isInsider: boolean;
   sortOrder: number;
   isAvailable: boolean;
+  defaultAnswers: AdminAnswers | null;
 }
 
 export interface CreateMenuItemInput extends MenuItemBody {
@@ -322,84 +333,263 @@ export const useDeleteNotificationTemplate = () => {
   });
 };
 
-// --- Pizza variants (admin-managed order vocabulary) ---
+// --- Food categories (generic Store→Category→Field→Option engine) ---
 
-const fetchPizzaVariants = async (signal: AbortSignal): Promise<AdminPizzaVariant[]> => {
-  const data = await apiClient.get("/api/admin/pizza-variants", signal);
-  return AdminPizzaVariantsResponseSchema.parse(data).items;
+const fetchCategories = async (signal: AbortSignal): Promise<AdminCategory[]> => {
+  const data = await apiClient.get("/api/admin/categories", signal);
+  return AdminCategoriesResponseSchema.parse(data).items;
 };
 
-// Lists every pizza variant including unavailable ones, so the admin can see and re-enable them.
-export const useAdminPizzaVariants = () =>
+// Lists every category including unavailable ones, so the admin can see and re-enable them.
+export const useAdminCategories = () =>
   useQuery({
-    queryKey: adminKeys.pizzaVariants,
-    queryFn: ({ signal }) => fetchPizzaVariants(signal),
+    queryKey: adminKeys.categories,
+    queryFn: ({ signal }) => fetchCategories(signal),
     staleTime: 30 * 1000,
   });
 
-// The mutation payload. `icon` is optional (omitted when no symbol is chosen); `id` is carried
-// separately on update (in the path, not the body).
-export interface PizzaVariantBody {
+// A mutation that changed the engine (category/field/option) invalidates both the admin list it
+// belongs to and the public order menu so the order form picks up the change without a reload.
+const invalidateCategories = (queryClient: ReturnType<typeof useQueryClient>): void => {
+  void queryClient.invalidateQueries({ queryKey: adminKeys.categories });
+  void queryClient.invalidateQueries({ queryKey: orderMenuKey });
+};
+
+const invalidateFields = (queryClient: ReturnType<typeof useQueryClient>): void => {
+  void queryClient.invalidateQueries({ queryKey: adminKeys.fields });
+  void queryClient.invalidateQueries({ queryKey: orderMenuKey });
+};
+
+// The category mutation payload. `key` is carried separately on update (in the path, not the body).
+export interface CategoryBody {
   name: string;
-  icon?: string;
   sortOrder: number;
   isAvailable: boolean;
 }
 
-const createPizzaVariant = async (input: PizzaVariantBody): Promise<AdminPizzaVariant> => {
-  const data = await apiClient.post("/api/admin/pizza-variants", { ...input });
-  return PizzaVariantResponseSchema.parse(data).item;
-};
-
-// On success invalidates the admin list and the public order menu so the new variant appears on the
-// order form without a reload.
-export const useCreatePizzaVariant = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: createPizzaVariant,
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: adminKeys.pizzaVariants });
-      void queryClient.invalidateQueries({ queryKey: orderMenuKey });
-    },
-  });
-};
-
-export interface UpdatePizzaVariantInput extends PizzaVariantBody {
-  id: string;
+export interface CreateCategoryInput extends CategoryBody {
+  key: string;
 }
 
-const updatePizzaVariant = async ({
-  id,
-  ...body
-}: UpdatePizzaVariantInput): Promise<AdminPizzaVariant> => {
-  const data = await apiClient.put(`/api/admin/pizza-variants/${id}`, { ...body });
-  return PizzaVariantResponseSchema.parse(data).item;
+const createCategory = async (input: CreateCategoryInput): Promise<AdminCategory> => {
+  const data = await apiClient.post("/api/admin/categories", { ...input });
+  return CategoryResponseSchema.parse(data).item;
 };
 
-export const useUpdatePizzaVariant = () => {
+export const useCreateCategory = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: updatePizzaVariant,
+    mutationFn: createCategory,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: adminKeys.pizzaVariants });
-      void queryClient.invalidateQueries({ queryKey: orderMenuKey });
+      invalidateCategories(queryClient);
     },
   });
 };
 
-// DELETE: the backend hard-deletes an unreferenced variant, else soft-retires it (so past orders
-// keep their reference). Either way the admin list and the order menu are invalidated.
-const deletePizzaVariant = async (id: string): Promise<void> => {
-  await apiClient.delete(`/api/admin/pizza-variants/${id}`);
+export interface UpdateCategoryInput extends CategoryBody {
+  key: string;
+}
+
+const updateCategory = async ({ key, ...body }: UpdateCategoryInput): Promise<AdminCategory> => {
+  const data = await apiClient.put(`/api/admin/categories/${key}`, { ...body });
+  return CategoryResponseSchema.parse(data).item;
 };
 
-export const useDeletePizzaVariant = () => {
+export const useUpdateCategory = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: deletePizzaVariant,
+    mutationFn: updateCategory,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: adminKeys.pizzaVariants });
-      void queryClient.invalidateQueries({ queryKey: orderMenuKey });
+      invalidateCategories(queryClient);
+    },
+  });
+};
+
+// DELETE: 409 when a menu item still references the category; the caller maps that to German.
+const deleteCategory = async (key: string): Promise<void> => {
+  await apiClient.delete(`/api/admin/categories/${key}`);
+};
+
+export const useDeleteCategory = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteCategory,
+    onSuccess: () => {
+      invalidateCategories(queryClient);
+    },
+  });
+};
+
+export interface SetCategoryFieldsInput {
+  key: string;
+  fields: CategoryFieldLink[];
+}
+
+// Replaces the category's whole field-link set with the given ordered list.
+const setCategoryFields = async ({
+  key,
+  fields,
+}: SetCategoryFieldsInput): Promise<AdminCategory> => {
+  const data = await apiClient.put(`/api/admin/categories/${key}/fields`, { fields });
+  return CategoryResponseSchema.parse(data).item;
+};
+
+export const useSetCategoryFields = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: setCategoryFields,
+    onSuccess: () => {
+      invalidateCategories(queryClient);
+    },
+  });
+};
+
+// --- Fields & options (the order vocabulary) ---
+
+const fetchFields = async (signal: AbortSignal): Promise<AdminField[]> => {
+  const data = await apiClient.get("/api/admin/fields", signal);
+  return AdminFieldsResponseSchema.parse(data).items;
+};
+
+// Lists every field with its options, so the admin can edit the whole vocabulary in one place.
+export const useAdminFields = () =>
+  useQuery({
+    queryKey: adminKeys.fields,
+    queryFn: ({ signal }) => fetchFields(signal),
+    staleTime: 30 * 1000,
+  });
+
+export interface CreateFieldInput {
+  key: string;
+  label: string;
+  type: FieldType;
+  display: FieldDisplay;
+  maxLength: number | null;
+}
+
+const createField = async (input: CreateFieldInput): Promise<AdminField> => {
+  const data = await apiClient.post("/api/admin/fields", { ...input });
+  return FieldResponseSchema.parse(data).item;
+};
+
+export const useCreateField = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createField,
+    onSuccess: () => {
+      invalidateFields(queryClient);
+    },
+  });
+};
+
+// PUT: `key` and `type` are immutable, so only label / display / maxLength are sent.
+export interface UpdateFieldInput {
+  key: string;
+  label: string;
+  display: FieldDisplay;
+  maxLength: number | null;
+}
+
+const updateField = async ({ key, ...body }: UpdateFieldInput): Promise<AdminField> => {
+  const data = await apiClient.put(`/api/admin/fields/${key}`, { ...body });
+  return FieldResponseSchema.parse(data).item;
+};
+
+export const useUpdateField = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: updateField,
+    onSuccess: () => {
+      invalidateFields(queryClient);
+    },
+  });
+};
+
+// DELETE: 400 when the field is a reserved meat/sauce, 409 when a category still references it.
+const deleteField = async (key: string): Promise<void> => {
+  await apiClient.delete(`/api/admin/fields/${key}`);
+};
+
+export const useDeleteField = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteField,
+    onSuccess: () => {
+      invalidateFields(queryClient);
+    },
+  });
+};
+
+// The option mutation payload. `icon` is null when no symbol is chosen; `key` is carried separately
+// on update (in the path, not the body). Every option endpoint returns the whole affected field.
+export interface FieldOptionBody {
+  label: string;
+  icon: string | null;
+  priceDeltaCents: number;
+  sortOrder: number;
+  isAvailable: boolean;
+}
+
+export interface AddFieldOptionInput extends FieldOptionBody {
+  fieldKey: string;
+  key: string;
+}
+
+const addFieldOption = async ({ fieldKey, ...body }: AddFieldOptionInput): Promise<AdminField> => {
+  const data = await apiClient.post(`/api/admin/fields/${fieldKey}/options`, { ...body });
+  return FieldResponseSchema.parse(data).item;
+};
+
+export const useAddFieldOption = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: addFieldOption,
+    onSuccess: () => {
+      invalidateFields(queryClient);
+    },
+  });
+};
+
+export interface UpdateFieldOptionInput extends FieldOptionBody {
+  fieldKey: string;
+  key: string;
+}
+
+const updateFieldOption = async ({
+  fieldKey,
+  key,
+  ...body
+}: UpdateFieldOptionInput): Promise<AdminField> => {
+  const data = await apiClient.put(`/api/admin/fields/${fieldKey}/options/${key}`, { ...body });
+  return FieldResponseSchema.parse(data).item;
+};
+
+export const useUpdateFieldOption = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: updateFieldOption,
+    onSuccess: () => {
+      invalidateFields(queryClient);
+    },
+  });
+};
+
+export interface DeleteFieldOptionInput {
+  fieldKey: string;
+  key: string;
+}
+
+// DELETE: soft-retire server-side; 400 when the option is reserved.
+const deleteFieldOption = async ({ fieldKey, key }: DeleteFieldOptionInput): Promise<void> => {
+  await apiClient.delete(`/api/admin/fields/${fieldKey}/options/${key}`);
+};
+
+export const useDeleteFieldOption = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteFieldOption,
+    onSuccess: () => {
+      invalidateFields(queryClient);
     },
   });
 };

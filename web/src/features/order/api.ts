@@ -53,11 +53,8 @@ const submitOrder = async ({ dayId, values }: SubmitOrderArgs): Promise<OrderDet
   const body = {
     lines: values.lines.map((line) => ({
       productId: line.productId,
-      meat: line.meat,
-      pizzaVariant: line.pizzaVariant,
-      sauces: line.sauces,
+      answers: line.answers,
       priceCents: line.priceCents,
-      extra: line.extra ?? null,
       quantity: line.quantity,
     })),
     isPickup: values.isPickup,

@@ -3,8 +3,9 @@ using Schulz.DoenerControl.Application.Orders;
 namespace Schulz.DoenerControl.Api.Endpoints.Orders;
 
 // The endpoint-layer projection of a single order, shared by the upsert/get/pickup responses. The
-// order is multi-line: Lines carries each item; PriceCents is the order total. Mapped from the
-// Application OrderDetails so the service type never leaks past the endpoint boundary.
+// order is multi-line: Lines carries each item; PriceCents is the order total. Answers is the
+// field→answer map so the edit form can re-seed itself. Mapped from the Application OrderDetails so
+// the service type never leaks past the endpoint boundary.
 public sealed record OrderDetailsDto(
     Guid Id,
     Guid OrderDayId,
@@ -17,13 +18,9 @@ public sealed record OrderDetailsDto(
 public sealed record OrderLineDto(
     string ProductId,
     string ProductLabel,
-    string Kind,
-    string? Meat,
-    string? PizzaVariant,
-    IReadOnlyList<string> Sauces,
+    IReadOnlyDictionary<string, AnswerFieldDto> Answers,
     int PriceCents,
     string PriceLabel,
-    string? Extra,
     int Quantity,
     int LineTotalCents,
     string LineTotalLabel,
@@ -46,13 +43,9 @@ public static class OrderDetailsMapper
         new(
             line.ProductId,
             line.ProductLabel,
-            line.Kind,
-            line.Meat,
-            line.PizzaVariant,
-            line.Sauces,
+            AnswersWire.ToDto(line.Answers),
             line.PriceCents,
             line.PriceLabel,
-            line.Extra,
             line.Quantity,
             line.LineTotalCents,
             line.LineTotalLabel,

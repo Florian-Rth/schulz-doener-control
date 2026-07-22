@@ -3,7 +3,6 @@ using FluentValidation;
 using Schulz.DoenerControl.Application.Orders;
 using Schulz.DoenerControl.Application.Security;
 using Schulz.DoenerControl.Core;
-using Schulz.DoenerControl.Core.Enums;
 
 namespace Schulz.DoenerControl.Api.Endpoints.Orders;
 
@@ -11,15 +10,11 @@ public sealed class PutMyOrderLineDto
 {
     public string ProductId { get; set; } = string.Empty;
 
-    public string? Meat { get; set; }
+    public IReadOnlyDictionary<string, AnswerFieldDto> Answers { get; set; } =
+        new Dictionary<string, AnswerFieldDto>();
 
-    public string? PizzaVariant { get; set; }
-
-    public IReadOnlyList<string> Sauces { get; set; } = Array.Empty<string>();
-
-    public int PriceCents { get; set; }
-
-    public string? Extra { get; set; }
+    // Optional per-unit price override; null means "use the server-suggested price".
+    public int? PriceCents { get; set; }
 
     public int Quantity { get; set; }
 }
@@ -34,63 +29,18 @@ public sealed class PutMyOrderRequest
     public bool IsPickup { get; set; }
 }
 
+// Shape-level validation only: the answers are semantically validated against the product's category
+// in the order service (AnswerValidator), which is authoritative and DB-aware.
 public sealed class PutMyOrderLineValidator : Validator<PutMyOrderLineDto>
 {
-    private static readonly string[] MeatNames =
-    [
-        nameof(MeatType.Kalb),
-        nameof(MeatType.Haehnchen),
-        nameof(MeatType.Gemischt),
-    ];
-    private static readonly string[] SauceNames =
-    [
-        nameof(Sauce.Kraeuter),
-        nameof(Sauce.Knoblauch),
-        nameof(Sauce.Scharf),
-    ];
-
     public PutMyOrderLineValidator()
     {
         RuleFor(line => line.ProductId).NotEmpty().MaximumLength(32);
-        RuleFor(line => line.PriceCents).InclusiveBetween(1, 100000);
         RuleFor(line => line.Quantity).InclusiveBetween(1, 20);
-        RuleFor(line => line.Extra).MaximumLength(300);
-
-        RuleFor(line => line.Meat)
-            .Must(meat => meat is null || MeatNames.Contains(meat))
-            .WithMessage("Unbekannte Fleischsorte.");
-
-        // The pizza variant is an admin-managed catalog id: only shape-check it here (a non-null
-        // value must parse as a Guid); the order service validates it against the available catalog.
-        RuleFor(line => line.PizzaVariant)
-            .Must(variant => variant is null || Guid.TryParse(variant, out _))
-            .WithMessage("Unbekannte Pizza-Sorte.");
-
-        RuleFor(line => line.Sauces)
-            .Must(sauces => sauces is null || sauces.All(SauceNames.Contains))
-            .WithMessage("Unbekannte Soße.");
-
-        RuleFor(line => line.Sauces)
-            .Must(sauces => sauces is null || sauces.Distinct().Count() == sauces.Count)
-            .WithMessage("Soßen dürfen nicht doppelt vorkommen.");
-
-        // Shape cross-checks per line (the service is authoritative on kind): a pizza line carries a
-        // variant and no meat/sauces; a döner line carries a meat and no variant.
-        When(
-            line => line.PizzaVariant is not null,
-            () =>
-            {
-                RuleFor(line => line.Meat).Null().WithMessage("Pizza hat keine Fleischsorte.");
-                RuleFor(line => line.Sauces)
-                    .Must(sauces => sauces is null || sauces.Count == 0)
-                    .WithMessage("Pizza hat keine Soßen.");
-            }
-        );
-
-        When(
-            line => line.PizzaVariant is null,
-            () => RuleFor(line => line.Meat).NotNull().WithMessage("Fleischsorte erforderlich.")
-        );
+        RuleFor(line => line.PriceCents!.Value)
+            .InclusiveBetween(1, 100000)
+            .When(line => line.PriceCents is not null);
+        RuleFor(line => line.Answers).NotNull().Must(answers => answers.Count <= 32);
     }
 }
 
@@ -141,6 +91,9 @@ public sealed class PutMyOrder : Endpoint<PutMyOrderRequest, OrderDetailsDto>
         var result = await orderService.UpsertMineAsync(command, ct);
         if (!result.IsSuccess)
         {
+            if (result.Error is { } message)
+                AddError(message);
+
             await SendFailureAsync(result.Status, ct);
             return;
         }
@@ -149,15 +102,7 @@ public sealed class PutMyOrder : Endpoint<PutMyOrderRequest, OrderDetailsDto>
     }
 
     private static UpsertOrderLineCommand ToLineCommand(PutMyOrderLineDto line) =>
-        new(
-            line.ProductId,
-            OrderVocabularyParser.ParseMeat(line.Meat),
-            OrderVocabularyParser.ParsePizza(line.PizzaVariant),
-            OrderVocabularyParser.ParseSauces(line.Sauces),
-            line.PriceCents,
-            line.Extra,
-            line.Quantity
-        );
+        new(line.ProductId, AnswersWire.FromDto(line.Answers), line.PriceCents, line.Quantity);
 
     private async Task SendFailureAsync(ResultStatus status, CancellationToken ct)
     {
@@ -168,6 +113,9 @@ public sealed class PutMyOrder : Endpoint<PutMyOrderRequest, OrderDetailsDto>
                 break;
             case ResultStatus.Conflict:
                 await Send.ErrorsAsync(StatusCodes.Status409Conflict, cancellation: ct);
+                break;
+            case ResultStatus.Validation:
+                await Send.ErrorsAsync(cancellation: ct);
                 break;
             default:
                 await Send.ErrorsAsync(cancellation: ct);

@@ -236,6 +236,20 @@ export const theme = createTheme({
         disableElevation: true,
       },
     },
+    MuiDialog: {
+      styleOverrides: {
+        // On narrow phones (e.g. the Z Fold cover screen) the default 32px dialog margins waste a
+        // third of the width; shrink them so dialog content isn't squeezed into overlap.
+        paper: ({ theme: dialogTheme }) => ({
+          [dialogTheme.breakpoints.down("sm")]: {
+            margin: 12,
+            width: "calc(100% - 24px)",
+            maxWidth: "calc(100% - 24px)",
+            maxHeight: "calc(100% - 24px)",
+          },
+        }),
+      },
+    },
     MuiPaper: {
       defaultProps: {
         elevation: 0,

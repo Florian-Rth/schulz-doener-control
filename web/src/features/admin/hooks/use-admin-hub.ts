@@ -4,7 +4,8 @@ export interface AdminHubNavTarget {
   to:
     | "/admin/benutzer"
     | "/admin/menue"
-    | "/admin/pizza-variants"
+    | "/admin/kategorien"
+    | "/admin/felder"
     | "/admin/tiere"
     | "/admin/benachrichtigungen"
     | "/admin/registrierung";

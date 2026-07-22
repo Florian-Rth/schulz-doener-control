@@ -62,10 +62,11 @@ public sealed class GetMyOrderTests : DoenerControlTestBase
         Assert.NotNull(body.Order);
         Assert.Equal(800, body.Order!.PriceCents);
         var line = Assert.Single(body.Order.Lines);
-        Assert.Equal("Dürüm Hähnchen", line.ProductLabel);
-        Assert.Equal("doener", line.Kind);
-        Assert.Equal("Haehnchen", line.Meat);
-        Assert.Contains("Knoblauch", line.Sauces);
+        Assert.Equal("Dürüm", line.ProductLabel);
+        Assert.Equal(["haehnchen"], line.Answers["meat"].Options);
+        Assert.Contains("knoblauch", line.Answers["sauce"].Options!);
+        Assert.Contains("Hähnchen", line.Detail);
+        Assert.Contains("Knoblauch", line.Detail);
         Assert.Equal(800, line.PriceCents);
     }
 }

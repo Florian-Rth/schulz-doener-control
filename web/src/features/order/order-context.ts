@@ -1,6 +1,6 @@
 import { createContext, useContext } from "react";
 import type { useFieldArray, useForm } from "react-hook-form";
-import type { Menu, OrderForm, OrderLineForm, ProductKind } from "./types";
+import type { AnswerValue, Field, Menu, OrderForm, OrderLineForm } from "./types";
 
 export interface OrderFormContextValue {
   form: ReturnType<typeof useForm<OrderForm>>;
@@ -13,8 +13,10 @@ export interface OrderFormContextValue {
   removeLine: (index: number) => void;
   /** True while more lines can still be added. */
   canAddLine: boolean;
-  /** Seed a line's product, kind and default price from the menu. */
+  /** Seed a line's product, default answers and suggested price from the menu. */
   selectProduct: (index: number, productId: string) => void;
+  /** Write one field's answer and recompute the line's suggested price. */
+  setAnswer: (index: number, fieldKey: string, value: AnswerValue) => void;
   /** Running order total in integer cents (sum of quantity * priceCents). */
   orderTotalCents: number;
   /** True until every line has a product chosen (submit disabled). */
@@ -45,10 +47,8 @@ export const useOrderFormContext = (): OrderFormContextValue => {
 export interface OrderLineContextValue {
   /** This line's index in the field array — drives every `lines.${index}.*` name. */
   index: number;
-  /** Derived from the line's selected product kind; null until a product is picked. */
-  kind: ProductKind | null;
-  meatVisible: boolean;
-  pizzaVisible: boolean;
+  /** The selected product's category fields, in render order; empty until a product is picked. */
+  fields: Field[];
 }
 
 export const OrderLineContext = createContext<OrderLineContextValue | null>(null);
@@ -63,15 +63,12 @@ export const useOrderLineContext = (): OrderLineContextValue => {
   return value;
 };
 
-// A blank line for the field array — döner default, quantity 1, sentinel price 1
-// so an untouched line fails the positive() check until a product seeds it.
+// A blank line for the field array — no product, empty answers, quantity 1,
+// sentinel price 1 so an untouched line fails the positive() check until a
+// product seeds it.
 export const blankLine = (): OrderLineForm => ({
   productId: "",
-  kind: "doener",
-  meat: null,
-  pizzaVariant: null,
-  sauces: [],
-  extra: "",
+  answers: {},
   priceCents: 1,
   quantity: 1,
 });

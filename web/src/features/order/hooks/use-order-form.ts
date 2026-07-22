@@ -6,8 +6,16 @@ import { ApiError } from "@/lib/api";
 import { useDeleteMyOrder, useSubmitOrder } from "../api";
 import { orderCopy } from "../copy";
 import { blankLine } from "../order-context";
-import { OrderFormSchema } from "../schemas";
-import type { Menu, MyOrder, OrderForm, OrderLineForm } from "../types";
+import { buildOrderFormSchema } from "../schemas";
+import type {
+  AnswerValue,
+  Category,
+  Menu,
+  MenuItem,
+  MyOrder,
+  OrderForm,
+  OrderLineForm,
+} from "../types";
 
 interface UseOrderFormArgs {
   dayId: string;
@@ -22,6 +30,7 @@ interface UseOrderFormResult {
   removeLine: (index: number) => void;
   canAddLine: boolean;
   selectProduct: (index: number, productId: string) => void;
+  setAnswer: (index: number, fieldKey: string, value: AnswerValue) => void;
   orderTotalCents: number;
   submitDisabled: boolean;
   isSubmitting: boolean;
@@ -37,6 +46,62 @@ interface UseOrderFormResult {
 
 const MAX_LINES = 20;
 
+// The category a product belongs to (via categoryKey), or undefined for a
+// category-less product or an unknown key.
+const resolveCategory = (menu: Menu, item: MenuItem): Category | undefined => {
+  if (item.categoryKey === null) {
+    return undefined;
+  }
+  return menu.categories.find((entry) => entry.key === item.categoryKey);
+};
+
+// The suggested per-unit price: the item base plus every selected option's
+// price delta across all of the category's fields.
+const computeSuggestedCents = (
+  item: MenuItem,
+  category: Category | undefined,
+  answers: Record<string, AnswerValue>,
+): number => {
+  let cents = item.priceCents;
+  if (category === undefined) {
+    return cents;
+  }
+  for (const field of category.fields) {
+    const selected = answers[field.key]?.options ?? [];
+    for (const optionKey of selected) {
+      const option = field.options.find((entry) => entry.key === optionKey);
+      if (option !== undefined) {
+        cents += option.priceDeltaCents;
+      }
+    }
+  }
+  return cents;
+};
+
+// Seeds a line's answers from the item's defaultAnswers, falling back to an
+// empty answer per field (empty options for selects, empty text for text). A
+// required single-select with no default stays empty and validation prompts.
+const seedAnswers = (
+  item: MenuItem,
+  category: Category | undefined,
+): Record<string, AnswerValue> => {
+  const answers: Record<string, AnswerValue> = {};
+  if (category === undefined) {
+    return answers;
+  }
+  for (const field of category.fields) {
+    const preset = item.defaultAnswers?.[field.key];
+    if (preset !== undefined) {
+      answers[field.key] = { ...preset };
+    } else if (field.type === "text") {
+      answers[field.key] = { text: "" };
+    } else {
+      answers[field.key] = { options: [] };
+    }
+  }
+  return answers;
+};
+
 const buildDefaults = (existing: MyOrder | undefined): OrderForm => {
   const order = existing?.order ?? null;
   if (order === null || order.lines.length === 0) {
@@ -44,11 +109,7 @@ const buildDefaults = (existing: MyOrder | undefined): OrderForm => {
   }
   const lines: OrderLineForm[] = order.lines.map((line) => ({
     productId: line.productId,
-    kind: line.kind,
-    meat: line.meat,
-    pizzaVariant: line.pizzaVariant,
-    sauces: line.sauces,
-    extra: line.extra ?? "",
+    answers: line.answers,
     priceCents: line.priceCents,
     quantity: line.quantity,
   }));
@@ -67,7 +128,7 @@ export const useOrderForm = ({ dayId, menu, existing }: UseOrderFormArgs): UseOr
   const [removeError, setRemoveError] = useState<string | null>(null);
 
   const form = useForm<OrderForm>({
-    resolver: zodResolver(OrderFormSchema),
+    resolver: zodResolver(buildOrderFormSchema(menu)),
     defaultValues: buildDefaults(existing),
   });
 
@@ -86,15 +147,30 @@ export const useOrderForm = ({ dayId, menu, existing }: UseOrderFormArgs): UseOr
     if (item === undefined) {
       return;
     }
+    const category = resolveCategory(menu, item);
+    const answers = seedAnswers(item, category);
     form.setValue(`lines.${index}.productId`, item.id, { shouldValidate: true });
-    form.setValue(`lines.${index}.kind`, item.kind, { shouldValidate: true });
-    form.setValue(`lines.${index}.priceCents`, item.defaultPriceCents, { shouldValidate: true });
-    if (item.kind === "pizza") {
-      form.setValue(`lines.${index}.meat`, null, { shouldValidate: true });
-      form.setValue(`lines.${index}.sauces`, [], { shouldValidate: true });
-    } else {
-      form.setValue(`lines.${index}.pizzaVariant`, null, { shouldValidate: true });
+    form.setValue(`lines.${index}.answers`, answers, { shouldValidate: true });
+    form.setValue(`lines.${index}.priceCents`, computeSuggestedCents(item, category, answers), {
+      shouldValidate: true,
+    });
+  };
+
+  // Writes one field's answer, then re-derives the line's suggested price from
+  // the new answer set. The user can still override the price afterwards via the
+  // PriceField; the next answer change re-derives it again (live price).
+  const setAnswer = (index: number, fieldKey: string, value: AnswerValue): void => {
+    form.setValue(`lines.${index}.answers.${fieldKey}`, value, { shouldValidate: true });
+    const productId = form.getValues(`lines.${index}.productId`);
+    const item = menu.items.find((entry) => entry.id === productId);
+    if (item === undefined) {
+      return;
     }
+    const category = resolveCategory(menu, item);
+    const answers = form.getValues(`lines.${index}.answers`);
+    form.setValue(`lines.${index}.priceCents`, computeSuggestedCents(item, category, answers), {
+      shouldValidate: true,
+    });
   };
 
   const addLine = (): void => {
@@ -131,8 +207,16 @@ export const useOrderForm = ({ dayId, menu, existing }: UseOrderFormArgs): UseOr
       if (lineError === undefined || lineError === null) {
         continue;
       }
-      for (const fieldKey of Object.keys(lineError)) {
-        const node = document.getElementById(`lines.${index}.${fieldKey}-error`);
+      const ids: string[] = [];
+      const answerErrors = lineError.answers;
+      if (answerErrors !== undefined && answerErrors !== null) {
+        for (const fieldKey of Object.keys(answerErrors)) {
+          ids.push(`lines.${index}.answers.${fieldKey}-error`);
+        }
+      }
+      ids.push(`lines.${index}.quantity-error`);
+      for (const id of ids) {
+        const node = document.getElementById(id);
         if (node !== null && typeof node.scrollIntoView === "function") {
           node.scrollIntoView({ behavior: "smooth", block: "center" });
           return;
@@ -181,6 +265,7 @@ export const useOrderForm = ({ dayId, menu, existing }: UseOrderFormArgs): UseOr
     removeLine,
     canAddLine: fieldArray.fields.length < MAX_LINES,
     selectProduct,
+    setAnswer,
     orderTotalCents,
     submitDisabled,
     isSubmitting: submitMutation.isPending,
