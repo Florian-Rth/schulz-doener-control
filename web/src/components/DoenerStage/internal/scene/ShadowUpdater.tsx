@@ -1,9 +1,11 @@
 import { useFrame, useThree } from "@react-three/fiber";
-import { type FC, useEffect, useRef } from "react";
+import { type FC, type RefObject, useEffect, useRef } from "react";
 
 interface ShadowUpdaterProps {
   /** Changes whenever something is thrown in or out. */
   activity: string;
+  /** Last poke from scene content that moves on its own (performance.now()). */
+  pokes?: RefObject<number>;
 }
 
 // Throws plus settling take well under this; afterwards nothing moves.
@@ -11,7 +13,7 @@ const SETTLE_MS = 4500;
 
 // The key light never moves, so the shadow map only has to be re-rendered
 // while pieces are flying or settling — not every frame forever.
-export const ShadowUpdater: FC<ShadowUpdaterProps> = ({ activity }) => {
+export const ShadowUpdater: FC<ShadowUpdaterProps> = ({ activity, pokes }) => {
   const gl = useThree((state) => state.gl);
   const seen = useRef<string | null>(null);
   const lastActivity = useRef(0);
@@ -30,7 +32,7 @@ export const ShadowUpdater: FC<ShadowUpdaterProps> = ({ activity }) => {
       seen.current = activity;
       lastActivity.current = now;
     }
-    if (now - lastActivity.current < SETTLE_MS) {
+    if (now - Math.max(lastActivity.current, pokes?.current ?? 0) < SETTLE_MS) {
       gl.shadowMap.needsUpdate = true;
     }
   });

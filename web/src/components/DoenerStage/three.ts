@@ -26,4 +26,5 @@ export {
 } from "./internal/scene/pocket";
 export { createRandom } from "./internal/scene/random";
 export { physicsDelta, SETTLE_CHECK_SECONDS } from "./internal/scene/settle";
+export { useShadowPoke } from "./internal/scene/shadow-poke-context";
 export { surfaceTextures } from "./internal/scene/surfaces";
