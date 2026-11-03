@@ -178,3 +178,9 @@ export const formatSettledDate = (settledAt: string): string =>
     month: "long",
     year: "numeric",
   });
+
+// The Döner-Weitwurf entry tile on the running day, shown while the Abholer is on the way.
+export const waitingGameCopy = {
+  title: "Warten auf den Abholer?",
+  body: "Wirf ein paar Tomaten, Chef. 30 Sekunden Döner-Weitwurf.",
+} as const;

@@ -7,7 +7,7 @@ import type { DoenerBuild } from "./build";
 import { doenerStageCopy } from "./copy";
 import { ImpactBurst } from "./internal/ImpactBurst";
 import { KNOWN_MEAT_KEYS, KNOWN_SAUCE_KEYS } from "./internal/scene/food";
-import { useImpactWord } from "./use-impact-word";
+import { type ImpactWord, useImpactWord } from "./use-impact-word";
 
 // three.js + Rapier are only downloaded when a stage is actually shown.
 const DoenerScene = lazy(() =>
@@ -23,6 +23,8 @@ export interface DoenerStageProps {
   seed?: number;
   /** Comic "KLATSCH!" words over the stage. */
   impactWords?: boolean;
+  /** A comic word from outside (games …), shown instead of the build's own words. */
+  word?: ImpactWord | null;
   /**
    * Option keys to pre-mount, so their shaders compile before the first throw.
    * Defaults to every meat / sauce with a dedicated look, plus the build's own.
@@ -68,6 +70,7 @@ export const DoenerStage: FC<DoenerStageProps> = ({
   presenting = false,
   seed = 0,
   impactWords = true,
+  word,
   meatKeys,
   sauceKeys,
   onHit,
@@ -89,7 +92,7 @@ export const DoenerStage: FC<DoenerStageProps> = ({
           {children}
         </DoenerScene>
       </Suspense>
-      {impactWords ? <ImpactBurst word={impactWord} /> : null}
+      {impactWords ? <ImpactBurst word={word ?? impactWord} /> : null}
       {overlay}
     </Stack>
   );
