@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, staging]
   pull_request:
 
 jobs:
@@ -39,9 +39,10 @@ jobs:
       - run: pnpm test
       - run: pnpm build
 
-  # Only a green push to main publishes images. Each image is pushed as the immutable
-  # sha-<short> tag, then :latest (what Watchtower on the host follows) is moved onto it -
-  # unless a newer commit already landed on main, so a late run never moves :latest backwards.
+  # Only a green push to main or staging publishes images. Each image is pushed as the immutable
+  # sha-<short> tag, then the branch's moving tag is moved onto it: main -> :latest (production),
+  # staging -> :staging. Watchtower on the host follows those tags. A run whose branch already
+  # moved on to a newer commit leaves the moving tag alone, so it never goes backwards.
   # Rollback: repoint :latest to an older tag, e.g.
   #   docker buildx imagetools create -t florianrth/doener-control-api:latest florianrth/doener-control-api:sha-abc1234
   images:
@@ -52,10 +53,11 @@ jobs:
       matrix:
         app: [api, web]
     concurrency:
-      group: latest-${{ matrix.app }}
+      group: publish-${{ github.ref_name }}-${{ matrix.app }}
       cancel-in-progress: false
     env:
       IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/doener-control-${{ matrix.app }}
+      MOVING_TAG: ${{ github.ref_name == 'main' && 'latest' || 'staging' }}
     steps:
       - uses: actions/checkout@v4
       - id: build
@@ -88,13 +90,13 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.app }}
           cache-to: type=gha,mode=max,scope=${{ matrix.app }}
-      - name: Move :latest onto this commit
+      - name: Move the branch's moving tag onto this commit
         run: |
-          main_head="$(git ls-remote origin refs/heads/main | cut -f1)"
-          if [ "$main_head" != "$GITHUB_SHA" ]; then
-            echo "main moved on to $main_head - :latest stays where it is."
+          branch_head="$(git ls-remote origin "refs/heads/$GITHUB_REF_NAME" | cut -f1)"
+          if [ "$branch_head" != "$GITHUB_SHA" ]; then
+            echo "$GITHUB_REF_NAME moved on to $branch_head - :$MOVING_TAG stays where it is."
             exit 0
           fi
           docker buildx imagetools create \
-            --tag "$IMAGE:latest" \
+            --tag "$IMAGE:$MOVING_TAG" \
             "$IMAGE:sha-${{ steps.build.outputs.short-sha }}"
