@@ -2,6 +2,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useAuth } from "@/features/auth";
 import type { DashboardDay } from "@/features/home";
+import { rollSeed } from "@/lib/funny-lines";
 import { useEmailOrderListPdf } from "../api";
 import { dayTitle, emailListSuccess, orderCountSubline, printCopy } from "../copy";
 import { formatGermanDate } from "../format";
@@ -17,12 +18,14 @@ interface UsePrintListArgs {
 
 // Logic layer for the printable list: turns the dashboard day into the fully
 // derived view model (title, subline, Abholer line, rows, grand total) plus the
-// print + navigation operations and the e-mail-the-list action. No JSX, no layout.
+// print + navigation operations, the e-mail-the-list action and the Theken-Modus toggle. No JSX, no layout.
 export const usePrintList = ({ day, emailPdfEnabled }: UsePrintListArgs): PrintListContextValue => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const emailMutation = useEmailOrderListPdf();
   const [emailToast, setEmailToast] = useState<string | null>(null);
+  const [thekenOpen, setThekenOpen] = useState(false);
+  const [pageSeed] = useState(rollSeed);
 
   const totalCents = day.printLines.reduce((sum, line) => sum + line.lineTotalCents, 0);
 
@@ -65,5 +68,13 @@ export const usePrintList = ({ day, emailPdfEnabled }: UsePrintListArgs): PrintL
     dismissEmailToast: () => {
       setEmailToast(null);
     },
+    thekenOpen,
+    openTheken: () => {
+      setThekenOpen(true);
+    },
+    closeTheken: () => {
+      setThekenOpen(false);
+    },
+    pageSeed,
   };
 };

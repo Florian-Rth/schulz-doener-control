@@ -45,3 +45,52 @@ export const orderCountSubline = (orderCount: number): string =>
 // list PDF was e-mailed, echoing back the address the server sent it to (D-4).
 export const emailListSuccess = (address: string): string =>
   `Liste ist unterwegs an ${address}, Chef.`;
+
+// The Theken-Modus: full-screen, one order per screen, read out loud to the
+// Dönermann. Arrays are pools — pick with `pickLine` from "@/lib/funny-lines".
+export const thekenCopy = {
+  entry: "Theken-Modus",
+  entryHints: [
+    "Handy hoch, Chef — wir lesen dem Dönermann vor.",
+    "Eine Bestellung pro Bildschirm. Groß genug für jede Theke.",
+    "Nie wieder „Äh, was wollte Tobias nochmal?“",
+    "Vorlesen wie ein Profi, Chef.",
+    "Für den großen Auftritt an der Theke.",
+  ],
+  title: "Theken-Modus",
+  close: "Theken-Modus schließen",
+  back: "Zurück",
+  next: "Nächster",
+  finish: "Fertig",
+  pickupBadge: "Abholer",
+  numberLabel: "Nr.",
+  // Kicker above the order — what the Chef says before reading it out.
+  readOut: [
+    "Sag dem Dönermann:",
+    "Einmal bitte:",
+    "Laut und deutlich, Chef:",
+    "Nächste Bestellung:",
+    "Jetzt kommt:",
+    "Für die Tüte:",
+  ],
+  // Under the big icon of a non-Döner line.
+  otherProduct: [
+    "Kein Döner — aber auch gut.",
+    "Ausnahmsweise mal was anderes.",
+    "Auch das will bestellt sein, Chef.",
+    "Abwechslung muss sein.",
+  ],
+  finishTitle: "Alles bestellt, Chef!",
+  finishLines: [
+    "Jetzt nur noch warten und den Fleischduft genießen.",
+    "Der Dönermann ist informiert. Das Büro zählt auf dich.",
+    "Mission Drehspieß: erfüllt.",
+    "Zeit für den Tütenpacker-Endspurt.",
+    "Ganz große Theken-Kunst, Chef.",
+  ],
+  finishRestart: "Nochmal von vorne",
+  finishClose: "Zurück zur Liste",
+} as const;
+
+// "3 / 12" — the Theken-Modus progress.
+export const thekenProgress = (position: number, total: number): string => `${position} / ${total}`;

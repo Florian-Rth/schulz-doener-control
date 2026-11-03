@@ -71,6 +71,15 @@ const PrintLineSchema = z.object({
   quantity: z.number().int(),
   lineTotalCents: z.number().int(),
   isPickup: z.boolean(),
+  // The (base) product's Material icon name, for the counter mode's non-Döner cards.
+  productIcon: z.string().nullable(),
+  // Structured answers so the Abholer's Theken-Modus can rebuild the Döner in 3D: the meat option
+  // key, the sauce option keys and the free text (which carries the "ohne Zwiebeln" Gemüse protocol).
+  meatKey: z.string().nullable(),
+  sauceKeys: z.array(z.string()),
+  extraText: z.string(),
+  // True for a bread-based Döner the 3D stage should show (no box/plate, no pizza).
+  isBreadDoener: z.boolean(),
 });
 
 // The designated Abholer (pickup person) for the day. `payPalUrl` is the

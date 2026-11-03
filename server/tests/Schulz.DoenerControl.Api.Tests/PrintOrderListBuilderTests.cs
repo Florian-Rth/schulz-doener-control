@@ -1,4 +1,5 @@
 using Schulz.DoenerControl.Application.Calculators;
+using Schulz.DoenerControl.Application.OrderDays;
 using Xunit;
 
 namespace Schulz.DoenerControl.Api.Tests;
@@ -7,6 +8,8 @@ namespace Schulz.DoenerControl.Api.Tests;
 // SortOrder, then product label, then description, then person), numbered 1..N in that order.
 public sealed class PrintOrderListBuilderTests
 {
+    private static readonly PrintLineBuild NoBuild = new(null, [], string.Empty, false);
+
     private static PrintLineInput Line(
         int sortOrder,
         string person,
@@ -15,7 +18,19 @@ public sealed class PrintOrderListBuilderTests
         int quantity = 1,
         int lineTotalCents = 500,
         bool isPickup = false
-    ) => new(sortOrder, product, person, product, description, quantity, lineTotalCents, isPickup);
+    ) =>
+        new(
+            sortOrder,
+            product,
+            person,
+            product,
+            description,
+            quantity,
+            lineTotalCents,
+            isPickup,
+            ProductIcon: null,
+            NoBuild
+        );
 
     [Fact]
     public void Should_Order_By_Article_Type_Then_Label_Then_Description_Then_Person()
@@ -43,6 +58,23 @@ public sealed class PrintOrderListBuilderTests
 
         var line = Assert.Single(result.Lines);
         Assert.Equal(3, line.Quantity);
+    }
+
+    [Fact]
+    public void Should_Carry_Icon_And_Doener_Build_When_Numbering()
+    {
+        var build = new PrintLineBuild("kalb", ["knoblauch", "scharf"], "ohne Zwiebeln", true);
+        var input = Line(1, "Bob", "Döner", "Kalb · Knoblauch") with
+        {
+            ProductIcon = "kebab_dining",
+            Build = build,
+        };
+
+        var line = Assert.Single(PrintOrderListBuilder.Build([input]).Lines);
+
+        Assert.Equal("kebab_dining", line.ProductIcon);
+        Assert.Same(build, line.Build);
+        Assert.Equal("Kalb · Knoblauch", line.Description);
     }
 
     [Fact]

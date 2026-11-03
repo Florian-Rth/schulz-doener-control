@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Schulz.DoenerControl.Api.Endpoints.Dashboard;
+using Schulz.DoenerControl.Api.Endpoints.OrderDays;
 using Schulz.DoenerControl.Api.Tests.Auth;
 using Schulz.DoenerControl.Core.Entities;
 using Schulz.DoenerControl.Core.Enums;
@@ -142,6 +143,70 @@ public sealed class GetDashboardTests : DoenerControlTestBase
         Assert.Equal("Lukas Brandt", debtRow.CreditorName);
         Assert.Equal(1150, debtRow.AmountCents);
         Assert.DoesNotContain("€", debtRow.AmountLabel);
+    }
+
+    [Fact]
+    public async Task Should_Carry_Doener_Build_On_Print_Lines_When_Day_Is_Open()
+    {
+        var chef = await DashboardTestHelpers.LoginAsChefAsync(App);
+        var open = await chef.PostAsync("/api/order-days/open");
+        var dayId = (
+            await open.Content.ReadFromJsonAsync<OpenDayResponse>(
+                TestContext.Current.CancellationToken
+            )
+        )!
+            .Day
+            .Id;
+        await chef.PutJsonAsync(
+            $"/api/order-days/{dayId}/orders/mine",
+            new
+            {
+                Lines = new object[]
+                {
+                    new
+                    {
+                        ProductId = "doener",
+                        Answers = new Dictionary<string, object>
+                        {
+                            ["meat"] = new { options = new[] { "kalb" } },
+                            ["sauce"] = new { options = new[] { "scharf", "knoblauch" } },
+                            ["extra"] = new { text = "ohne Zwiebeln" },
+                        },
+                        Quantity = 1,
+                    },
+                    new
+                    {
+                        ProductId = "box",
+                        Answers = new Dictionary<string, object>
+                        {
+                            ["meat"] = new { options = new[] { "haehnchen" } },
+                            ["beilage"] = new { options = new[] { "pommes" } },
+                        },
+                        Quantity = 1,
+                    },
+                },
+                IsPickup = true,
+            }
+        );
+
+        var response = await chef.GetAsync("/api/dashboard");
+        var body = await response.Content.ReadFromJsonAsync<GetDashboardResponse>(
+            TestContext.Current.CancellationToken
+        );
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var doener = Assert.Single(body!.Day.PrintLines, line => line.Section == "Döner");
+        Assert.Equal("kalb", doener.MeatKey);
+        Assert.Equal(new[] { "scharf", "knoblauch" }, doener.SauceKeys);
+        Assert.Equal("ohne Zwiebeln", doener.ExtraText);
+        Assert.True(doener.IsBreadDoener);
+        Assert.Equal("kebab_dining", doener.ProductIcon);
+        // The formatted sheet text is unchanged by the structured data.
+        Assert.Equal("Kalb · Scharf · Knoblauch · ohne Zwiebeln", doener.Description);
+
+        var box = Assert.Single(body.Day.PrintLines, line => line.Section == "Dönerbox");
+        Assert.Equal("haehnchen", box.MeatKey);
+        Assert.False(box.IsBreadDoener);
     }
 
     // Adds one closed OrderDay + one doener Order for the user, plus a settled debt so the order
