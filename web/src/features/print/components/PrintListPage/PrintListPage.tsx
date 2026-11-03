@@ -7,9 +7,11 @@ import { PrintActions } from "./internal/PrintActions";
 import { PrintHeader } from "./internal/PrintHeader";
 import { PrintStyles } from "./internal/PrintStyles";
 import { PrintTable } from "./internal/PrintTable";
+import { ThekenEntry } from "./internal/ThekenEntry";
 
 // Layout layer for the printable Abholer list. The white card is the print
-// sheet (data-print-sheet): header + the order table + grand total. The action
+// sheet (data-print-sheet): header + the order table + grand total. Above it sits the
+// Theken-Modus entry (screen only). The action
 // bar sits below it and is hidden in print. The same markup renders on the
 // phone and on paper — only PrintStyles' @media print rules differ.
 export const PrintListPage: FC = () => {
@@ -17,6 +19,7 @@ export const PrintListPage: FC = () => {
     <PageLayout bg="app">
       <PrintStyles />
       <PageLayout.Content sx={{ gap: 2 }}>
+        <ThekenEntry />
         <Paper
           data-print-sheet
           sx={(theme) => ({

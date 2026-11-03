@@ -15,7 +15,11 @@ public sealed record PrintLineSummary(
     int Quantity,
     int LineTotalCents,
     string LineTotalLabel,
-    bool IsPickup
+    bool IsPickup,
+    // The (base) product's Material icon name, for the counter mode's non-Döner cards.
+    string? ProductIcon,
+    // Structured answers so the counter mode can rebuild the Döner in 3D (sheet/PDF ignore it).
+    PrintLineBuild Build
 );
 
 // The Abholer's printable / e-mailable order sheet: the numbered per-package lines (in article-type

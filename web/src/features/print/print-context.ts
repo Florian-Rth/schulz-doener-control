@@ -36,6 +36,12 @@ export interface PrintListContextValue {
   emailToast: string | null;
   /** Dismisses the e-mail toast. */
   dismissEmailToast: () => void;
+  /** True while the full-screen Theken-Modus is open. */
+  thekenOpen: boolean;
+  openTheken: () => void;
+  closeTheken: () => void;
+  /** Rolled once per page visit — picks the Theken-Modus entry hint. */
+  pageSeed: number;
 }
 
 // One context for the print compound group. UI pieces read it instead of
