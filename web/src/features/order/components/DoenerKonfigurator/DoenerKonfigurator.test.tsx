@@ -14,18 +14,26 @@ const oneOf =
     pool.includes(text);
 
 // jsdom has no WebGL — replace the three.js stage with a probe that exposes
-// what would be in the bread.
+// what would be in the bread (and who stands next to it).
 vi.mock("@/components/DoenerStage/internal/scene/DoenerScene", () => ({
   DoenerScene: ({
     build,
     presenting,
+    children,
   }: {
     build: { meat: string | null; veggies: string[]; sauces: string[] };
     presenting: boolean;
+    children?: React.ReactNode;
   }) => (
     <div data-testid="doener-scene" data-presenting={String(presenting)}>
       {[build.meat ?? "", ...build.veggies, ...build.sauces].join("|")}
+      <div>{children}</div>
     </div>
+  ),
+}));
+vi.mock("@/components/DoenerStage/internal/scene/MascotStandee", () => ({
+  MascotStandee: ({ emoji, name }: { emoji: string; name: string }) => (
+    <div data-testid="mascot">{`${emoji} ${name}`}</div>
   ),
 }));
 
@@ -121,6 +129,15 @@ const useHandlers = (onSubmit: (body: unknown) => void = () => {}): void => {
   mswServer.use(
     http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
     http.get("*/api/menu", () => HttpResponse.json(menuResponse)),
+    http.get("*/api/tiere/mine", () =>
+      HttpResponse.json({
+        emoji: "🐺",
+        name: "Der Knoblauch-Wolf",
+        tagline: "Riecht man drei Büros weiter.",
+        tags: ["Knoblauch"],
+        count: 12,
+      }),
+    ),
     http.get("*/api/order-days/today", () =>
       HttpResponse.json({ isOpen: true, day: { id: DAY_ID, iCanStillOrder: true } }),
     ),
@@ -159,6 +176,8 @@ describe("DoenerKonfigurator", () => {
     const dialog = within(await screen.findByRole("dialog"));
     expect(dialog.getByText(oneOf(konfiguratorCopy.meatQuestions))).toBeInTheDocument();
     expect(dialog.getByText("Schritt 1 von 8")).toBeInTheDocument();
+    // The Chef's own Döner-Tier stands next to the Döner.
+    expect(await dialog.findByTestId("mascot")).toHaveTextContent("🐺 Der Knoblauch-Wolf");
     await user.click(dialog.getByRole("button", { name: "Hähnchen" }));
     // Something just slammed into the bread.
     expect(dialog.getByText(oneOf(doenerStageCopy.impactWords))).toBeInTheDocument();

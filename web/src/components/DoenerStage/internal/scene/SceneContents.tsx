@@ -19,6 +19,7 @@ import { KeyLight } from "./KeyLight";
 import { GRAVITY } from "./physics";
 import { ShadowUpdater } from "./ShadowUpdater";
 import { Showroom } from "./Showroom";
+import { ShadowPokeContext } from "./shadow-poke-context";
 
 export interface SceneContentsProps {
   build: DoenerBuild;
@@ -95,6 +96,7 @@ export const SceneContents: FC<SceneContentsProps> = ({
   const theme = useTheme();
   const impact = useRef(0);
   const shake = useRef(0);
+  const shadowPokes = useRef(0);
   const [quality, setQuality] = useState<Quality>(initialQuality);
 
   const onHit = (strength: number): void => {
@@ -169,13 +171,14 @@ export const SceneContents: FC<SceneContentsProps> = ({
           onHit={onHit}
           gentle={gentle}
         />
-        {children}
+        <ShadowPokeContext.Provider value={shadowPokes}>{children}</ShadowPokeContext.Provider>
       </Physics>
 
       <FittedControls presenting={presenting} />
       <ImpactShake intensity={shake} />
 
       <ShadowUpdater
+        pokes={shadowPokes}
         activity={`${build.meat ?? ""}|${build.veggies.join(",")}|${build.sauces.join(",")}`}
       />
       {/* Compile every shader up front (all volleys are pre-mounted), so the
