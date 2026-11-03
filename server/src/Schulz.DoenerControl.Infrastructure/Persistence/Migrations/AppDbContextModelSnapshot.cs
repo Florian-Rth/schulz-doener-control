@@ -17,6 +17,69 @@ namespace Schulz.DoenerControl.Infrastructure.Persistence.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.17");
 
+            modelBuilder.Entity("Schulz.DoenerControl.Core.Entities.Category", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsAvailable")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("StoreId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StoreId", "Key")
+                        .IsUnique();
+
+                    b.ToTable("Categories", (string)null);
+                });
+
+            modelBuilder.Entity("Schulz.DoenerControl.Core.Entities.CategoryField", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CategoryId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("FieldDefinitionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsRequired")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FieldDefinitionId");
+
+                    b.HasIndex("CategoryId", "FieldDefinitionId")
+                        .IsUnique();
+
+                    b.ToTable("CategoryFields", (string)null);
+                });
+
             modelBuilder.Entity("Schulz.DoenerControl.Core.Entities.Debt", b =>
                 {
                     b.Property<Guid>("Id")
@@ -65,10 +128,98 @@ namespace Schulz.DoenerControl.Infrastructure.Persistence.Migrations
                     b.ToTable("Debts", (string)null);
                 });
 
+            modelBuilder.Entity("Schulz.DoenerControl.Core.Entities.FieldDefinition", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Display")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("MaxLength")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("StoreId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StoreId", "Key")
+                        .IsUnique();
+
+                    b.ToTable("FieldDefinitions", (string)null);
+                });
+
+            modelBuilder.Entity("Schulz.DoenerControl.Core.Entities.FieldOption", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("FieldDefinitionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Icon")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsAvailable")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("PriceDeltaCents")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FieldDefinitionId", "Key")
+                        .IsUnique();
+
+                    b.ToTable("FieldOptions", (string)null);
+                });
+
             modelBuilder.Entity("Schulz.DoenerControl.Core.Entities.MenuItem", b =>
                 {
                     b.Property<string>("Id")
                         .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BaseItemId")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("CategoryId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DefaultAnswers")
                         .HasColumnType("TEXT");
 
                     b.Property<int>("DefaultPriceCents")
@@ -80,9 +231,6 @@ namespace Schulz.DoenerControl.Infrastructure.Persistence.Migrations
                         .HasDefaultValue(true);
 
                     b.Property<bool>("IsInsider")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Kind")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("MaterialIcon")
@@ -102,7 +250,16 @@ namespace Schulz.DoenerControl.Infrastructure.Persistence.Migrations
                     b.Property<int>("SortOrder")
                         .HasColumnType("INTEGER");
 
+                    b.Property<Guid?>("StoreId")
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("BaseItemId");
+
+                    b.HasIndex("CategoryId");
+
+                    b.HasIndex("StoreId");
 
                     b.ToTable("MenuItems", (string)null);
                 });
@@ -238,6 +395,9 @@ namespace Schulz.DoenerControl.Infrastructure.Persistence.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("INTEGER");
 
+                    b.Property<Guid?>("StoreId")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Synonym")
                         .IsRequired()
                         .HasMaxLength(64)
@@ -253,6 +413,8 @@ namespace Schulz.DoenerControl.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("OpenedByUserId");
 
+                    b.HasIndex("StoreId");
+
                     b.ToTable("OrderDays", (string)null);
                 });
 
@@ -262,20 +424,13 @@ namespace Schulz.DoenerControl.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Extra")
-                        .HasMaxLength(256)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Kind")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("Meat")
-                        .HasColumnType("INTEGER");
+                    b.Property<string>("Answers")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("{}");
 
                     b.Property<Guid>("OrderId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid?>("PizzaVariantId")
                         .HasColumnType("TEXT");
 
                     b.Property<int>("PriceCents")
@@ -289,46 +444,13 @@ namespace Schulz.DoenerControl.Infrastructure.Persistence.Migrations
                     b.Property<int>("Quantity")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("Sauces")
-                        .HasColumnType("INTEGER");
-
                     b.HasKey("Id");
 
                     b.HasIndex("OrderId");
 
-                    b.HasIndex("PizzaVariantId");
-
                     b.HasIndex("ProductId");
 
                     b.ToTable("OrderLines", (string)null);
-                });
-
-            modelBuilder.Entity("Schulz.DoenerControl.Core.Entities.PizzaVariant", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Icon")
-                        .HasMaxLength(64)
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("IsAvailable")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(true);
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("PizzaVariants", (string)null);
                 });
 
             modelBuilder.Entity("Schulz.DoenerControl.Core.Entities.PushSubscription", b =>
@@ -424,6 +546,41 @@ namespace Schulz.DoenerControl.Infrastructure.Persistence.Migrations
                     b.ToTable("RegistrationMode", (string)null);
                 });
 
+            modelBuilder.Entity("Schulz.DoenerControl.Core.Entities.Store", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Key")
+                        .IsUnique();
+
+                    b.ToTable("Stores", (string)null);
+                });
+
             modelBuilder.Entity("Schulz.DoenerControl.Core.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -489,6 +646,36 @@ namespace Schulz.DoenerControl.Infrastructure.Persistence.Migrations
                     b.ToTable("Users", (string)null);
                 });
 
+            modelBuilder.Entity("Schulz.DoenerControl.Core.Entities.Category", b =>
+                {
+                    b.HasOne("Schulz.DoenerControl.Core.Entities.Store", "Store")
+                        .WithMany()
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Store");
+                });
+
+            modelBuilder.Entity("Schulz.DoenerControl.Core.Entities.CategoryField", b =>
+                {
+                    b.HasOne("Schulz.DoenerControl.Core.Entities.Category", "Category")
+                        .WithMany("Fields")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Schulz.DoenerControl.Core.Entities.FieldDefinition", "FieldDefinition")
+                        .WithMany()
+                        .HasForeignKey("FieldDefinitionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Category");
+
+                    b.Navigation("FieldDefinition");
+                });
+
             modelBuilder.Entity("Schulz.DoenerControl.Core.Entities.Debt", b =>
                 {
                     b.HasOne("Schulz.DoenerControl.Core.Entities.User", "CreditorUser")
@@ -520,6 +707,52 @@ namespace Schulz.DoenerControl.Infrastructure.Persistence.Migrations
                     b.Navigation("Order");
 
                     b.Navigation("OrderDay");
+                });
+
+            modelBuilder.Entity("Schulz.DoenerControl.Core.Entities.FieldDefinition", b =>
+                {
+                    b.HasOne("Schulz.DoenerControl.Core.Entities.Store", "Store")
+                        .WithMany()
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Store");
+                });
+
+            modelBuilder.Entity("Schulz.DoenerControl.Core.Entities.FieldOption", b =>
+                {
+                    b.HasOne("Schulz.DoenerControl.Core.Entities.FieldDefinition", "FieldDefinition")
+                        .WithMany("Options")
+                        .HasForeignKey("FieldDefinitionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("FieldDefinition");
+                });
+
+            modelBuilder.Entity("Schulz.DoenerControl.Core.Entities.MenuItem", b =>
+                {
+                    b.HasOne("Schulz.DoenerControl.Core.Entities.MenuItem", "BaseItem")
+                        .WithMany()
+                        .HasForeignKey("BaseItemId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Schulz.DoenerControl.Core.Entities.Category", "Category")
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Schulz.DoenerControl.Core.Entities.Store", "Store")
+                        .WithMany()
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("BaseItem");
+
+                    b.Navigation("Category");
+
+                    b.Navigation("Store");
                 });
 
             modelBuilder.Entity("Schulz.DoenerControl.Core.Entities.Notification", b =>
@@ -572,9 +805,16 @@ namespace Schulz.DoenerControl.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Schulz.DoenerControl.Core.Entities.Store", "Store")
+                        .WithMany()
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("CollectorUser");
 
                     b.Navigation("OpenedByUser");
+
+                    b.Navigation("Store");
                 });
 
             modelBuilder.Entity("Schulz.DoenerControl.Core.Entities.OrderLine", b =>
@@ -585,11 +825,6 @@ namespace Schulz.DoenerControl.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Schulz.DoenerControl.Core.Entities.PizzaVariant", "PizzaVariant")
-                        .WithMany()
-                        .HasForeignKey("PizzaVariantId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("Schulz.DoenerControl.Core.Entities.MenuItem", null)
                         .WithMany()
                         .HasForeignKey("ProductId")
@@ -597,8 +832,6 @@ namespace Schulz.DoenerControl.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Order");
-
-                    b.Navigation("PizzaVariant");
                 });
 
             modelBuilder.Entity("Schulz.DoenerControl.Core.Entities.PushSubscription", b =>
@@ -621,6 +854,16 @@ namespace Schulz.DoenerControl.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Schulz.DoenerControl.Core.Entities.Category", b =>
+                {
+                    b.Navigation("Fields");
+                });
+
+            modelBuilder.Entity("Schulz.DoenerControl.Core.Entities.FieldDefinition", b =>
+                {
+                    b.Navigation("Options");
                 });
 
             modelBuilder.Entity("Schulz.DoenerControl.Core.Entities.Order", b =>

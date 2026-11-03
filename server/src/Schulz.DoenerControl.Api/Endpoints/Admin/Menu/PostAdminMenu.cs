@@ -1,5 +1,6 @@
 using FastEndpoints;
 using FluentValidation;
+using Schulz.DoenerControl.Api.Endpoints;
 using Schulz.DoenerControl.Application.Menu;
 using Schulz.DoenerControl.Core;
 
@@ -8,13 +9,15 @@ namespace Schulz.DoenerControl.Api.Endpoints.Admin.Menu;
 public sealed record PostAdminMenuRequest(
     string? Id,
     string Name,
+    string? CategoryKey,
+    string? BaseItemId,
     int DefaultPriceCents,
-    string Kind,
     string MaterialIcon,
     string? Note,
     bool IsInsider,
     int SortOrder,
-    bool IsAvailable
+    bool IsAvailable,
+    IReadOnlyDictionary<string, AnswerFieldDto>? DefaultAnswers
 );
 
 public sealed record PostAdminMenuResponse(AdminMenuItemDto Item);
@@ -37,13 +40,12 @@ public sealed class PostAdminMenuRequestValidator : Validator<PostAdminMenuReque
             .WithMessage("Der Name darf nicht leer sein, Chef.")
             .MaximumLength(64);
 
+        RuleFor(request => request.CategoryKey).MaximumLength(64);
+        RuleFor(request => request.BaseItemId).MaximumLength(32);
+
         RuleFor(request => request.DefaultPriceCents)
             .GreaterThanOrEqualTo(0)
             .WithMessage("Der Preis darf nicht negativ sein, Chef.");
-
-        RuleFor(request => request.Kind)
-            .Must(kind => AdminMenuMapper.ParseKind(kind) is not null)
-            .WithMessage("Die Art muss 'doener' oder 'pizza' sein, Chef.");
 
         RuleFor(request => request.MaterialIcon)
             .NotEmpty()
@@ -76,13 +78,15 @@ public sealed class PostAdminMenu : Endpoint<PostAdminMenuRequest, PostAdminMenu
         var command = new CreateMenuItemCommand(
             req.Id,
             req.Name,
+            req.CategoryKey,
+            req.BaseItemId,
             req.DefaultPriceCents,
-            AdminMenuMapper.ParseKind(req.Kind)!.Value,
             req.MaterialIcon,
             req.Note,
             req.IsInsider,
             req.SortOrder,
-            req.IsAvailable
+            req.IsAvailable,
+            AnswersWire.FromDtoOrNull(req.DefaultAnswers)
         );
 
         var result = await menuService.CreateAsync(command, ct);

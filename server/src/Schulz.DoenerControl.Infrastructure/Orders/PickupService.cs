@@ -5,6 +5,7 @@ using Schulz.DoenerControl.Application.Orders;
 using Schulz.DoenerControl.Core;
 using Schulz.DoenerControl.Core.Entities;
 using Schulz.DoenerControl.Core.Enums;
+using Schulz.DoenerControl.Infrastructure.Menu;
 using Schulz.DoenerControl.Infrastructure.OrderDays;
 using Schulz.DoenerControl.Infrastructure.Persistence;
 
@@ -17,16 +18,19 @@ public sealed class PickupService : IPickupService
     private readonly AppDbContext database;
     private readonly OrderDayClock clock;
     private readonly IOrderDayService orderDayService;
+    private readonly CategorySpecStore categorySpecStore;
 
     public PickupService(
         AppDbContext database,
         OrderDayClock clock,
-        IOrderDayService orderDayService
+        IOrderDayService orderDayService,
+        CategorySpecStore categorySpecStore
     )
     {
         this.database = database;
         this.clock = clock;
         this.orderDayService = orderDayService;
+        this.categorySpecStore = categorySpecStore;
     }
 
     public Task<Result<PickupResult>> ClaimAsync(
@@ -180,12 +184,12 @@ public sealed class PickupService : IPickupService
         await database.SaveChangesAsync(ct);
 
         var productNames = await ResolveProductNames(order, ct);
-        var pizzaVariantNames = await ResolvePizzaVariantNames(order, ct);
+        var categoryByProduct = await ResolveCategoriesByProduct(order, ct);
         var pickupNames = await ResolvePickupNames(orderDayId, ct);
 
         return Result<PickupResult>.Success(
             new PickupResult(
-                OrderDetailsFactory.Build(order, productNames, pizzaVariantNames),
+                OrderDetailsFactory.Build(order, productNames, categoryByProduct),
                 pickupNames
             )
         );
@@ -227,22 +231,27 @@ public sealed class PickupService : IPickupService
             .ToDictionaryAsync(item => item.Id, item => item.Name, ct);
     }
 
-    private async Task<IReadOnlyDictionary<Guid, string>> ResolvePizzaVariantNames(
+    private async Task<IReadOnlyDictionary<string, CategorySpec>> ResolveCategoriesByProduct(
         Order order,
         CancellationToken ct
     )
     {
-        var variantIds = order
-            .Lines.Where(line => line.PizzaVariantId is not null)
-            .Select(line => line.PizzaVariantId!.Value)
-            .Distinct()
-            .ToList();
-        if (variantIds.Count == 0)
-            return new Dictionary<Guid, string>();
+        var productIds = order.Lines.Select(line => line.ProductId).Distinct().ToList();
+        if (productIds.Count == 0)
+            return new Dictionary<string, CategorySpec>();
 
-        return await database
-            .PizzaVariants.AsNoTracking()
-            .Where(variant => variantIds.Contains(variant.Id))
-            .ToDictionaryAsync(variant => variant.Id, variant => variant.Name, ct);
+        var items = await database
+            .MenuItems.AsNoTracking()
+            .Where(item => productIds.Contains(item.Id))
+            .ToDictionaryAsync(item => item.Id, ct);
+        var specs = await categorySpecStore.LoadByIdAsync(ct);
+
+        var map = new Dictionary<string, CategorySpec>(items.Count);
+        foreach (var (id, item) in items)
+        {
+            if (item.CategoryId is { } categoryId && specs.TryGetValue(categoryId, out var spec))
+                map[id] = spec;
+        }
+        return map;
     }
 }

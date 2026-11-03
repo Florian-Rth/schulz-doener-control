@@ -89,21 +89,37 @@ export const EditUserFormSchema = z.object({
 
 // --- Menu administration (C3) ---
 
+// A single default-answer value for one field: `options` for select fields (one
+// entry for single-select, many for multi), `text` for free-text fields. Mirrors
+// the order feature's AnswerValue shape.
+export const AdminAnswerValueSchema = z.object({
+  options: z.array(z.string()).nullish(),
+  text: z.string().nullish(),
+});
+
+// A default-answer map keyed by field key, pre-seeding a menu item's category
+// fields (e.g. a preset that comes with a fixed meat + sauce).
+export const AdminAnswersSchema = z.record(z.string(), AdminAnswerValueSchema);
+
 // One row of GET /api/admin/menu. Includes retired (soft-deleted) items, so the
-// list can mark them. `note` is null when none is set. `kind` is the lower-case
-// wire value ("doener" | "pizza"). `defaultPriceCents` is the integer source of
-// truth; `defaultPriceLabel` is the server-formatted German display string.
+// list can mark them. `note` is null when none is set. `categoryKey` links the
+// item to a food category (null = unclassified); `baseItemId` marks it a preset
+// of another item (null = standalone). `defaultAnswers` pre-seeds the category
+// fields. `defaultPriceCents` is the integer source of truth; `defaultPriceLabel`
+// is the server-formatted German display string.
 export const AdminMenuItemSchema = z.object({
   id: z.string(),
   name: z.string(),
   defaultPriceCents: z.number().int(),
   defaultPriceLabel: z.string(),
-  kind: z.enum(["doener", "pizza"]),
+  categoryKey: z.string().nullable(),
+  baseItemId: z.string().nullable(),
   materialIcon: z.string(),
   note: z.string().nullable(),
   isInsider: z.boolean(),
   sortOrder: z.number().int(),
   isAvailable: z.boolean(),
+  defaultAnswers: AdminAnswersSchema.nullable(),
 });
 
 export const AdminMenuResponseSchema = z.object({
@@ -120,7 +136,8 @@ export const MenuItemResponseSchema = z.object({
 // The price is entered in euros in the UI (German comma allowed) and converted
 // to integer cents at submit time, so the form carries the cents value directly
 // once parsed. `id` is only present in the create form (optional; slugified from
-// name server-side when omitted). The kind / icon are constrained selects.
+// name server-side when omitted). `categoryKey` / `baseItemId` are select values
+// ("" = none); `defaultAnswers` is the per-field seed map.
 const menuNameField = z.string().trim().min(1, "Pflichtfeld").max(64, "Höchstens 64 Zeichen.");
 
 const menuIdField = z
@@ -130,8 +147,6 @@ const menuIdField = z
   .regex(/^[A-Za-z0-9._-]*$/, "Nur Buchstaben, Zahlen, Punkt, Bindestrich und Unterstrich.");
 
 const menuNoteField = z.string().trim().max(128, "Höchstens 128 Zeichen.");
-
-const menuKindField = z.enum(["doener", "pizza"]);
 
 const menuIconField = z.string().trim().min(1, "Pflichtfeld").max(64, "Höchstens 64 Zeichen.");
 
@@ -149,12 +164,17 @@ export const MenuItemFormSchema = z.object({
   id: menuIdField,
   name: menuNameField,
   priceCents: priceCentsField,
-  kind: menuKindField,
+  categoryKey: z.string(),
+  baseItemId: z.string(),
   materialIcon: menuIconField,
   note: menuNoteField,
   isInsider: z.boolean(),
   sortOrder: sortOrderField,
   isAvailable: z.boolean(),
+  // Values are optional: the default-answers editor's Controllers register a key per
+  // category field, initially undefined until the admin picks a seed. normalizeAnswers
+  // strips the empty/undefined entries before they reach the wire.
+  defaultAnswers: z.record(z.string(), AdminAnswerValueSchema.optional()),
 });
 
 // --- Notification templates (open-day push texts) ---
@@ -226,48 +246,127 @@ export const RegistrationModeFormSchema = z.object({
   secretKey: secretKeyField,
 });
 
-// --- Pizza variants (admin-managed order vocabulary) ---
+// --- Food categories (generic Store→Category→Field→Option engine) ---
 
-// One row of GET /api/admin/pizza-variants. `name` is the display label shown on the order chips;
-// `icon` is an optional Material symbol (null when none chosen); `sortOrder` drives the chip order;
-// `isAvailable` gates whether the variant is offered on the order form.
-export const AdminPizzaVariantSchema = z.object({
-  id: z.string(),
+// One field the category exposes, in render order. `fieldKey` references a field
+// from GET /api/admin/fields; `isRequired` gates whether the order form demands an
+// answer.
+export const CategoryFieldLinkSchema = z.object({
+  fieldKey: z.string(),
+  sortOrder: z.number().int(),
+  isRequired: z.boolean(),
+});
+
+// One row of GET /api/admin/categories. `fields` is the ordered link set that
+// decides which fields the category's order form renders.
+export const AdminCategorySchema = z.object({
+  key: z.string(),
   name: z.string(),
+  sortOrder: z.number().int(),
+  isAvailable: z.boolean(),
+  fields: z.array(CategoryFieldLinkSchema),
+});
+
+export const AdminCategoriesResponseSchema = z.object({
+  items: z.array(AdminCategorySchema),
+});
+
+// POST / PUT / set-fields all return the single affected category under `item`.
+export const CategoryResponseSchema = z.object({
+  item: AdminCategorySchema,
+});
+
+// --- Fields & options (the order vocabulary) ---
+
+// One selectable option inside a field. `icon` is an optional emoji / Material
+// symbol (null when none); `priceDeltaCents` is added to the base price when the
+// option is chosen.
+export const AdminFieldOptionSchema = z.object({
+  key: z.string(),
+  label: z.string(),
   icon: z.string().nullable(),
+  priceDeltaCents: z.number().int(),
   sortOrder: z.number().int(),
   isAvailable: z.boolean(),
 });
 
-export const AdminPizzaVariantsResponseSchema = z.object({
-  items: z.array(AdminPizzaVariantSchema),
+// One row of GET /api/admin/fields. `type` is the answer cardinality (immutable
+// after create); `display` is the UI control; `maxLength` only applies to text
+// fields (null otherwise).
+export const AdminFieldSchema = z.object({
+  key: z.string(),
+  label: z.string(),
+  type: z.enum(["single", "multi", "text"]),
+  display: z.enum(["segmented", "chips", "dropdown", "textarea"]),
+  maxLength: z.number().int().nullable(),
+  options: z.array(AdminFieldOptionSchema),
 });
 
-// POST / PUT both return the single affected variant under `item`.
-export const PizzaVariantResponseSchema = z.object({
-  item: AdminPizzaVariantSchema,
+export const AdminFieldsResponseSchema = z.object({
+  items: z.array(AdminFieldSchema),
 });
 
-// --- Pizza variant form schema ---
+// POST / PUT field endpoints and all option endpoints return the whole affected
+// field under `item`.
+export const FieldResponseSchema = z.object({
+  item: AdminFieldSchema,
+});
 
-const pizzaVariantNameField = z
+// --- Category / field / option form schemas ---
+
+const slugKeyField = z
   .string()
   .trim()
   .min(1, "Pflichtfeld")
-  .max(64, "Höchstens 64 Zeichen.");
+  .max(32, "Höchstens 32 Zeichen.")
+  .regex(/^[A-Za-z0-9._-]+$/, "Nur Buchstaben, Zahlen, Punkt, Bindestrich und Unterstrich.");
 
-// The icon is optional; an empty string means "no symbol" and is omitted on the wire.
-const pizzaVariantIconField = z.string().trim().max(64, "Höchstens 64 Zeichen.");
+const labelField = z.string().trim().min(1, "Pflichtfeld").max(64, "Höchstens 64 Zeichen.");
 
-const pizzaVariantSortOrderField = z
+const engineSortOrderField = z
   .number({ error: "Gib eine gültige Reihenfolge ein, Chef." })
   .int()
   .min(0, "Darf nicht negativ sein.");
 
-export const PizzaVariantFormSchema = z.object({
-  name: pizzaVariantNameField,
-  icon: pizzaVariantIconField,
-  sortOrder: pizzaVariantSortOrderField,
+export const CategoryFormSchema = z.object({
+  key: slugKeyField,
+  name: labelField,
+  sortOrder: engineSortOrderField,
+  isAvailable: z.boolean(),
+});
+
+// `maxLength` is only meaningful for text fields; the form writes null for the
+// other types. Null is allowed on the wire; a positive integer bounds text input.
+const maxLengthField = z
+  .number({ error: "Gib eine gültige Zahl ein, Chef." })
+  .int()
+  .min(1, "Mindestens 1, Chef.")
+  .nullable();
+
+export const FieldFormSchema = z.object({
+  key: slugKeyField,
+  label: labelField,
+  type: z.enum(["single", "multi", "text"]),
+  display: z.enum(["segmented", "chips", "dropdown", "textarea"]),
+  maxLength: maxLengthField,
+});
+
+// The price delta is entered in euros and converted to integer cents at submit
+// time. The icon is optional; an empty string means "no symbol" and becomes null
+// on the wire.
+const optionIconField = z.string().trim().max(64, "Höchstens 64 Zeichen.");
+
+const priceDeltaCentsField = z
+  .number({ error: "Gib einen gültigen Aufpreis ein, Chef." })
+  .int()
+  .min(0, "Der Aufpreis darf nicht negativ sein.");
+
+export const FieldOptionFormSchema = z.object({
+  key: slugKeyField,
+  label: labelField,
+  icon: optionIconField,
+  priceDeltaCents: priceDeltaCentsField,
+  sortOrder: engineSortOrderField,
   isAvailable: z.boolean(),
 });
 

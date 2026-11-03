@@ -7,6 +7,7 @@ using Schulz.DoenerControl.Core;
 using Schulz.DoenerControl.Core.Entities;
 using Schulz.DoenerControl.Core.Enums;
 using Schulz.DoenerControl.Infrastructure.Debts;
+using Schulz.DoenerControl.Infrastructure.Menu;
 using Schulz.DoenerControl.Infrastructure.Persistence;
 
 namespace Schulz.DoenerControl.Infrastructure.OrderDays;
@@ -20,13 +21,15 @@ public sealed class OrderDayService : IOrderDayService
     private readonly INotificationBroadcaster broadcaster;
     private readonly IPushBroadcaster pushBroadcaster;
     private readonly CloseDayDebtGenerator debtGenerator;
+    private readonly CategorySpecStore categorySpecStore;
 
     public OrderDayService(
         AppDbContext database,
         OrderDayClock clock,
         INotificationBroadcaster broadcaster,
         IPushBroadcaster pushBroadcaster,
-        CloseDayDebtGenerator debtGenerator
+        CloseDayDebtGenerator debtGenerator,
+        CategorySpecStore categorySpecStore
     )
     {
         this.database = database;
@@ -34,6 +37,7 @@ public sealed class OrderDayService : IOrderDayService
         this.broadcaster = broadcaster;
         this.pushBroadcaster = pushBroadcaster;
         this.debtGenerator = debtGenerator;
+        this.categorySpecStore = categorySpecStore;
     }
 
     public async Task<Result<OrderDayDetails?>> GetTodayAsync(Guid callerId, CancellationToken ct)
@@ -73,6 +77,7 @@ public sealed class OrderDayService : IOrderDayService
         var day = new OrderDay
         {
             Id = Guid.NewGuid(),
+            StoreId = await ResolveActiveStoreIdAsync(ct),
             Date = today,
             Status = OrderDayStatus.Open,
             Synonym = synonym,
@@ -275,12 +280,13 @@ public sealed class OrderDayService : IOrderDayService
     {
         var orders = (day.Orders ?? new List<Order>()).OrderBy(order => order.CreatedAt).ToList();
 
-        var productNames = await LoadProductNames(orders, ct);
-        var pizzaVariantNames = await LoadPizzaVariantNames(orders, ct);
-        var productSortOrders = await LoadProductSortOrders(orders, ct);
+        var menuInfo = await LoadMenuInfo(orders, ct);
+        var baseInfo = await LoadBaseInfo(menuInfo, ct);
+        var categorySpecs = await categorySpecStore.LoadByIdAsync(ct);
+        var categoryByProduct = MapCategoryByProduct(menuInfo, categorySpecs);
 
         var rows = orders
-            .Select(order => MapRow(order, callerId, productNames, pizzaVariantNames))
+            .Select(order => MapRow(order, callerId, menuInfo, categoryByProduct))
             .ToList();
 
         // The Abholer's printable/e-mailable sheet: one numbered line per package, article-type
@@ -288,13 +294,7 @@ public sealed class OrderDayService : IOrderDayService
         var printInputs = orders
             .SelectMany(order =>
                 order.Lines.Select(line =>
-                    BuildPrintLineInput(
-                        order,
-                        line,
-                        productNames,
-                        pizzaVariantNames,
-                        productSortOrders
-                    )
+                    BuildPrintLineInput(order, line, menuInfo, baseInfo, categoryByProduct)
                 )
             )
             .ToList();
@@ -335,27 +335,43 @@ public sealed class OrderDayService : IOrderDayService
     private static PrintLineInput BuildPrintLineInput(
         Order order,
         OrderLine line,
-        IReadOnlyDictionary<string, string> productNames,
-        IReadOnlyDictionary<Guid, string> pizzaVariantNames,
-        IReadOnlyDictionary<string, int> productSortOrders
+        IReadOnlyDictionary<string, MenuItemInfo> menuInfo,
+        IReadOnlyDictionary<string, MenuItemInfo> baseInfo,
+        IReadOnlyDictionary<string, CategorySpec> categoryByProduct
     )
     {
-        var productName = productNames.GetValueOrDefault(line.ProductId, line.ProductId);
-        var variantName = line.PizzaVariantId is { } variantId
-            ? pizzaVariantNames.GetValueOrDefault(variantId)
-            : null;
+        var info = menuInfo.GetValueOrDefault(line.ProductId);
+        // Kitchen sheet resolves a preset (BaseItemId set) to its base item's name + sort position, so
+        // the joke name never reaches the shop and the line groups with its real article type.
+        var (printName, printSort) = ResolveKitchen(line.ProductId, info, baseInfo);
+        var category = categoryByProduct.GetValueOrDefault(line.ProductId);
         return new PrintLineInput(
             // Unknown products sink to the end of the sheet rather than jumping to the front.
-            productSortOrders.GetValueOrDefault(line.ProductId, int.MaxValue),
-            // Article-type section header: the product name groups Döner/Dürüm/Pizza/… on the sheet.
-            productName,
+            printSort,
+            // Article-type section header: the (base) product name groups Döner/Dürüm/Pizza/… .
+            printName,
             order.User?.DisplayName ?? string.Empty,
-            OrderLabelBuilder.BuildProductLabel(line.Kind, productName, line.Meat, variantName),
-            OrderLabelBuilder.BuildDescription(line.Kind, line.Sauces, line.Extra),
+            OrderLabelBuilder.BuildProductLabel(printName),
+            OrderLabelBuilder.BuildDescription(category, line.Answers),
             line.Quantity,
             line.Quantity * line.PriceCents,
             order.IsPickup
         );
+    }
+
+    // Resolves the kitchen-facing (name, sortOrder) for a product: the base item's when the product is
+    // a preset, otherwise the item's own; unknown products sink to the end under their raw id.
+    private static (string Name, int Sort) ResolveKitchen(
+        string productId,
+        MenuItemInfo? info,
+        IReadOnlyDictionary<string, MenuItemInfo> baseInfo
+    )
+    {
+        if (info is null)
+            return (productId, int.MaxValue);
+        if (info.BaseItemId is { } baseId && baseInfo.TryGetValue(baseId, out var baseItem))
+            return (baseItem.Name, baseItem.SortOrder);
+        return (info.Name, info.SortOrder);
     }
 
     // Resolves the designated Abholer strictly from OrderDay.CollectorUserId (no opener/first-pickup
@@ -384,97 +400,114 @@ public sealed class OrderDayService : IOrderDayService
         );
     }
 
-    private async Task<IReadOnlyDictionary<string, string>> LoadProductNames(
+    // The order products' own display name / sort / preset pointer / category, keyed by product id.
+    private async Task<IReadOnlyDictionary<string, MenuItemInfo>> LoadMenuInfo(
         IReadOnlyCollection<Order> orders,
         CancellationToken ct
     )
     {
-        if (orders.Count == 0)
-            return new Dictionary<string, string>();
-
         var productIds = orders
             .SelectMany(order => order.Lines)
             .Select(line => line.ProductId)
             .Distinct()
             .ToList();
-        return await database
+        if (productIds.Count == 0)
+            return new Dictionary<string, MenuItemInfo>();
+
+        var rows = await database
             .MenuItems.AsNoTracking()
             .Where(item => productIds.Contains(item.Id))
-            .ToDictionaryAsync(item => item.Id, item => item.Name, ct);
+            .Select(item => new
+            {
+                item.Id,
+                item.Name,
+                item.SortOrder,
+                item.BaseItemId,
+                item.CategoryId,
+            })
+            .ToListAsync(ct);
+
+        return rows.ToDictionary(
+            row => row.Id,
+            row => new MenuItemInfo(row.Name, row.SortOrder, row.BaseItemId, row.CategoryId)
+        );
     }
 
-    // Per-product menu SortOrder, so the print sheet can bucket lines by article type (Döner, Dürüm,
-    // Dönerbox, …, Pizza) in the same order the menu itself uses.
-    private async Task<IReadOnlyDictionary<string, int>> LoadProductSortOrders(
-        IReadOnlyCollection<Order> orders,
+    // The base items referenced by any preset among the loaded products (name + sort), so the kitchen
+    // sheet can resolve a preset to its base article type.
+    private async Task<IReadOnlyDictionary<string, MenuItemInfo>> LoadBaseInfo(
+        IReadOnlyDictionary<string, MenuItemInfo> menuInfo,
         CancellationToken ct
     )
     {
-        if (orders.Count == 0)
-            return new Dictionary<string, int>();
-
-        var productIds = orders
-            .SelectMany(order => order.Lines)
-            .Select(line => line.ProductId)
+        var baseIds = menuInfo
+            .Values.Where(info => info.BaseItemId is not null)
+            .Select(info => info.BaseItemId!)
             .Distinct()
             .ToList();
-        return await database
+        if (baseIds.Count == 0)
+            return new Dictionary<string, MenuItemInfo>();
+
+        var rows = await database
             .MenuItems.AsNoTracking()
-            .Where(item => productIds.Contains(item.Id))
-            .ToDictionaryAsync(item => item.Id, item => item.SortOrder, ct);
+            .Where(item => baseIds.Contains(item.Id))
+            .Select(item => new
+            {
+                item.Id,
+                item.Name,
+                item.SortOrder,
+                item.BaseItemId,
+                item.CategoryId,
+            })
+            .ToListAsync(ct);
+
+        return rows.ToDictionary(
+            row => row.Id,
+            row => new MenuItemInfo(row.Name, row.SortOrder, row.BaseItemId, row.CategoryId)
+        );
     }
 
-    private async Task<IReadOnlyDictionary<Guid, string>> LoadPizzaVariantNames(
-        IReadOnlyCollection<Order> orders,
-        CancellationToken ct
+    private static IReadOnlyDictionary<string, CategorySpec> MapCategoryByProduct(
+        IReadOnlyDictionary<string, MenuItemInfo> menuInfo,
+        IReadOnlyDictionary<Guid, CategorySpec> categorySpecs
     )
     {
-        if (orders.Count == 0)
-            return new Dictionary<Guid, string>();
-
-        var variantIds = orders
-            .SelectMany(order => order.Lines)
-            .Where(line => line.PizzaVariantId is not null)
-            .Select(line => line.PizzaVariantId!.Value)
-            .Distinct()
-            .ToList();
-        if (variantIds.Count == 0)
-            return new Dictionary<Guid, string>();
-
-        return await database
-            .PizzaVariants.AsNoTracking()
-            .Where(variant => variantIds.Contains(variant.Id))
-            .ToDictionaryAsync(variant => variant.Id, variant => variant.Name, ct);
+        var map = new Dictionary<string, CategorySpec>(menuInfo.Count);
+        foreach (var (id, info) in menuInfo)
+        {
+            if (
+                info.CategoryId is { } categoryId
+                && categorySpecs.TryGetValue(categoryId, out var spec)
+            )
+                map[id] = spec;
+        }
+        return map;
     }
 
     private static OrderRowSummary MapRow(
         Order order,
         Guid callerId,
-        IReadOnlyDictionary<string, string> productNames,
-        IReadOnlyDictionary<Guid, string> pizzaVariantNames
+        IReadOnlyDictionary<string, MenuItemInfo> menuInfo,
+        IReadOnlyDictionary<string, CategorySpec> categoryByProduct
     )
     {
         var displayName = order.User?.DisplayName ?? string.Empty;
         // The board shows one row per participant; the order may carry several lines. Lead with the
         // first line's label (suffixed "+N" when there are more) and join the per-line descriptions.
+        // The board uses the item's OWN name (the preset→base resolution is a kitchen-sheet concern).
         // The price is the order total (sum of Quantity * per-unit price over all lines).
         var lines = order.Lines.OrderBy(line => line.ProductId).ThenBy(line => line.Id).ToList();
         var lead = lines[0];
-        var leadName = productNames.GetValueOrDefault(lead.ProductId, lead.ProductId);
-        var leadVariantName = lead.PizzaVariantId is { } leadVariantId
-            ? pizzaVariantNames.GetValueOrDefault(leadVariantId)
-            : null;
-        var leadLabel = OrderLabelBuilder.BuildProductLabel(
-            lead.Kind,
-            leadName,
-            lead.Meat,
-            leadVariantName
-        );
+        var leadName = menuInfo.GetValueOrDefault(lead.ProductId)?.Name ?? lead.ProductId;
+        var leadLabel = OrderLabelBuilder.BuildProductLabel(leadName);
         var productLabel = lines.Count == 1 ? leadLabel : $"{leadLabel} +{lines.Count - 1}";
         var description = string.Join(
             " · ",
             lines.Select(line =>
-                OrderLabelBuilder.BuildDescription(line.Kind, line.Sauces, line.Extra)
+                OrderLabelBuilder.BuildDescription(
+                    categoryByProduct.GetValueOrDefault(line.ProductId),
+                    line.Answers
+                )
             )
         );
         return new OrderRowSummary(
@@ -489,6 +522,28 @@ public sealed class OrderDayService : IOrderDayService
             order.UserId == callerId,
             order.IsPickup
         );
+    }
+
+    // The projection of a menu item's kitchen/board-relevant fields, resolved once per request.
+    private sealed record MenuItemInfo(
+        string Name,
+        int SortOrder,
+        string? BaseItemId,
+        Guid? CategoryId
+    );
+
+    // The store a freshly opened Döner-Tag belongs to: the single active store (lowest SortOrder).
+    // Null only if no store is seeded (never in practice — StoreSeeder runs at startup), in which
+    // case the day is simply left unscoped rather than failing the open.
+    private async Task<Guid?> ResolveActiveStoreIdAsync(CancellationToken ct)
+    {
+        var storeId = await database
+            .Stores.AsNoTracking()
+            .Where(store => store.IsActive)
+            .OrderBy(store => store.SortOrder)
+            .Select(store => (Guid?)store.Id)
+            .FirstOrDefaultAsync(ct);
+        return storeId;
     }
 
     // Resolves the opener's display name for the day-opened notification. Falls back to an empty

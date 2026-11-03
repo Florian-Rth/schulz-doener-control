@@ -3,7 +3,7 @@ using Schulz.DoenerControl.Application.Calculators;
 using Schulz.DoenerControl.Application.Orders;
 using Schulz.DoenerControl.Core;
 using Schulz.DoenerControl.Core.Entities;
-using Schulz.DoenerControl.Core.Enums;
+using Schulz.DoenerControl.Infrastructure.Menu;
 using Schulz.DoenerControl.Infrastructure.OrderDays;
 using Schulz.DoenerControl.Infrastructure.Persistence;
 
@@ -15,11 +15,17 @@ public sealed class OrderService : IOrderService
 
     private readonly AppDbContext database;
     private readonly OrderDayClock clock;
+    private readonly CategorySpecStore categorySpecStore;
 
-    public OrderService(AppDbContext database, OrderDayClock clock)
+    public OrderService(
+        AppDbContext database,
+        OrderDayClock clock,
+        CategorySpecStore categorySpecStore
+    )
     {
         this.database = database;
         this.clock = clock;
+        this.categorySpecStore = categorySpecStore;
     }
 
     public async Task<Result<OrderDetails>> UpsertMineAsync(
@@ -38,11 +44,33 @@ public sealed class OrderService : IOrderService
         if (menuItems is null)
             return Result<OrderDetails>.NotFound("Produkt nicht gefunden.");
 
-        // Pizza lines carry a catalog variant id; validate every referenced id against the available
-        // PizzaVariants catalog (an unknown / retired id rejects the whole upsert).
-        var pizzaVariantNames = await LoadPizzaVariantNames(command.Lines, ct);
-        if (pizzaVariantNames is null)
-            return Result<OrderDetails>.NotFound("Pizza-Sorte nicht gefunden.");
+        var categorySpecs = await categorySpecStore.LoadByIdAsync(ct);
+        var categoryByProduct = MapCategoriesByProduct(menuItems, categorySpecs);
+
+        // Validate every line's answers against its product's category and resolve the frozen price
+        // (server-suggested unless the orderer supplied an explicit override) before touching the DB.
+        var built = new List<(UpsertOrderLineCommand Command, int PriceCents)>(command.Lines.Count);
+        foreach (var line in command.Lines)
+        {
+            var item = menuItems[line.ProductId];
+            var category = categoryByProduct.GetValueOrDefault(
+                line.ProductId,
+                new CategorySpec(item.CategoryId?.ToString() ?? line.ProductId, [])
+            );
+
+            var validation = AnswerValidator.Validate(category, line.Answers);
+            if (!validation.IsSuccess)
+                return Result<OrderDetails>.Validation(
+                    validation.Error ?? "Ungültige Auswahl, Chef."
+                );
+
+            var suggested = LinePriceCalculator.SuggestedPriceCents(
+                item.DefaultPriceCents,
+                category,
+                line.Answers
+            );
+            built.Add((line, line.PriceCents ?? suggested));
+        }
 
         var now = clock.UtcNow();
         var existing = await database.Orders.FirstOrDefaultAsync(
@@ -106,14 +134,16 @@ public sealed class OrderService : IOrderService
             command.IsPickup
         );
 
-        var newLines = BuildLines(command.Lines, menuItems, existing.Id).ToList();
+        var newLines = built
+            .Select(line => BuildLine(line.Command, line.PriceCents, existing.Id))
+            .ToList();
         database.OrderLines.AddRange(newLines);
         await database.SaveChangesAsync(ct);
 
         existing.Lines = newLines;
         var productNames = ProductNamesFrom(menuItems);
         return Result<OrderDetails>.Success(
-            OrderDetailsFactory.Build(existing, productNames, pizzaVariantNames)
+            OrderDetailsFactory.Build(existing, productNames, categoryByProduct)
         );
     }
 
@@ -149,9 +179,9 @@ public sealed class OrderService : IOrderService
             return Result<OrderDetails?>.Success(null);
 
         var productNames = await ResolveProductNames(order, ct);
-        var pizzaVariantNames = await ResolvePizzaVariantNames(order, ct);
+        var categoryByProduct = await ResolveCategoriesByProduct(order, ct);
         return Result<OrderDetails?>.Success(
-            OrderDetailsFactory.Build(order, productNames, pizzaVariantNames)
+            OrderDetailsFactory.Build(order, productNames, categoryByProduct)
         );
     }
 
@@ -206,11 +236,11 @@ public sealed class OrderService : IOrderService
             return Result<OrderResultDetails>.NotFound("Döner-Tag nicht gefunden.");
 
         var productNames = await ResolveProductNames(order, ct);
-        var pizzaVariantNames = await ResolvePizzaVariantNames(order, ct);
+        var categoryByProduct = await ResolveCategoriesByProduct(order, ct);
         var lines = order
             .Lines.OrderBy(line => line.ProductId)
             .ThenBy(line => line.Id)
-            .Select(line => BuildResultLine(line, productNames, pizzaVariantNames))
+            .Select(line => BuildResultLine(line, productNames, categoryByProduct))
             .ToList();
         var orderTotal = order.TotalCents;
 
@@ -239,16 +269,14 @@ public sealed class OrderService : IOrderService
     private static OrderResultLineDetails BuildResultLine(
         OrderLine line,
         IReadOnlyDictionary<string, string> productNames,
-        IReadOnlyDictionary<Guid, string> pizzaVariantNames
+        IReadOnlyDictionary<string, CategorySpec> categoryByProduct
     )
     {
         var productName = productNames.GetValueOrDefault(line.ProductId, line.ProductId);
-        var variantName = line.PizzaVariantId is { } id
-            ? pizzaVariantNames.GetValueOrDefault(id)
-            : null;
+        var category = categoryByProduct.GetValueOrDefault(line.ProductId);
         return new OrderResultLineDetails(
-            OrderLabelBuilder.BuildProductLabel(line.Kind, productName, line.Meat, variantName),
-            OrderLabelBuilder.BuildDescription(line.Kind, line.Sauces, line.Extra),
+            OrderLabelBuilder.BuildProductLabel(productName),
+            OrderLabelBuilder.BuildDescription(category, line.Answers),
             line.Quantity,
             line.PriceCents,
             line.Quantity * line.PriceCents
@@ -295,7 +323,7 @@ public sealed class OrderService : IOrderService
         );
 
     // Loads the menu items for every distinct product the command references; returns null when any
-    // referenced product is unknown. Keyed by id so each line resolves its own kind and name.
+    // referenced product is unknown. Keyed by id so each line resolves its own category and price.
     private async Task<IReadOnlyDictionary<string, MenuItem>?> LoadMenuItems(
         IReadOnlyList<UpsertOrderLineCommand> lines,
         CancellationToken ct
@@ -324,93 +352,58 @@ public sealed class OrderService : IOrderService
             .ToDictionaryAsync(item => item.Id, item => item.Name, ct);
     }
 
-    // Resolves the catalog Name for every pizza-variant id the command references, but only among the
-    // AVAILABLE variants. Returns null when any referenced id is unknown / retired, so the caller can
-    // reject the upsert (the parser only shapes the id string; the catalog is authoritative here).
-    private async Task<IReadOnlyDictionary<Guid, string>?> LoadPizzaVariantNames(
-        IReadOnlyList<UpsertOrderLineCommand> lines,
-        CancellationToken ct
-    )
-    {
-        var variantIds = lines
-            .Where(line => line.PizzaVariantId is not null)
-            .Select(line => line.PizzaVariantId!.Value)
-            .Distinct()
-            .ToList();
-        if (variantIds.Count == 0)
-            return new Dictionary<Guid, string>();
-
-        var names = await database
-            .PizzaVariants.AsNoTracking()
-            .Where(variant => variant.IsAvailable && variantIds.Contains(variant.Id))
-            .ToDictionaryAsync(variant => variant.Id, variant => variant.Name, ct);
-
-        return variantIds.All(names.ContainsKey) ? names : null;
-    }
-
-    // Resolves the catalog Name for an already-persisted order's pizza-variant ids (read path). Unlike
-    // the write path this includes retired variants, so a past order whose variant was later retired
-    // still renders its label.
-    private async Task<IReadOnlyDictionary<Guid, string>> ResolvePizzaVariantNames(
+    private async Task<IReadOnlyDictionary<string, CategorySpec>> ResolveCategoriesByProduct(
         Order order,
         CancellationToken ct
     )
     {
-        var variantIds = order
-            .Lines.Where(line => line.PizzaVariantId is not null)
-            .Select(line => line.PizzaVariantId!.Value)
-            .Distinct()
-            .ToList();
-        if (variantIds.Count == 0)
-            return new Dictionary<Guid, string>();
+        var productIds = order.Lines.Select(line => line.ProductId).Distinct().ToList();
+        if (productIds.Count == 0)
+            return new Dictionary<string, CategorySpec>();
 
-        return await database
-            .PizzaVariants.AsNoTracking()
-            .Where(variant => variantIds.Contains(variant.Id))
-            .ToDictionaryAsync(variant => variant.Id, variant => variant.Name, ct);
+        var items = await database
+            .MenuItems.AsNoTracking()
+            .Where(item => productIds.Contains(item.Id))
+            .ToDictionaryAsync(item => item.Id, ct);
+        var specs = await categorySpecStore.LoadByIdAsync(ct);
+        return MapCategoriesByProduct(items, specs);
+    }
+
+    // Maps each product id onto its category's spec (when the item has an assigned category present in
+    // the loaded spec set). Items with no category simply have no entry.
+    private static IReadOnlyDictionary<string, CategorySpec> MapCategoriesByProduct(
+        IReadOnlyDictionary<string, MenuItem> menuItems,
+        IReadOnlyDictionary<Guid, CategorySpec> categorySpecs
+    )
+    {
+        var map = new Dictionary<string, CategorySpec>(menuItems.Count);
+        foreach (var (id, item) in menuItems)
+        {
+            if (
+                item.CategoryId is { } categoryId
+                && categorySpecs.TryGetValue(categoryId, out var spec)
+            )
+                map[id] = spec;
+        }
+        return map;
     }
 
     private static IReadOnlyDictionary<string, string> ProductNamesFrom(
         IReadOnlyDictionary<string, MenuItem> menuItems
     ) => menuItems.ToDictionary(pair => pair.Key, pair => pair.Value.Name);
 
-    private static IEnumerable<OrderLine> BuildLines(
-        IReadOnlyList<UpsertOrderLineCommand> lines,
-        IReadOnlyDictionary<string, MenuItem> menuItems,
-        Guid orderId
-    ) => lines.Select(line => BuildLine(line, menuItems[line.ProductId].Kind, orderId));
-
-    private static (MeatType? Meat, Guid? PizzaVariantId, Sauce Sauces) NormalizeForKind(
-        ProductKind kind,
-        MeatType? meat,
-        Guid? pizzaVariantId,
-        Sauce sauces
-    ) => kind == ProductKind.Pizza ? (null, pizzaVariantId, Sauce.None) : (meat, null, sauces);
-
     private static OrderLine BuildLine(
         UpsertOrderLineCommand command,
-        ProductKind kind,
+        int priceCents,
         Guid orderId
-    )
-    {
-        var (meat, pizzaVariantId, sauces) = NormalizeForKind(
-            kind,
-            command.Meat,
-            command.PizzaVariantId,
-            command.Sauces
-        );
-        return new OrderLine
+    ) =>
+        new()
         {
             Id = Guid.NewGuid(),
             OrderId = orderId,
             ProductId = command.ProductId,
-            Kind = kind,
-            Meat = meat,
-            PizzaVariantId = pizzaVariantId,
-            Sauces = sauces,
-            PriceCents = command.PriceCents,
-            Extra = command.Extra,
+            Answers = command.Answers,
+            PriceCents = priceCents,
             Quantity = command.Quantity,
         };
-    }
 }

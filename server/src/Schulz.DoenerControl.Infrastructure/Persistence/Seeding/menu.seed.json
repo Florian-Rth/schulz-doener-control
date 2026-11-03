@@ -1,0 +1,121 @@
+{
+  "storeKey": "schulz-doener",
+  "fields": [
+    {
+      "key": "meat",
+      "label": "Fleisch",
+      "type": "single",
+      "display": "segmented",
+      "options": [
+        { "key": "kalb", "label": "Kalb" },
+        { "key": "haehnchen", "label": "Hähnchen" },
+        { "key": "gemischt", "label": "Gemischt" }
+      ]
+    },
+    {
+      "key": "sauce",
+      "label": "Soße",
+      "type": "multi",
+      "display": "chips",
+      "options": [
+        { "key": "kraeuter", "label": "Kräuter", "icon": "🌿" },
+        { "key": "knoblauch", "label": "Knoblauch", "icon": "🧄" },
+        { "key": "scharf", "label": "Scharf", "icon": "🌶" }
+      ]
+    },
+    {
+      "key": "beilage",
+      "label": "Beilage",
+      "type": "single",
+      "display": "segmented",
+      "options": [
+        { "key": "ohne", "label": "Ohne Pommes" },
+        { "key": "pommes", "label": "Mit Pommes", "priceDeltaCents": 100 }
+      ]
+    },
+    {
+      "key": "variant",
+      "label": "Sorte",
+      "type": "single",
+      "display": "chips",
+      "options": [
+        { "key": "margherita", "label": "Margherita" },
+        { "key": "funghi", "label": "Funghi" },
+        { "key": "salami", "label": "Salami", "priceDeltaCents": 100 },
+        { "key": "tonno", "label": "Thunfisch", "priceDeltaCents": 100 },
+        { "key": "hawaii", "label": "Hawaii", "priceDeltaCents": 100 }
+      ]
+    },
+    {
+      "key": "extra",
+      "label": "Extrawünsche",
+      "type": "text",
+      "display": "textarea",
+      "maxLength": 256
+    }
+  ],
+  "categories": [
+    {
+      "key": "doener",
+      "name": "Döner",
+      "sortOrder": 0,
+      "fields": [
+        { "field": "meat", "required": true },
+        { "field": "sauce" },
+        { "field": "extra" }
+      ]
+    },
+    {
+      "key": "doenerbox",
+      "name": "Dönerbox",
+      "sortOrder": 1,
+      "fields": [
+        { "field": "meat", "required": true },
+        { "field": "sauce" },
+        { "field": "beilage", "required": true },
+        { "field": "extra" }
+      ]
+    },
+    {
+      "key": "pizza",
+      "name": "Pizza",
+      "sortOrder": 2,
+      "fields": [
+        { "field": "variant", "required": true },
+        { "field": "extra" }
+      ]
+    }
+  ],
+  "items": [
+    { "id": "doener", "name": "Döner", "category": "doener", "priceCents": 600, "icon": "kebab_dining", "sortOrder": 1 },
+    { "id": "duerum", "name": "Dürüm", "category": "doener", "priceCents": 700, "icon": "wrap_text", "sortOrder": 2 },
+    { "id": "big", "name": "Großer Döner", "category": "doener", "priceCents": 700, "icon": "lunch_dining", "sortOrder": 3 },
+    {
+      "id": "box",
+      "name": "Dönerbox",
+      "category": "doenerbox",
+      "priceCents": 600,
+      "icon": "takeout_dining",
+      "sortOrder": 4,
+      "defaultAnswers": { "beilage": { "options": ["ohne"] } }
+    },
+    {
+      "id": "danny",
+      "name": "Danny-Box",
+      "category": "doenerbox",
+      "baseItem": "box",
+      "priceCents": 600,
+      "icon": "workspace_premium",
+      "sortOrder": 5,
+      "isInsider": true,
+      "note": "Pommes · Fleisch · Soße",
+      "defaultAnswers": {
+        "meat": { "options": ["gemischt"] },
+        "sauce": { "options": ["kraeuter"] },
+        "beilage": { "options": ["pommes"] },
+        "extra": { "text": "ohne Salat, extra Fleisch" }
+      }
+    },
+    { "id": "pizza", "name": "Pizza", "category": "pizza", "priceCents": 900, "icon": "local_pizza", "sortOrder": 6 }
+  ]
+}

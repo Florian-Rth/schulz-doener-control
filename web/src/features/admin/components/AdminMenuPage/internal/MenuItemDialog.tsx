@@ -5,12 +5,14 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { FC } from "react";
 import { GhostButton, PrimaryButton } from "@/components";
+import { useAdminCategories, useAdminFields, useAdminMenu } from "../../../api";
 import { menuCopy } from "../../../copy";
 import { useMenuItemForm } from "../../../hooks/use-menu-item-form";
 import type { AdminMenuItem } from "../../../types";
+import { DefaultAnswersEditor } from "./DefaultAnswersEditor";
 import { IconField } from "./IconField";
-import { KindField } from "./KindField";
 import { MenuPriceField } from "./MenuPriceField";
+import { MenuSelectField } from "./MenuSelectField";
 import { MenuTextField } from "./MenuTextField";
 import { MenuToggleField } from "./MenuToggleField";
 
@@ -24,9 +26,27 @@ interface MenuItemDialogProps {
 
 // Create/edit menu-item dialog. One form serves both modes; on edit the id is
 // immutable and shown read-only. Logic lives in `useMenuItemForm`; this composes
-// the fields + actions.
+// the fields + actions. The category / base-item selects and the default-answers
+// editor are driven by the categories + fields engine queries.
 export const MenuItemDialog: FC<MenuItemDialogProps> = ({ open, item, onClose, onSaved }) => {
   const { form, onSubmit, isPending, serverError, isEdit } = useMenuItemForm({ item, onSaved });
+  const categoriesQuery = useAdminCategories();
+  const fieldsQuery = useAdminFields();
+  const menuQuery = useAdminMenu();
+
+  const categories = categoriesQuery.data ?? [];
+  const fields = fieldsQuery.data ?? [];
+
+  const categoryOptions = [
+    { value: "", label: menuCopy.categoryNone },
+    ...categories.map((category) => ({ value: category.key, label: category.name })),
+  ];
+  const baseItemOptions = [
+    { value: "", label: menuCopy.baseItemNone },
+    ...(menuQuery.data ?? [])
+      .filter((entry) => entry.id !== item?.id)
+      .map((entry) => ({ value: entry.id, label: entry.name })),
+  ];
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth>
@@ -56,7 +76,20 @@ export const MenuItemDialog: FC<MenuItemDialogProps> = ({ open, item, onClose, o
             placeholder={menuCopy.namePlaceholder}
           />
           <MenuPriceField form={form} />
-          <KindField control={form.control} />
+          <MenuSelectField
+            control={form.control}
+            name="categoryKey"
+            label={menuCopy.categoryLabel}
+            options={categoryOptions}
+          />
+          <MenuSelectField
+            control={form.control}
+            name="baseItemId"
+            label={menuCopy.baseItemLabel}
+            options={baseItemOptions}
+            helperText={menuCopy.baseItemHint}
+          />
+          <DefaultAnswersEditor form={form} categories={categories} fields={fields} />
           <IconField control={form.control} />
           <MenuTextField
             control={form.control}

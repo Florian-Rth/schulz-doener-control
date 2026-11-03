@@ -21,7 +21,8 @@ public sealed class DatabaseSeeder
     private readonly IPasswordHasher passwordHasher;
     private readonly AdminSeedOptions options;
     private readonly TimeProvider timeProvider;
-    private readonly MenuSeeder menuSeeder;
+    private readonly StoreSeeder storeSeeder;
+    private readonly GenericMenuSeeder menuSeeder;
     private readonly NotificationTemplateSeeder notificationTemplateSeeder;
 
     public DatabaseSeeder(
@@ -29,7 +30,8 @@ public sealed class DatabaseSeeder
         IPasswordHasher passwordHasher,
         IOptions<AdminSeedOptions> options,
         TimeProvider timeProvider,
-        MenuSeeder menuSeeder,
+        StoreSeeder storeSeeder,
+        GenericMenuSeeder menuSeeder,
         NotificationTemplateSeeder notificationTemplateSeeder
     )
     {
@@ -37,12 +39,15 @@ public sealed class DatabaseSeeder
         this.passwordHasher = passwordHasher;
         this.options = options.Value;
         this.timeProvider = timeProvider;
+        this.storeSeeder = storeSeeder;
         this.menuSeeder = menuSeeder;
         this.notificationTemplateSeeder = notificationTemplateSeeder;
     }
 
     public async Task SeedAsync(CancellationToken ct)
     {
+        // The store must exist before the menu seed, which scopes its rows to the single store.
+        await storeSeeder.SeedAsync(ct);
         await menuSeeder.SeedAsync(ct);
         await notificationTemplateSeeder.SeedAsync(ct);
 

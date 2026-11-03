@@ -45,8 +45,8 @@ const StatusBadge: FC<StatusBadgeProps> = ({ label, sx }) => {
 export const MenuItemCard: FC<MenuItemCardProps> = ({ item, onEdit, onDelete }) => {
   const badges: ReactNode[] = [
     <StatusBadge
-      key="kind"
-      label={item.kind === "pizza" ? menuCopy.kindPizza : menuCopy.kindDoener}
+      key="category"
+      label={item.categoryKey ?? menuCopy.noCategory}
       sx={(theme) => ({
         backgroundColor: theme.palette.subtle.main,
         color: theme.palette.navy.main,

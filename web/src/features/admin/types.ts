@@ -1,18 +1,25 @@
 import type { z } from "zod";
 import type {
+  AdminAnswersSchema,
+  AdminAnswerValueSchema,
+  AdminCategorySchema,
+  AdminFieldOptionSchema,
+  AdminFieldSchema,
   AdminMenuItemSchema,
   AdminNotificationTemplateSchema,
-  AdminPizzaVariantSchema,
   AdminRegistrationModeResponseSchema,
   AdminTiereResponseSchema,
   AdminTierSchema,
   AdminUserSchema,
+  CategoryFieldLinkSchema,
+  CategoryFormSchema,
   CreateUserFormSchema,
   CreateUserResponseSchema,
   EditUserFormSchema,
+  FieldFormSchema,
+  FieldOptionFormSchema,
   MenuItemFormSchema,
   NotificationTemplateFormSchema,
-  PizzaVariantFormSchema,
   RegistrationModeFormSchema,
   ResetPasswordResponseSchema,
 } from "./schemas";
@@ -26,12 +33,25 @@ export type EditUserForm = z.infer<typeof EditUserFormSchema>;
 
 export type AdminMenuItem = z.infer<typeof AdminMenuItemSchema>;
 export type MenuItemForm = z.infer<typeof MenuItemFormSchema>;
+export type AdminAnswerValue = z.infer<typeof AdminAnswerValueSchema>;
+export type AdminAnswers = z.infer<typeof AdminAnswersSchema>;
+
+export type AdminCategory = z.infer<typeof AdminCategorySchema>;
+export type CategoryFieldLink = z.infer<typeof CategoryFieldLinkSchema>;
+export type CategoryForm = z.infer<typeof CategoryFormSchema>;
+
+export type AdminField = z.infer<typeof AdminFieldSchema>;
+export type AdminFieldOption = z.infer<typeof AdminFieldOptionSchema>;
+export type FieldForm = z.infer<typeof FieldFormSchema>;
+export type FieldOptionForm = z.infer<typeof FieldOptionFormSchema>;
+
+// The answer cardinality of a field; `type` is immutable after create.
+export type FieldType = "single" | "multi" | "text";
+// The UI control a field renders with.
+export type FieldDisplay = "segmented" | "chips" | "dropdown" | "textarea";
 
 export type AdminNotificationTemplate = z.infer<typeof AdminNotificationTemplateSchema>;
 export type NotificationTemplateForm = z.infer<typeof NotificationTemplateFormSchema>;
-
-export type AdminPizzaVariant = z.infer<typeof AdminPizzaVariantSchema>;
-export type PizzaVariantForm = z.infer<typeof PizzaVariantFormSchema>;
 
 export type AdminTier = z.infer<typeof AdminTierSchema>;
 export type AdminTiere = z.infer<typeof AdminTiereResponseSchema>;
@@ -41,9 +61,6 @@ export type RegistrationModeForm = z.infer<typeof RegistrationModeFormSchema>;
 
 // The wire value of the registration policy: 1 = Enabled, 2 = Disabled, 3 = SecretKeyOnly.
 export type RegistrationModeNumber = 1 | 2 | 3;
-
-// The wire value of `kind` on menu requests/responses.
-export type MenuKind = "doener" | "pizza";
 
 // The wire value of `role` on create/update requests: 1 = Employee, 2 = Admin.
 export type RoleNumber = 1 | 2;

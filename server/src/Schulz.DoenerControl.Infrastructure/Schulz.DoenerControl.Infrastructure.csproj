@@ -4,6 +4,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Persistence\Seeding\menu.seed.json" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Schulz.DoenerControl.Core\Schulz.DoenerControl.Core.csproj" />
     <ProjectReference Include="..\Schulz.DoenerControl.Application\Schulz.DoenerControl.Application.csproj" />
   </ItemGroup>

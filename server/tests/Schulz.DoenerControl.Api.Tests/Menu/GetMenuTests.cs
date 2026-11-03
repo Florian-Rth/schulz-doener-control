@@ -14,6 +14,23 @@ public sealed class GetMenuTests : DoenerControlTestBase
     public GetMenuTests(DoenerControlApp app)
         : base(app) { }
 
+    private async Task<GetMenuResponse> GetMenuAsync()
+    {
+        var auth = new AuthTestClient(App.CreateClient());
+        await auth.PostJsonAsync(
+            LoginUrl,
+            new { Username = "m.wagner", Password = "doener-dev-2026" }
+        );
+
+        var response = await auth.GetAsync(MenuUrl);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<GetMenuResponse>(
+            TestContext.Current.CancellationToken
+        );
+        Assert.NotNull(body);
+        return body!;
+    }
+
     [Fact]
     public async Task Should_Return_Unauthorized_When_Not_Authenticated()
     {
@@ -25,107 +42,91 @@ public sealed class GetMenuTests : DoenerControlTestBase
     }
 
     [Fact]
-    public async Task Should_Return_Six_Menu_Items_With_Vocabularies_When_Authenticated()
+    public async Task Should_Return_Six_Items_And_Three_Categories_With_Generic_Fields()
     {
-        var auth = new AuthTestClient(App.CreateClient());
-        await auth.PostJsonAsync(
-            LoginUrl,
-            new { Username = "m.wagner", Password = "doener-dev-2026" }
-        );
+        var body = await GetMenuAsync();
 
-        var response = await auth.GetAsync(MenuUrl);
-        var body = await response.Content.ReadFromJsonAsync<GetMenuResponse>(
-            TestContext.Current.CancellationToken
-        );
-
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.NotNull(body);
-        Assert.Equal(6, body!.Items.Count);
-
-        // Pizza variants arrive from the admin-managed catalog as {value,label} pairs (value = the
-        // stable variant id string a pizza line submits, label = the German display name), ordered by
-        // SortOrder. Sauces and meats stay the canonical ASCII enum tokens.
+        Assert.Equal(6, body.Items.Count);
         Assert.Equal(
-            ["Salami", "Margherita", "Funghi", "Tonno", "Hawaii"],
-            body.PizzaVariants.Select(variant => variant.Label).ToArray()
+            ["doener", "doenerbox", "pizza"],
+            body.Categories.Select(category => category.Key).ToArray()
         );
-        Assert.All(body.PizzaVariants, variant => Assert.True(Guid.TryParse(variant.Value, out _)));
-        Assert.Equal("b1a7c0de-0001-4a01-9a01-000000000001", body.PizzaVariants[0].Value);
-        Assert.Equal(["Kraeuter", "Knoblauch", "Scharf"], body.SauceOptions);
-        Assert.Equal(["Kalb", "Haehnchen", "Gemischt"], body.MeatOptions);
+
+        var doener = body.Categories.Single(category => category.Key == "doener");
+        Assert.Equal(
+            ["meat", "sauce", "extra"],
+            doener.Fields.Select(field => field.Key).ToArray()
+        );
+
+        var meat = doener.Fields.Single(field => field.Key == "meat");
+        Assert.Equal("single", meat.Type);
+        Assert.Equal("segmented", meat.Display);
+        Assert.True(meat.Required);
+        Assert.Equal(
+            ["kalb", "haehnchen", "gemischt"],
+            meat.Options.Select(option => option.Key).ToArray()
+        );
+
+        var pizza = body.Categories.Single(category => category.Key == "pizza");
+        var variant = pizza.Fields.Single(field => field.Key == "variant");
+        Assert.Equal(
+            ["margherita", "funghi", "salami", "tonno", "hawaii"],
+            variant.Options.Select(option => option.Key).ToArray()
+        );
+        // Salami carries the +1,00 € delta.
+        Assert.Equal(100, variant.Options.Single(option => option.Key == "salami").PriceDeltaCents);
     }
 
     [Fact]
     public async Task Should_Order_Items_By_SortOrder_When_Authenticated()
     {
-        var auth = new AuthTestClient(App.CreateClient());
-        await auth.PostJsonAsync(
-            LoginUrl,
-            new { Username = "m.wagner", Password = "doener-dev-2026" }
-        );
+        var body = await GetMenuAsync();
 
-        var response = await auth.GetAsync(MenuUrl);
-        var body = await response.Content.ReadFromJsonAsync<GetMenuResponse>(
-            TestContext.Current.CancellationToken
-        );
-
-        Assert.NotNull(body);
-        var ids = body!.Items.Select(item => item.Id).ToArray();
+        var ids = body.Items.Select(item => item.Id).ToArray();
         Assert.Equal(["doener", "duerum", "big", "box", "danny", "pizza"], ids);
     }
 
     [Fact]
-    public async Task Should_Mark_DannyBox_As_Insider_With_Note_When_Authenticated()
+    public async Task Should_Mark_DannyBox_As_Insider_Preset_With_Defaults()
     {
-        var auth = new AuthTestClient(App.CreateClient());
-        await auth.PostJsonAsync(
-            LoginUrl,
-            new { Username = "m.wagner", Password = "doener-dev-2026" }
-        );
+        var body = await GetMenuAsync();
 
-        var response = await auth.GetAsync(MenuUrl);
-        var body = await response.Content.ReadFromJsonAsync<GetMenuResponse>(
-            TestContext.Current.CancellationToken
-        );
-
-        Assert.NotNull(body);
-        var danny = body!.Items.Single(item => item.Id == "danny");
+        var danny = body.Items.Single(item => item.Id == "danny");
 
         Assert.True(danny.IsInsider);
         Assert.Equal("Danny-Box", danny.Name);
         Assert.Equal("Pommes · Fleisch · Soße", danny.Note);
-        Assert.Equal(600, danny.DefaultPriceCents);
-        Assert.Equal("6,00 €", danny.DefaultPriceLabel);
-        Assert.Equal("doener", danny.Kind);
+        Assert.Equal(600, danny.PriceCents);
+        Assert.Equal("6,00 €", danny.PriceLabel);
+        Assert.Equal("doenerbox", danny.CategoryKey);
+        Assert.Equal("box", danny.BaseItemKey);
         Assert.Equal("workspace_premium", danny.MaterialIcon);
 
-        // No other item is flagged INSIDER.
+        // Preset defaults seed the form (gemischt / kräuter / mit Pommes / extra text).
+        Assert.NotNull(danny.DefaultAnswers);
+        Assert.Equal(["gemischt"], danny.DefaultAnswers!["meat"].Options);
+        Assert.Equal(["pommes"], danny.DefaultAnswers["beilage"].Options);
+        Assert.Equal("ohne Salat, extra Fleisch", danny.DefaultAnswers["extra"].Text);
+
         Assert.Single(body.Items, item => item.IsInsider);
     }
 
     [Fact]
-    public async Task Should_Expose_German_Price_Labels_And_Pizza_Kind_When_Authenticated()
+    public async Task Should_Expose_German_Price_Labels_And_Category_Keys()
     {
-        var auth = new AuthTestClient(App.CreateClient());
-        await auth.PostJsonAsync(
-            LoginUrl,
-            new { Username = "m.wagner", Password = "doener-dev-2026" }
-        );
+        var body = await GetMenuAsync();
 
-        var response = await auth.GetAsync(MenuUrl);
-        var body = await response.Content.ReadFromJsonAsync<GetMenuResponse>(
-            TestContext.Current.CancellationToken
-        );
-
-        Assert.NotNull(body);
-        var doener = body!.Items.Single(item => item.Id == "doener");
-        Assert.Equal("7,50 €", doener.DefaultPriceLabel);
-        Assert.Equal("doener", doener.Kind);
+        var doener = body.Items.Single(item => item.Id == "doener");
+        Assert.Equal(600, doener.PriceCents);
+        Assert.Equal("6,00 €", doener.PriceLabel);
+        Assert.Equal("doener", doener.CategoryKey);
+        Assert.Null(doener.BaseItemKey);
         Assert.Null(doener.Note);
 
         var pizza = body.Items.Single(item => item.Id == "pizza");
-        Assert.Equal("pizza", pizza.Kind);
-        Assert.Equal("9,00 €", pizza.DefaultPriceLabel);
+        Assert.Equal("pizza", pizza.CategoryKey);
+        Assert.Equal(900, pizza.PriceCents);
+        Assert.Equal("9,00 €", pizza.PriceLabel);
         Assert.False(pizza.IsInsider);
     }
 }

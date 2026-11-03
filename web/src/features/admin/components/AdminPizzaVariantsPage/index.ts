@@ -1,1 +1,0 @@
-export { AdminPizzaVariantsPage } from "./AdminPizzaVariantsPage";

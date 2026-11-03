@@ -1,16 +1,33 @@
+using Schulz.DoenerControl.Core.Entities;
+
 namespace Schulz.DoenerControl.Application.Menu;
 
-// The whole order vocabulary in one shape: the seeded menu items plus the choice sets. PizzaVariants
-// is the admin-managed catalog as {value,label} pairs (value = the stable variant id string the
-// order line carries on the wire, label = the German display name); sauces and meats stay closed
-// enums the SPA never has to hardcode.
+// The whole order vocabulary in one shape, scoped to the single active store: the food categories
+// (each with its ordered, generic fields → options) plus the available menu items. Replaces the old
+// closed sauce/meat enums + pizza-variant catalog with the configurable Category → Field → Option
+// engine, so the SPA renders any store's form generically.
 public sealed record MenuDetails(
-    IReadOnlyList<MenuItemSummary> Items,
-    IReadOnlyList<PizzaVariantOption> PizzaVariants,
-    IReadOnlyList<string> SauceOptions,
-    IReadOnlyList<string> MeatOptions
+    IReadOnlyList<MenuCategoryDetails> Categories,
+    IReadOnlyList<MenuItemSummary> Items
 );
 
-// One pizza-variant choice on the order form. Value is the variant id as a string (the wire value a
-// pizza line submits); Label is the display name.
-public sealed record PizzaVariantOption(string Value, string Label);
+public sealed record MenuCategoryDetails(
+    string Key,
+    string Name,
+    int SortOrder,
+    IReadOnlyList<MenuFieldDetails> Fields
+);
+
+// Type/Display are lowercase wire tokens (single/multi/text, segmented/chips/dropdown/textarea) the
+// generic FieldRenderer branches on. MaxLength applies to text fields only.
+public sealed record MenuFieldDetails(
+    string Key,
+    string Label,
+    string Type,
+    string Display,
+    int? MaxLength,
+    bool Required,
+    IReadOnlyList<MenuOptionDetails> Options
+);
+
+public sealed record MenuOptionDetails(string Key, string Label, string? Icon, int PriceDeltaCents);

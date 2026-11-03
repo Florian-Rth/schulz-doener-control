@@ -12,36 +12,31 @@ import {
   type OrderLineContextValue,
   useOrderFormContext,
 } from "../../../order-context";
-import { ExtraField } from "./ExtraField";
-import { MeatField } from "./MeatField";
-import { PizzaVariantField } from "./PizzaVariantField";
+import { FieldRenderer } from "./FieldRenderer";
 import { PriceField } from "./PriceField";
 import { ProductGridField } from "./ProductGridField";
 import { QuantityField } from "./QuantityField";
-import { SauceField } from "./SauceField";
 import { SectionLabel } from "./SectionLabel";
 
 interface OrderLineCardProps {
   index: number;
 }
 
-// One order line: the per-line provider (OrderLineContext) plus the layout of
-// its product grid, kind-gated conditional fields, extra/price/quantity inputs,
-// a per-line total and a remove control. Reads the line's kind to derive the
-// conditional-field visibility; all field state lives in the form context.
+// One order line: the per-line provider (OrderLineContext) plus the product grid,
+// the dynamically rendered category fields, the price/quantity inputs, a per-line
+// total and a remove control. The fields come from the selected product's
+// category — a FieldRenderer per field, in order. All field state lives in the
+// form context.
 export const OrderLineCard: FC<OrderLineCardProps> = ({ index }) => {
-  const { form, fields, removeLine } = useOrderFormContext();
+  const { form, menu, fields, removeLine } = useOrderFormContext();
   const productId = useWatch({ control: form.control, name: `lines.${index}.productId` });
-  const kind = useWatch({ control: form.control, name: `lines.${index}.kind` });
   const priceCents = useWatch({ control: form.control, name: `lines.${index}.priceCents` });
   const quantity = useWatch({ control: form.control, name: `lines.${index}.quantity` });
-  const config = useOrderConfig(productId === "" ? null : kind);
+  const lineFields = useOrderConfig(menu, productId);
 
   const value: OrderLineContextValue = {
     index,
-    kind: config.kind,
-    meatVisible: config.meatVisible,
-    pizzaVisible: config.pizzaVisible,
+    fields: lineFields,
   };
 
   const lineTotalCents = (priceCents ?? 0) * (quantity ?? 0);
@@ -80,11 +75,10 @@ export const OrderLineCard: FC<OrderLineCardProps> = ({ index }) => {
           <ProductGridField />
         </Stack>
 
-        {value.pizzaVisible ? <PizzaVariantField /> : null}
-        {value.meatVisible ? <MeatField /> : null}
-        {value.meatVisible ? <SauceField /> : null}
+        {lineFields.map((field) => (
+          <FieldRenderer key={field.key} field={field} index={index} />
+        ))}
 
-        <ExtraField />
         <PriceField />
         <QuantityField />
 

@@ -19,6 +19,13 @@ public sealed class OrderDayConfiguration : IEntityTypeConfiguration<OrderDay>
         // be opened after the previous one is closed, while two simultaneous active days stay blocked.
         builder.HasIndex(day => day.Date).IsUnique().HasFilter("\"Status\" <> 2");
 
+        // Restrict so a store that any Döner-Tag references can't be hard-deleted out from under it.
+        builder
+            .HasOne(day => day.Store)
+            .WithMany()
+            .HasForeignKey(day => day.StoreId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder
             .HasOne(day => day.OpenedByUser)
             .WithMany()

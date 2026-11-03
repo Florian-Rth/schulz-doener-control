@@ -29,6 +29,7 @@ const OrderFormReady: FC<ReadyProps> = ({ dayId, menu }) => {
     removeLine: form.removeLine,
     canAddLine: form.canAddLine,
     selectProduct: form.selectProduct,
+    setAnswer: form.setAnswer,
     orderTotalCents: form.orderTotalCents,
     submitDisabled: form.submitDisabled,
     isSubmitting: form.isSubmitting,

@@ -24,16 +24,70 @@ const seedXsrfCookie = (): void => {
 const menuRow = (overrides: Partial<Record<string, unknown>> = {}) => ({
   id: "duerum-kalb",
   name: "Dürüm Kalb",
+  categoryKey: "doener",
+  baseItemId: null,
   defaultPriceCents: 850,
   defaultPriceLabel: "8,50 €",
-  kind: "doener",
   materialIcon: "kebab_dining",
   note: null,
   isInsider: false,
   sortOrder: 1,
   isAvailable: true,
+  defaultAnswers: null,
   ...overrides,
 });
+
+// The menu dialog now loads the categories + fields engine on mount (for the category select and the
+// default-answers editor), so every test that renders the page must stub those two endpoints.
+const catalogHandlers = () => [
+  http.get("*/api/admin/categories", () =>
+    HttpResponse.json({
+      items: [
+        {
+          key: "doener",
+          name: "Döner",
+          sortOrder: 0,
+          isAvailable: true,
+          fields: [
+            { fieldKey: "meat", sortOrder: 0, isRequired: true },
+            { fieldKey: "extra", sortOrder: 1, isRequired: false },
+          ],
+        },
+      ],
+    }),
+  ),
+  http.get("*/api/admin/fields", () =>
+    HttpResponse.json({
+      items: [
+        {
+          key: "meat",
+          label: "Fleisch",
+          type: "single",
+          display: "segmented",
+          maxLength: null,
+          options: [
+            {
+              key: "kalb",
+              label: "Kalb",
+              icon: null,
+              priceDeltaCents: 0,
+              sortOrder: 0,
+              isAvailable: true,
+            },
+          ],
+        },
+        {
+          key: "extra",
+          label: "Extrawünsche",
+          type: "text",
+          display: "textarea",
+          maxLength: 256,
+          options: [],
+        },
+      ],
+    }),
+  ),
+];
 
 // The page calls `useNavigate`, so it must be mounted inside a router. A minimal
 // memory router with the page at the index route satisfies that without pulling
@@ -69,6 +123,7 @@ const renderPage = (): ReturnType<typeof render> => {
 describe("AdminMenuPage", () => {
   it("rendert die Karte und markiert nicht verfügbare Gerichte", async () => {
     mswServer.use(
+      ...catalogHandlers(),
       http.get("*/api/admin/menu", () =>
         HttpResponse.json({
           items: [
@@ -76,7 +131,7 @@ describe("AdminMenuPage", () => {
             menuRow({
               id: "pizza-salami",
               name: "Pizza Salami",
-              kind: "pizza",
+              categoryKey: "pizza",
               defaultPriceLabel: "9,00 €",
               isAvailable: false,
             }),
@@ -96,6 +151,7 @@ describe("AdminMenuPage", () => {
     seedXsrfCookie();
     let receivedBody: unknown = null;
     mswServer.use(
+      ...catalogHandlers(),
       http.get("*/api/admin/menu", () => HttpResponse.json({ items: [] })),
       http.post("*/api/admin/menu", async ({ request }) => {
         receivedBody = await request.json();
@@ -115,15 +171,21 @@ describe("AdminMenuPage", () => {
     await waitFor(() => {
       expect(receivedBody).not.toBeNull();
     });
-    const body = receivedBody as { name: string; defaultPriceCents: number; kind: string };
+    const body = receivedBody as {
+      name: string;
+      defaultPriceCents: number;
+      categoryKey: string | null;
+    };
     expect(body.name).toBe("Dürüm Kalb");
     expect(body.defaultPriceCents).toBe(850);
-    expect(body.kind).toBe("doener");
+    // No category picked in this create flow → the wire carries the "none" value.
+    expect(body.categoryKey === "" || body.categoryKey === null).toBe(true);
   });
 
   it("zeigt die 409-Meldung bei doppelter ID", async () => {
     seedXsrfCookie();
     mswServer.use(
+      ...catalogHandlers(),
       http.get("*/api/admin/menu", () => HttpResponse.json({ items: [] })),
       http.post("*/api/admin/menu", () =>
         HttpResponse.json({ title: "Konflikt" }, { status: 409 }),
@@ -146,6 +208,7 @@ describe("AdminMenuPage", () => {
     seedXsrfCookie();
     let putBody: unknown = null;
     mswServer.use(
+      ...catalogHandlers(),
       http.get("*/api/admin/menu", () => HttpResponse.json({ items: [menuRow()] })),
       http.put("*/api/admin/menu/duerum-kalb", async ({ request }) => {
         putBody = await request.json();
@@ -172,6 +235,7 @@ describe("AdminMenuPage", () => {
     seedXsrfCookie();
     let putCalled = false;
     mswServer.use(
+      ...catalogHandlers(),
       http.get("*/api/admin/menu", () => HttpResponse.json({ items: [menuRow()] })),
       http.put("*/api/admin/menu/duerum-kalb", () => {
         putCalled = true;
@@ -199,6 +263,7 @@ describe("AdminMenuPage", () => {
     let deleteCalled = false;
     let listCallCount = 0;
     mswServer.use(
+      ...catalogHandlers(),
       http.get("*/api/admin/menu", () => {
         listCallCount += 1;
         return HttpResponse.json({ items: deleteCalled ? [] : [menuRow()] });

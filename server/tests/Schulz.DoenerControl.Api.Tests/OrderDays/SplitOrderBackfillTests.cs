@@ -2,7 +2,6 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
-using Schulz.DoenerControl.Core.Enums;
 using Schulz.DoenerControl.Infrastructure.Persistence;
 using Xunit;
 
@@ -68,12 +67,12 @@ public sealed class SplitOrderBackfillTests
             Assert.Equal(1, line.Quantity);
             Assert.NotEqual(Guid.Empty, line.Id);
             Assert.Equal("doener", line.ProductId);
-            Assert.Equal(ProductKind.Doener, line.Kind);
-            Assert.Equal(MeatType.Kalb, line.Meat);
-            Assert.Null(line.PizzaVariantId);
-            Assert.Equal(Sauce.Knoblauch | Sauce.Scharf, line.Sauces);
+            // The GenericMenuModel migration backfills the old typed columns into Answers JSON.
+            Assert.Equal(["kalb"], line.Answers.OptionsFor("meat"));
+            Assert.Equal(["knoblauch", "scharf"], line.Answers.OptionsFor("sauce"));
+            Assert.Empty(line.Answers.OptionsFor("variant"));
+            Assert.Equal("ohne Zwiebeln", line.Answers.TextFor("extra"));
             Assert.Equal(750, line.PriceCents);
-            Assert.Equal("ohne Zwiebeln", line.Extra);
 
             // The header survives with no per-item state and its total derives from the one line.
             Assert.NotNull(line.Order);

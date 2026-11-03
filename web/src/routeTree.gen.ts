@@ -25,8 +25,9 @@ import { Route as AuthAdminRouteImport } from './routes/_auth/admin'
 import { Route as AuthAdminIndexRouteImport } from './routes/_auth/admin/index'
 import { Route as AuthAdminTiereRouteImport } from './routes/_auth/admin/tiere'
 import { Route as AuthAdminRegistrierungRouteImport } from './routes/_auth/admin/registrierung'
-import { Route as AuthAdminPizzaVariantsRouteImport } from './routes/_auth/admin/pizza-variants'
 import { Route as AuthAdminMenueRouteImport } from './routes/_auth/admin/menue'
+import { Route as AuthAdminKategorienRouteImport } from './routes/_auth/admin/kategorien'
+import { Route as AuthAdminFelderRouteImport } from './routes/_auth/admin/felder'
 import { Route as AuthAdminBenutzerRouteImport } from './routes/_auth/admin/benutzer'
 import { Route as AuthAdminBenachrichtigungenRouteImport } from './routes/_auth/admin/benachrichtigungen'
 
@@ -109,14 +110,19 @@ const AuthAdminRegistrierungRoute = AuthAdminRegistrierungRouteImport.update({
   path: '/registrierung',
   getParentRoute: () => AuthAdminRoute,
 } as any)
-const AuthAdminPizzaVariantsRoute = AuthAdminPizzaVariantsRouteImport.update({
-  id: '/pizza-variants',
-  path: '/pizza-variants',
-  getParentRoute: () => AuthAdminRoute,
-} as any)
 const AuthAdminMenueRoute = AuthAdminMenueRouteImport.update({
   id: '/menue',
   path: '/menue',
+  getParentRoute: () => AuthAdminRoute,
+} as any)
+const AuthAdminKategorienRoute = AuthAdminKategorienRouteImport.update({
+  id: '/kategorien',
+  path: '/kategorien',
+  getParentRoute: () => AuthAdminRoute,
+} as any)
+const AuthAdminFelderRoute = AuthAdminFelderRouteImport.update({
+  id: '/felder',
+  path: '/felder',
   getParentRoute: () => AuthAdminRoute,
 } as any)
 const AuthAdminBenutzerRoute = AuthAdminBenutzerRouteImport.update({
@@ -146,8 +152,9 @@ export interface FileRoutesByFullPath {
   '/tiere': typeof AuthTiereRoute
   '/admin/benachrichtigungen': typeof AuthAdminBenachrichtigungenRoute
   '/admin/benutzer': typeof AuthAdminBenutzerRoute
+  '/admin/felder': typeof AuthAdminFelderRoute
+  '/admin/kategorien': typeof AuthAdminKategorienRoute
   '/admin/menue': typeof AuthAdminMenueRoute
-  '/admin/pizza-variants': typeof AuthAdminPizzaVariantsRoute
   '/admin/registrierung': typeof AuthAdminRegistrierungRoute
   '/admin/tiere': typeof AuthAdminTiereRoute
   '/admin/': typeof AuthAdminIndexRoute
@@ -166,8 +173,9 @@ export interface FileRoutesByTo {
   '/': typeof AuthIndexRoute
   '/admin/benachrichtigungen': typeof AuthAdminBenachrichtigungenRoute
   '/admin/benutzer': typeof AuthAdminBenutzerRoute
+  '/admin/felder': typeof AuthAdminFelderRoute
+  '/admin/kategorien': typeof AuthAdminKategorienRoute
   '/admin/menue': typeof AuthAdminMenueRoute
-  '/admin/pizza-variants': typeof AuthAdminPizzaVariantsRoute
   '/admin/registrierung': typeof AuthAdminRegistrierungRoute
   '/admin/tiere': typeof AuthAdminTiereRoute
   '/admin': typeof AuthAdminIndexRoute
@@ -189,8 +197,9 @@ export interface FileRoutesById {
   '/_auth/': typeof AuthIndexRoute
   '/_auth/admin/benachrichtigungen': typeof AuthAdminBenachrichtigungenRoute
   '/_auth/admin/benutzer': typeof AuthAdminBenutzerRoute
+  '/_auth/admin/felder': typeof AuthAdminFelderRoute
+  '/_auth/admin/kategorien': typeof AuthAdminKategorienRoute
   '/_auth/admin/menue': typeof AuthAdminMenueRoute
-  '/_auth/admin/pizza-variants': typeof AuthAdminPizzaVariantsRoute
   '/_auth/admin/registrierung': typeof AuthAdminRegistrierungRoute
   '/_auth/admin/tiere': typeof AuthAdminTiereRoute
   '/_auth/admin/': typeof AuthAdminIndexRoute
@@ -212,8 +221,9 @@ export interface FileRouteTypes {
     | '/tiere'
     | '/admin/benachrichtigungen'
     | '/admin/benutzer'
+    | '/admin/felder'
+    | '/admin/kategorien'
     | '/admin/menue'
-    | '/admin/pizza-variants'
     | '/admin/registrierung'
     | '/admin/tiere'
     | '/admin/'
@@ -232,8 +242,9 @@ export interface FileRouteTypes {
     | '/'
     | '/admin/benachrichtigungen'
     | '/admin/benutzer'
+    | '/admin/felder'
+    | '/admin/kategorien'
     | '/admin/menue'
-    | '/admin/pizza-variants'
     | '/admin/registrierung'
     | '/admin/tiere'
     | '/admin'
@@ -254,8 +265,9 @@ export interface FileRouteTypes {
     | '/_auth/'
     | '/_auth/admin/benachrichtigungen'
     | '/_auth/admin/benutzer'
+    | '/_auth/admin/felder'
+    | '/_auth/admin/kategorien'
     | '/_auth/admin/menue'
-    | '/_auth/admin/pizza-variants'
     | '/_auth/admin/registrierung'
     | '/_auth/admin/tiere'
     | '/_auth/admin/'
@@ -381,18 +393,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthAdminRegistrierungRouteImport
       parentRoute: typeof AuthAdminRoute
     }
-    '/_auth/admin/pizza-variants': {
-      id: '/_auth/admin/pizza-variants'
-      path: '/pizza-variants'
-      fullPath: '/admin/pizza-variants'
-      preLoaderRoute: typeof AuthAdminPizzaVariantsRouteImport
-      parentRoute: typeof AuthAdminRoute
-    }
     '/_auth/admin/menue': {
       id: '/_auth/admin/menue'
       path: '/menue'
       fullPath: '/admin/menue'
       preLoaderRoute: typeof AuthAdminMenueRouteImport
+      parentRoute: typeof AuthAdminRoute
+    }
+    '/_auth/admin/kategorien': {
+      id: '/_auth/admin/kategorien'
+      path: '/kategorien'
+      fullPath: '/admin/kategorien'
+      preLoaderRoute: typeof AuthAdminKategorienRouteImport
+      parentRoute: typeof AuthAdminRoute
+    }
+    '/_auth/admin/felder': {
+      id: '/_auth/admin/felder'
+      path: '/felder'
+      fullPath: '/admin/felder'
+      preLoaderRoute: typeof AuthAdminFelderRouteImport
       parentRoute: typeof AuthAdminRoute
     }
     '/_auth/admin/benutzer': {
@@ -415,8 +434,9 @@ declare module '@tanstack/react-router' {
 interface AuthAdminRouteChildren {
   AuthAdminBenachrichtigungenRoute: typeof AuthAdminBenachrichtigungenRoute
   AuthAdminBenutzerRoute: typeof AuthAdminBenutzerRoute
+  AuthAdminFelderRoute: typeof AuthAdminFelderRoute
+  AuthAdminKategorienRoute: typeof AuthAdminKategorienRoute
   AuthAdminMenueRoute: typeof AuthAdminMenueRoute
-  AuthAdminPizzaVariantsRoute: typeof AuthAdminPizzaVariantsRoute
   AuthAdminRegistrierungRoute: typeof AuthAdminRegistrierungRoute
   AuthAdminTiereRoute: typeof AuthAdminTiereRoute
   AuthAdminIndexRoute: typeof AuthAdminIndexRoute
@@ -425,8 +445,9 @@ interface AuthAdminRouteChildren {
 const AuthAdminRouteChildren: AuthAdminRouteChildren = {
   AuthAdminBenachrichtigungenRoute: AuthAdminBenachrichtigungenRoute,
   AuthAdminBenutzerRoute: AuthAdminBenutzerRoute,
+  AuthAdminFelderRoute: AuthAdminFelderRoute,
+  AuthAdminKategorienRoute: AuthAdminKategorienRoute,
   AuthAdminMenueRoute: AuthAdminMenueRoute,
-  AuthAdminPizzaVariantsRoute: AuthAdminPizzaVariantsRoute,
   AuthAdminRegistrierungRoute: AuthAdminRegistrierungRoute,
   AuthAdminTiereRoute: AuthAdminTiereRoute,
   AuthAdminIndexRoute: AuthAdminIndexRoute,

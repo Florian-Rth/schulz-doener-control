@@ -10,9 +10,17 @@ public sealed class AppDbContext : DbContext
 
     public DbSet<User> Users => Set<User>();
 
-    public DbSet<MenuItem> MenuItems => Set<MenuItem>();
+    public DbSet<Store> Stores => Set<Store>();
 
-    public DbSet<PizzaVariant> PizzaVariants => Set<PizzaVariant>();
+    public DbSet<Category> Categories => Set<Category>();
+
+    public DbSet<FieldDefinition> FieldDefinitions => Set<FieldDefinition>();
+
+    public DbSet<FieldOption> FieldOptions => Set<FieldOption>();
+
+    public DbSet<CategoryField> CategoryFields => Set<CategoryField>();
+
+    public DbSet<MenuItem> MenuItems => Set<MenuItem>();
 
     public DbSet<OrderDay> OrderDays => Set<OrderDay>();
 

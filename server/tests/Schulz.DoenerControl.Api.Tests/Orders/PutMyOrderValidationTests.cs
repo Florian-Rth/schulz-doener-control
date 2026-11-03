@@ -1,7 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
 using Schulz.DoenerControl.Api.Endpoints.Orders;
-using Schulz.DoenerControl.Api.Tests.Auth;
 using Xunit;
 
 namespace Schulz.DoenerControl.Api.Tests.Orders;
@@ -10,6 +9,9 @@ public sealed class PutMyOrderValidationTests : DoenerControlTestBase
 {
     public PutMyOrderValidationTests(DoenerControlApp app)
         : base(app) { }
+
+    private static object MeatAnswers =>
+        new Dictionary<string, object> { ["meat"] = new { options = new[] { "kalb" } } };
 
     [Fact]
     public async Task Should_Reject_When_No_Product_Or_Price()
@@ -23,11 +25,8 @@ public sealed class PutMyOrderValidationTests : DoenerControlTestBase
                 new
                 {
                     ProductId = "",
-                    Meat = (string?)"Kalb",
-                    PizzaVariant = (string?)null,
-                    Sauces = Array.Empty<string>(),
+                    Answers = MeatAnswers,
                     PriceCents = 0,
-                    Extra = (string?)null,
                     Quantity = 1,
                 }
             )
@@ -62,11 +61,8 @@ public sealed class PutMyOrderValidationTests : DoenerControlTestBase
                 new
                 {
                     ProductId = "doener",
-                    Meat = (string?)"Kalb",
-                    PizzaVariant = (string?)null,
-                    Sauces = new[] { "Knoblauch" },
+                    Answers = MeatAnswers,
                     PriceCents = 750,
-                    Extra = (string?)null,
                     Quantity = 21,
                 }
             )
@@ -87,11 +83,8 @@ public sealed class PutMyOrderValidationTests : DoenerControlTestBase
                 new
                 {
                     ProductId = "doener",
-                    Meat = (string?)"Kalb",
-                    PizzaVariant = (string?)null,
-                    Sauces = new[] { "Knoblauch" },
+                    Answers = MeatAnswers,
                     PriceCents = 100001,
-                    Extra = (string?)null,
                     Quantity = 1,
                 }
             )
@@ -106,17 +99,19 @@ public sealed class PutMyOrderValidationTests : DoenerControlTestBase
         var auth = await OrderTestHelpers.LoginAsChefAsync(App);
         var dayId = await OrderTestHelpers.OpenTodayAsync(auth);
 
+        // Pizza's category has no `meat` field, so a meat answer is an unknown-field rejection.
         var response = await auth.PutJsonAsync(
             $"/api/order-days/{dayId}/orders/mine",
             Body(
                 new
                 {
                     ProductId = "pizza",
-                    Meat = (string?)"Kalb",
-                    PizzaVariant = (string?)Admin.AdminPizzaVariantTestHelpers.SalamiId,
-                    Sauces = Array.Empty<string>(),
+                    Answers = new Dictionary<string, object>
+                    {
+                        ["variant"] = new { options = new[] { "salami" } },
+                        ["meat"] = new { options = new[] { "kalb" } },
+                    },
                     PriceCents = 900,
-                    Extra = (string?)null,
                     Quantity = 1,
                 }
             )
@@ -135,27 +130,26 @@ public sealed class PutMyOrderValidationTests : DoenerControlTestBase
             $"/api/order-days/{dayId}/orders/mine",
             new
             {
-                Lines = new[]
+                Lines = new object[]
                 {
                     new
                     {
                         ProductId = "doener",
-                        Meat = (string?)"Kalb",
-                        PizzaVariant = (string?)null,
-                        Sauces = new[] { "Knoblauch" },
+                        Answers = MeatAnswers,
                         PriceCents = 750,
-                        Extra = (string?)null,
                         Quantity = 1,
                     },
-                    // Second line is a pizza with meat → invalid; the per-line check must reject it.
+                    // Second line is a pizza carrying a meat answer → invalid; the per-line answer
+                    // check against the pizza category must reject the whole upsert.
                     new
                     {
                         ProductId = "pizza",
-                        Meat = (string?)"Kalb",
-                        PizzaVariant = (string?)Admin.AdminPizzaVariantTestHelpers.SalamiId,
-                        Sauces = Array.Empty<string>(),
+                        Answers = new Dictionary<string, object>
+                        {
+                            ["variant"] = new { options = new[] { "salami" } },
+                            ["meat"] = new { options = new[] { "kalb" } },
+                        },
                         PriceCents = 900,
-                        Extra = (string?)null,
                         Quantity = 1,
                     },
                 },
@@ -167,7 +161,7 @@ public sealed class PutMyOrderValidationTests : DoenerControlTestBase
     }
 
     [Fact]
-    public async Task Should_Accept_Pizza_And_Freeze_Pizza_Kind()
+    public async Task Should_Accept_Pizza_With_Variant()
     {
         var auth = await OrderTestHelpers.LoginAsChefAsync(App);
         var dayId = await OrderTestHelpers.OpenTodayAsync(auth);
@@ -178,11 +172,11 @@ public sealed class PutMyOrderValidationTests : DoenerControlTestBase
                 new
                 {
                     ProductId = "pizza",
-                    Meat = (string?)null,
-                    PizzaVariant = (string?)Admin.AdminPizzaVariantTestHelpers.SalamiId,
-                    Sauces = Array.Empty<string>(),
+                    Answers = new Dictionary<string, object>
+                    {
+                        ["variant"] = new { options = new[] { "salami" } },
+                    },
                     PriceCents = 900,
-                    Extra = (string?)null,
                     Quantity = 1,
                 }
             )
@@ -194,10 +188,9 @@ public sealed class PutMyOrderValidationTests : DoenerControlTestBase
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.NotNull(body);
         var line = Assert.Single(body!.Lines);
-        Assert.Equal("pizza", line.Kind);
-        Assert.Equal("Pizza Salami", line.ProductLabel);
-        Assert.Null(line.Meat);
-        Assert.Empty(line.Sauces);
+        Assert.Equal("Pizza", line.ProductLabel);
+        Assert.Equal(["salami"], line.Answers["variant"].Options);
+        Assert.Contains("Salami", line.Detail);
     }
 
     private static object Body(object line) => new { Lines = new[] { line }, IsPickup = false };

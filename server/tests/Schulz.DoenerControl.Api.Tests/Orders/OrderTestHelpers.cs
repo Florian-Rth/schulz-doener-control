@@ -67,7 +67,8 @@ internal static class OrderTestHelpers
             .SingleAsync(TestContext.Current.CancellationToken);
     }
 
-    // A single-line döner order body in the multi-line wire shape (one line, quantity 1).
+    // A single-line döner order body in the multi-line wire shape (one line, quantity 1). Meat/sauce
+    // are the enum-name form the old callers used; they lowercase to the reserved answer option keys.
     public static object DoenerBody(
         string productId = "doener",
         string meat = "Kalb",
@@ -83,14 +84,50 @@ internal static class OrderTestHelpers
                 new
                 {
                     ProductId = productId,
-                    Meat = (string?)meat,
-                    PizzaVariant = (string?)null,
-                    Sauces = sauces ?? new[] { "Knoblauch" },
-                    PriceCents = priceCents,
-                    Extra = (string?)null,
+                    Answers = DoenerAnswers(meat, sauces ?? new[] { "Knoblauch" }),
+                    PriceCents = (int?)priceCents,
                     Quantity = quantity,
                 },
             },
             IsPickup = isPickup,
         };
+
+    // A single-line pizza order body: the variant is the reserved option key (e.g. "salami").
+    public static object PizzaBody(
+        string variant = "salami",
+        int priceCents = 900,
+        bool isPickup = false,
+        int quantity = 1
+    ) =>
+        new
+        {
+            Lines = new[]
+            {
+                new
+                {
+                    ProductId = "pizza",
+                    Answers = new Dictionary<string, object>
+                    {
+                        ["variant"] = new { options = new[] { variant } },
+                    },
+                    PriceCents = (int?)priceCents,
+                    Quantity = quantity,
+                },
+            },
+            IsPickup = isPickup,
+        };
+
+    private static Dictionary<string, object> DoenerAnswers(string meat, string[] sauces)
+    {
+        var answers = new Dictionary<string, object>
+        {
+            ["meat"] = new { options = new[] { meat.ToLowerInvariant() } },
+        };
+        if (sauces.Length > 0)
+            answers["sauce"] = new
+            {
+                options = sauces.Select(sauce => sauce.ToLowerInvariant()).ToArray(),
+            };
+        return answers;
+    }
 }

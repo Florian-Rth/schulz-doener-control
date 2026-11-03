@@ -118,7 +118,8 @@ public sealed class DatabaseSeederTests
                 Hasher,
                 Options.Create(options),
                 TimeProvider.System,
-                new MenuSeeder(Database),
+                new StoreSeeder(Database, TimeProvider.System),
+                new GenericMenuSeeder(Database),
                 new NotificationTemplateSeeder(Database)
             );
             await seeder.SeedAsync(Ct);
