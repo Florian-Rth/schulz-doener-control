@@ -6,6 +6,7 @@ import { GhostButton, PageLayout, PrimaryButton } from "@/components";
 import { orderCopy } from "../../copy";
 import { centsToLabel } from "../../money";
 import { useOrderFormContext } from "../../order-context";
+import { BestellFeier } from "../BestellFeier";
 import { OrderHeader } from "./internal/OrderHeader";
 import { OrderLineCard } from "./internal/OrderLineCard";
 import { PickupToggleCard } from "./internal/PickupToggleCard";
@@ -26,6 +27,8 @@ export const OrderPage: FC = () => {
     isSubmitting,
     serverError,
     onSubmit,
+    celebration,
+    finishCelebration,
   } = useOrderFormContext();
 
   const goHome = (): void => {
@@ -77,6 +80,9 @@ export const OrderPage: FC = () => {
 
         <RemoveOrderButton />
       </PageLayout.Content>
+      {celebration !== null ? (
+        <BestellFeier celebration={celebration} onDone={finishCelebration} />
+      ) : null}
     </PageLayout>
   );
 };

@@ -147,3 +147,23 @@ export const konfiguratorCopy = {
     "📸 Instagram-tauglich, Chef.",
   ],
 } as const;
+
+// Bestell-Feier: the short full-screen celebration after "Bestellung abgeben".
+// `lines` is a pool — every celebration rolls a seed and draws one big line.
+export const bestellFeierCopy = {
+  eyebrow: "Bestellung eingegangen",
+  lines: [
+    "Bestellung ist raus, Chef. KAWUMM!",
+    "Zack, eingetragen, Chef! Der Abholer weiß Bescheid.",
+    "Mission Döner: erfolgreich, Chef.",
+    "Der Spieß dreht sich schon für dich, Chef.",
+    "Eingetütet und abgeschickt, Chef!",
+    "Bestellt wie ein Profi, Chef.",
+    "Beste Entscheidung des Tages, Chef.",
+    "Hunger-Problem gelöst, Chef. Fast.",
+    "Fleisch-Rucksack ist reserviert, Chef!",
+    "Bestellung sitzt. Jetzt nur noch durchhalten, Chef.",
+  ],
+  next: "Weiter",
+  skipHint: "Tippen zum Überspringen",
+} as const;

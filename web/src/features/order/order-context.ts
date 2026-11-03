@@ -1,5 +1,6 @@
 import { createContext, useContext } from "react";
 import type { useFieldArray, useForm } from "react-hook-form";
+import type { Celebration } from "./celebration";
 import type { AnswerValue, Field, Menu, OrderForm, OrderLineForm } from "./types";
 
 export interface OrderFormContextValue {
@@ -30,6 +31,10 @@ export interface OrderFormContextValue {
   removeOrder: () => void;
   isRemoving: boolean;
   removeError: string | null;
+  /** Set once the order is saved — the Bestell-Feier plays before the success screen. */
+  celebration: Celebration | null;
+  /** Ends the Bestell-Feier and routes to the success screen. */
+  finishCelebration: () => void;
 }
 
 export const OrderFormContext = createContext<OrderFormContextValue | null>(null);
