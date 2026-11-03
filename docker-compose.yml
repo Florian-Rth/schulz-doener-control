@@ -4,7 +4,8 @@
 #   2. docker compose up -d
 #
 # CI (.github/workflows/ci.yml) pushes both images to Docker Hub on every green push
-# to main and moves :latest onto them. The containers carry the Watchtower opt-in
+# and moves the branch's tag onto them: main -> :latest, staging -> :staging (run a
+# staging host with TAG=staging). The containers carry the Watchtower opt-in
 # label, so a host-wide label-enabled Watchtower (WATCHTOWER_LABEL_ENABLE=true) pulls
 # and redeploys them automatically. scripts/docker-build-push.sh remains for manual pushes.
 #
