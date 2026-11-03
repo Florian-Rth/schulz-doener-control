@@ -8,6 +8,11 @@ namespace Schulz.DoenerControl.Infrastructure.Persistence.Migrations
     /// <inheritdoc />
     public partial class GenericMenuModel : Migration
     {
+        // A random Guid in the upper-case text form EF's SQLite provider stores Guids in.
+        private const string NewGuidSql =
+            @"upper(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-' || hex(randomblob(2))
+                || '-' || hex(randomblob(2)) || '-' || hex(randomblob(6)))";
+
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -269,28 +274,79 @@ namespace Schulz.DoenerControl.Infrastructure.Persistence.Migrations
                   WHERE ""Sauces"" IS NOT NULL AND ""Sauces"" <> 0;"
             );
 
-            // Only the five canonical variant ids are mapped. A non-canonical id (an admin-added
-            // variant used by some order) is deliberately left unmapped so the VERIFY guard below
-            // trips and the whole migration aborts, surfacing it on the staging rehearsal rather than
-            // silently dropping the line's variant.
+            // Pizza variants: every PizzaVariants row — the five canonical ones AND any variant an
+            // admin added — becomes an option of the store's `variant` field, so no live order line
+            // loses its variant and admin-added variants stay on the menu. Canonical ids take their
+            // seed keys / price deltas (the GenericMenuSeeder then finds them present and leaves
+            // them alone); admin-added ids get the stable key `v-<id>`. Ids are compared
+            // lower-cased because EF's SQLite Guid mapping stores them upper-case.
+            migrationBuilder.Sql(
+                @"CREATE TEMP TABLE ""__variant_map"" AS
+                  SELECT lower(""Id"") AS ""VariantId"",
+                         CASE lower(""Id"")
+                             WHEN 'b1a7c0de-0002-4a02-9a02-000000000002' THEN 'margherita'
+                             WHEN 'b1a7c0de-0003-4a03-9a03-000000000003' THEN 'funghi'
+                             WHEN 'b1a7c0de-0001-4a01-9a01-000000000001' THEN 'salami'
+                             WHEN 'b1a7c0de-0004-4a04-9a04-000000000004' THEN 'tonno'
+                             WHEN 'b1a7c0de-0005-4a05-9a05-000000000005' THEN 'hawaii'
+                             ELSE 'v-' || lower(""Id"") END AS ""OptionKey"",
+                         CASE lower(""Id"")
+                             WHEN 'b1a7c0de-0002-4a02-9a02-000000000002' THEN 0
+                             WHEN 'b1a7c0de-0003-4a03-9a03-000000000003' THEN 1
+                             WHEN 'b1a7c0de-0001-4a01-9a01-000000000001' THEN 2
+                             WHEN 'b1a7c0de-0004-4a04-9a04-000000000004' THEN 3
+                             WHEN 'b1a7c0de-0005-4a05-9a05-000000000005' THEN 4
+                             ELSE 5 END AS ""Rank"",
+                         CASE lower(""Id"")
+                             WHEN 'b1a7c0de-0001-4a01-9a01-000000000001' THEN 100
+                             WHEN 'b1a7c0de-0004-4a04-9a04-000000000004' THEN 100
+                             WHEN 'b1a7c0de-0005-4a05-9a05-000000000005' THEN 100
+                             ELSE 0 END AS ""PriceDeltaCents"",
+                         ""Name"", ""Icon"", ""IsAvailable""
+                  FROM ""PizzaVariants"";"
+            );
+
+            migrationBuilder.Sql(
+                @"INSERT INTO ""FieldDefinitions""
+                      (""Id"", ""StoreId"", ""Key"", ""Label"", ""Type"", ""Display"", ""MaxLength"")
+                  SELECT "
+                    + NewGuidSql
+                    + @", ""Id"", 'variant', 'Sorte', 1, 2, NULL
+                  FROM ""Stores""
+                  WHERE ""Key"" = 'schulz-doener'
+                    AND EXISTS (SELECT 1 FROM ""__variant_map"");"
+            );
+
+            migrationBuilder.Sql(
+                @"INSERT INTO ""FieldOptions""
+                      (""Id"", ""FieldDefinitionId"", ""Key"", ""Label"", ""Icon"", ""PriceDeltaCents"",
+                       ""SortOrder"", ""IsAvailable"")
+                  SELECT "
+                    + NewGuidSql
+                    + @", field.""Id"", map.""OptionKey"", map.""Name"",
+                         map.""Icon"", map.""PriceDeltaCents"",
+                         ROW_NUMBER() OVER (ORDER BY map.""Rank"", map.""Name"") - 1,
+                         map.""IsAvailable""
+                  FROM ""__variant_map"" AS map
+                  JOIN ""FieldDefinitions"" AS field ON field.""Key"" = 'variant'
+                  JOIN ""Stores"" AS store
+                    ON store.""Id"" = field.""StoreId"" AND store.""Key"" = 'schulz-doener';"
+            );
+
+            // A line whose variant id has no PizzaVariants row stays unmapped, so the VERIFY guard
+            // below trips and the whole migration aborts rather than silently dropping its variant.
             migrationBuilder.Sql(
                 @"UPDATE ""OrderLines""
                   SET ""Answers"" = json_set(""Answers"", '$.variant',
                       json_object('options', json_array(
-                          CASE lower(""PizzaVariantId"")
-                              WHEN 'b1a7c0de-0001-4a01-9a01-000000000001' THEN 'salami'
-                              WHEN 'b1a7c0de-0002-4a02-9a02-000000000002' THEN 'margherita'
-                              WHEN 'b1a7c0de-0003-4a03-9a03-000000000003' THEN 'funghi'
-                              WHEN 'b1a7c0de-0004-4a04-9a04-000000000004' THEN 'tonno'
-                              WHEN 'b1a7c0de-0005-4a05-9a05-000000000005' THEN 'hawaii' END)))
+                          (SELECT map.""OptionKey"" FROM ""__variant_map"" AS map
+                           WHERE map.""VariantId"" = lower(""OrderLines"".""PizzaVariantId"")))))
                   WHERE ""PizzaVariantId"" IS NOT NULL
-                    AND lower(""PizzaVariantId"") IN (
-                        'b1a7c0de-0001-4a01-9a01-000000000001',
-                        'b1a7c0de-0002-4a02-9a02-000000000002',
-                        'b1a7c0de-0003-4a03-9a03-000000000003',
-                        'b1a7c0de-0004-4a04-9a04-000000000004',
-                        'b1a7c0de-0005-4a05-9a05-000000000005');"
+                    AND EXISTS (SELECT 1 FROM ""__variant_map"" AS map
+                                WHERE map.""VariantId"" = lower(""OrderLines"".""PizzaVariantId""));"
             );
+
+            migrationBuilder.Sql(@"DROP TABLE ""__variant_map"";");
 
             migrationBuilder.Sql(
                 @"UPDATE ""OrderLines""
@@ -320,6 +376,14 @@ namespace Schulz.DoenerControl.Infrastructure.Persistence.Migrations
             migrationBuilder.Sql(@"DROP TABLE ""__migration_guard"";");
 
             // ── CONTRACT (drop the old columns / table, only after VERIFY passed) ──────────────
+            // EF defers the OrderLines column drops to a table rebuild at the end of the migration,
+            // so the old FK is still live when PizzaVariants is dropped below. Clear the (already
+            // backfilled, about-to-be-dropped) references first, or the drop fails on any database
+            // with a pizza order.
+            migrationBuilder.Sql(
+                @"UPDATE ""OrderLines"" SET ""PizzaVariantId"" = NULL WHERE ""PizzaVariantId"" IS NOT NULL;"
+            );
+
             migrationBuilder.DropForeignKey(
                 name: "FK_OrderLines_PizzaVariants_PizzaVariantId",
                 table: "OrderLines"
