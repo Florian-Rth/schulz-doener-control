@@ -1,8 +1,12 @@
 # Schulz Döner Control — run the published images together.
 #
 #   1. cp .env.docker.example .env   and fill in the secrets
-#   2. docker compose pull           (or: scripts/docker-build-push.sh to build locally)
-#   3. docker compose up -d
+#   2. docker compose up -d
+#
+# CI (.github/workflows/ci.yml) pushes both images to Docker Hub on every green push
+# to main and moves :latest onto them. The containers carry the Watchtower opt-in
+# label, so a host-wide label-enabled Watchtower (WATCHTOWER_LABEL_ENABLE=true) pulls
+# and redeploys them automatically. scripts/docker-build-push.sh remains for manual pushes.
 #
 # The web container serves the SPA and reverse-proxies /api to the api container,
 # so the whole app is reachable on a single origin (http://<host>:8080) with
@@ -12,6 +16,8 @@ services:
   api:
     image: florianrth/doener-control-api:${TAG:-latest}
     restart: unless-stopped
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__AppDb: "Data Source=/data/doenercontrol.db"
@@ -45,6 +51,8 @@ services:
   web:
     image: florianrth/doener-control-web:${TAG:-latest}
     restart: unless-stopped
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
     environment:
       API_UPSTREAM: "http://api:8080"
     ports:

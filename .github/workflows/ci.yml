@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: server/global.json
+      - run: dotnet build
+      - run: dotnet test --no-build
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: web/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm test
+      - run: pnpm build
+
+  # Only a green push to main publishes images. Each image is pushed as the immutable
+  # sha-<short> tag, then :latest (what Watchtower on the host follows) is moved onto it -
+  # unless a newer commit already landed on main, so a late run never moves :latest backwards.
+  # Rollback: repoint :latest to an older tag, e.g.
+  #   docker buildx imagetools create -t florianrth/doener-control-api:latest florianrth/doener-control-api:sha-abc1234
+  images:
+    needs: [backend, web]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [api, web]
+    concurrency:
+      group: latest-${{ matrix.app }}
+      cancel-in-progress: false
+    env:
+      IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/doener-control-${{ matrix.app }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: build
+        run: |
+          echo "short-sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          if [ "${{ matrix.app }}" = "api" ]; then
+            echo "context=server" >> "$GITHUB_OUTPUT"
+          else
+            echo "context=web" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+          tags: type=sha,format=short
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ steps.build.outputs.context }}
+          file: ${{ steps.build.outputs.context }}/Dockerfile
+          platforms: linux/amd64
+          push: true
+          # Same-origin deployment: the web nginx proxies /api to the api container.
+          build-args: VITE_API_BASE=
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.app }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.app }}
+      - name: Move :latest onto this commit
+        run: |
+          main_head="$(git ls-remote origin refs/heads/main | cut -f1)"
+          if [ "$main_head" != "$GITHUB_SHA" ]; then
+            echo "main moved on to $main_head - :latest stays where it is."
+            exit 0
+          fi
+          docker buildx imagetools create \
+            --tag "$IMAGE:latest" \
+            "$IMAGE:sha-${{ steps.build.outputs.short-sha }}"
