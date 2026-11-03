@@ -13,18 +13,14 @@ namespace Schulz.DoenerControl.Api.Tests.Email;
 // captured attachment is asserted, plus every guard path, without a real SMTP server. One isolated DB
 // per class; open-day is idempotent and collector take-over is unconditional, so each test sets up
 // the collector it needs regardless of order.
-public sealed class EmailOrderListPdfEnabledTests : TestBase<EmailEnabledApp>
+public sealed class EmailOrderListPdfEnabledTests : IsolatedTestBase<EmailEnabledApp>
 {
     private const string LoginUrl = "/api/auth/login";
     private const string ChangePasswordUrl = "/api/auth/change-password";
     private const string WorkEmailUrl = "/api/profile/work-email";
 
-    private readonly EmailEnabledApp app;
-
     public EmailOrderListPdfEnabledTests(EmailEnabledApp app)
-    {
-        this.app = app;
-    }
+        : base(app) { }
 
     [Fact]
     public async Task Should_Send_Pdf_To_WorkEmail_When_Collector()
@@ -47,7 +43,7 @@ public sealed class EmailOrderListPdfEnabledTests : TestBase<EmailEnabledApp>
         Assert.NotNull(body);
         Assert.Equal("chef@schulz.st", body!.SentToAddress);
 
-        var sent = app.Email.LastMessage;
+        var sent = App.Email.LastMessage;
         Assert.NotNull(sent);
         Assert.Equal("chef@schulz.st", sent!.ToAddress);
         Assert.NotNull(sent.Attachment);
@@ -110,7 +106,7 @@ public sealed class EmailOrderListPdfEnabledTests : TestBase<EmailEnabledApp>
 
     private async Task<AuthTestClient> LoginAsChefAsync()
     {
-        var auth = new AuthTestClient(app.CreateClient());
+        var auth = new AuthTestClient(App.CreateClient());
         await auth.PostJsonAsync(
             LoginUrl,
             new { Username = TestSeeding.ChefUsername, Password = TestSeeding.ChefPassword }
@@ -120,7 +116,7 @@ public sealed class EmailOrderListPdfEnabledTests : TestBase<EmailEnabledApp>
 
     private async Task<AuthTestClient> LoginAsColleagueAsync(string username, string newPassword)
     {
-        var first = new AuthTestClient(app.CreateClient());
+        var first = new AuthTestClient(App.CreateClient());
         await first.PostJsonAsync(
             LoginUrl,
             new { Username = username, Password = TestSeeding.InitialColleaguePassword }
@@ -134,7 +130,7 @@ public sealed class EmailOrderListPdfEnabledTests : TestBase<EmailEnabledApp>
             }
         );
 
-        var auth = new AuthTestClient(app.CreateClient());
+        var auth = new AuthTestClient(App.CreateClient());
         await auth.PostJsonAsync(LoginUrl, new { Username = username, Password = newPassword });
         return auth;
     }

@@ -1,6 +1,5 @@
 using FastEndpoints.Testing;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -17,32 +16,19 @@ namespace Schulz.DoenerControl.Api.Tests;
 // and thus one AppDbContext registration / one database — defeating per-class isolation.
 // Disabling the cache boots a fresh SUT, and a fresh database, per test class.
 [DisableWafCache]
-public sealed class DoenerControlApp : AppFixture<Program>
+public sealed class DoenerControlApp : AppFixture<Program>, IResettableTestApp
 {
-    // A per-fixture, in-memory shared-cache database. The unique name makes test classes
-    // process-isolated (no shared files, no timing/ordering races); the ".db" token keeps the
-    // data source human-recognizable. A shared-cache in-memory DB lives only as long as at
-    // least one connection is open — keepAliveConnection guarantees that for the fixture
-    // lifetime, and EF's per-request connections join the same cache by name.
-    private readonly string connectionString = new SqliteConnectionStringBuilder
-    {
-        DataSource = $"doener-test-{Guid.NewGuid():N}.db",
-        Mode = SqliteOpenMode.Memory,
-        Cache = SqliteCacheMode.Shared,
-    }.ToString();
-
-    private SqliteConnection keepAliveConnection = null!;
+    private readonly SqliteTestDatabase database = new("doener-test");
 
     protected override void ConfigureApp(IWebHostBuilder builder)
     {
-        keepAliveConnection = new SqliteConnection(connectionString);
-        keepAliveConnection.Open();
+        database.Open();
 
         builder.UseEnvironment("Testing");
 
         // Test secrets injected via host config so no real production secret is ever needed.
         // The wiring slots exist now; the auth feature consumes them later.
-        builder.UseSetting("ConnectionStrings:AppDb", connectionString);
+        builder.UseSetting("ConnectionStrings:AppDb", database.ConnectionString);
         builder.UseSetting("Auth:Pepper", TestConfig.Pepper);
         builder.UseSetting("Auth:JwtSigningKey", TestConfig.JwtSigningKey);
         builder.UseSetting("Auth:JwtIssuer", TestConfig.JwtIssuer);
@@ -57,7 +43,9 @@ public sealed class DoenerControlApp : AppFixture<Program>
         // Strip the real AppDbContext registration and re-point it at this fixture's database.
         services.RemoveAll<DbContextOptions<AppDbContext>>();
         services.RemoveAll<AppDbContext>();
-        services.AddDbContext<AppDbContext>(options => options.UseSqlite(connectionString));
+        services.AddDbContext<AppDbContext>(options =>
+            options.UseSqlite(database.ConnectionString)
+        );
 
         TestClock.Override(services);
     }
@@ -73,12 +61,19 @@ public sealed class DoenerControlApp : AppFixture<Program>
         await Services.SeedMenuAsync();
         await Services.SeedNotificationTemplatesAsync();
         await Services.SeedStandardTestUsersAsync();
+
+        database.CaptureSnapshot();
     }
 
     protected override ValueTask TearDownAsync()
     {
         // Closing the only open connection drops this fixture's in-memory database.
-        keepAliveConnection.Dispose();
+        database.Dispose();
         return ValueTask.CompletedTask;
+    }
+
+    public void ResetDatabase()
+    {
+        database.RestoreSnapshot();
     }
 }

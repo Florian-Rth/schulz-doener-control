@@ -1,6 +1,5 @@
 using FastEndpoints.Testing;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -12,25 +11,17 @@ namespace Schulz.DoenerControl.Api.Tests.Config;
 // A PWA-gate-enabled variant of the real-SQLite harness: same per-class isolated SQLite database,
 // but with Auth:PwaGateEnabled configured true so /api/config reports the install gate as active.
 [DisableWafCache]
-public sealed class PwaGateEnabledApp : AppFixture<Program>
+public sealed class PwaGateEnabledApp : AppFixture<Program>, IResettableTestApp
 {
-    private readonly string connectionString = new SqliteConnectionStringBuilder
-    {
-        DataSource = $"doener-pwagate-test-{Guid.NewGuid():N}.db",
-        Mode = SqliteOpenMode.Memory,
-        Cache = SqliteCacheMode.Shared,
-    }.ToString();
-
-    private SqliteConnection keepAliveConnection = null!;
+    private readonly SqliteTestDatabase database = new("doener-pwagate-test");
 
     protected override void ConfigureApp(IWebHostBuilder builder)
     {
-        keepAliveConnection = new SqliteConnection(connectionString);
-        keepAliveConnection.Open();
+        database.Open();
 
         builder.UseEnvironment("Testing");
 
-        builder.UseSetting("ConnectionStrings:AppDb", connectionString);
+        builder.UseSetting("ConnectionStrings:AppDb", database.ConnectionString);
         builder.UseSetting("Auth:Pepper", TestConfig.Pepper);
         builder.UseSetting("Auth:JwtSigningKey", TestConfig.JwtSigningKey);
         builder.UseSetting("Auth:JwtIssuer", TestConfig.JwtIssuer);
@@ -45,7 +36,9 @@ public sealed class PwaGateEnabledApp : AppFixture<Program>
     {
         services.RemoveAll<DbContextOptions<AppDbContext>>();
         services.RemoveAll<AppDbContext>();
-        services.AddDbContext<AppDbContext>(options => options.UseSqlite(connectionString));
+        services.AddDbContext<AppDbContext>(options =>
+            options.UseSqlite(database.ConnectionString)
+        );
 
         TestClock.Override(services);
     }
@@ -54,11 +47,18 @@ public sealed class PwaGateEnabledApp : AppFixture<Program>
     {
         await Services.MigrateAsync();
         await Services.SeedStandardTestUsersAsync();
+
+        database.CaptureSnapshot();
     }
 
     protected override ValueTask TearDownAsync()
     {
-        keepAliveConnection.Dispose();
+        database.Dispose();
         return ValueTask.CompletedTask;
+    }
+
+    public void ResetDatabase()
+    {
+        database.RestoreSnapshot();
     }
 }

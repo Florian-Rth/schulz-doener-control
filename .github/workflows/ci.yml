@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  push:
+    branches: [main, staging]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: server/global.json
+      - run: dotnet build
+      - run: dotnet test --no-build
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: web/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm test
+      - run: pnpm build
+
+  # Only a green push to main or staging publishes images. Each image is pushed as the immutable
+  # sha-<short> tag, then the branch's moving tag is moved onto it: main -> :latest (production),
+  # staging -> :staging. Watchtower on the host follows those tags. A run whose branch already
+  # moved on to a newer commit leaves the moving tag alone, so it never goes backwards.
+  # Rollback: repoint :latest to an older tag, e.g.
+  #   docker buildx imagetools create -t florianrth/doener-control-api:latest florianrth/doener-control-api:sha-abc1234
+  images:
+    needs: [backend, web]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [api, web]
+    concurrency:
+      group: publish-${{ github.ref_name }}-${{ matrix.app }}
+      cancel-in-progress: false
+    env:
+      IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/doener-control-${{ matrix.app }}
+      MOVING_TAG: ${{ github.ref_name == 'main' && 'latest' || 'staging' }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: build
+        run: |
+          echo "short-sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          if [ "${{ matrix.app }}" = "api" ]; then
+            echo "context=server" >> "$GITHUB_OUTPUT"
+          else
+            echo "context=web" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+          tags: type=sha,format=short
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ steps.build.outputs.context }}
+          file: ${{ steps.build.outputs.context }}/Dockerfile
+          platforms: linux/amd64
+          push: true
+          # Same-origin deployment: the web nginx proxies /api to the api container.
+          build-args: VITE_API_BASE=
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.app }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.app }}
+      - name: Move the branch's moving tag onto this commit
+        run: |
+          branch_head="$(git ls-remote origin "refs/heads/$GITHUB_REF_NAME" | cut -f1)"
+          if [ "$branch_head" != "$GITHUB_SHA" ]; then
+            echo "$GITHUB_REF_NAME moved on to $branch_head - :$MOVING_TAG stays where it is."
+            exit 0
+          fi
+          docker buildx imagetools create \
+            --tag "$IMAGE:$MOVING_TAG" \
+            "$IMAGE:sha-${{ steps.build.outputs.short-sha }}"

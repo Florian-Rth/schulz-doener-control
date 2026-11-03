@@ -1,6 +1,5 @@
 using FastEndpoints.Testing;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -15,27 +14,19 @@ namespace Schulz.DoenerControl.Api.Tests.Email;
 // captured attachment can be asserted — without any real SMTP server. Same per-class isolated DB as
 // the default harness; seeds menu + notification templates so orders and day-open work.
 [DisableWafCache]
-public sealed class EmailEnabledApp : AppFixture<Program>
+public sealed class EmailEnabledApp : AppFixture<Program>, IResettableTestApp
 {
-    private readonly string connectionString = new SqliteConnectionStringBuilder
-    {
-        DataSource = $"doener-email-test-{Guid.NewGuid():N}.db",
-        Mode = SqliteOpenMode.Memory,
-        Cache = SqliteCacheMode.Shared,
-    }.ToString();
-
-    private SqliteConnection keepAliveConnection = null!;
+    private readonly SqliteTestDatabase database = new("doener-email-test");
 
     public RecordingEmailService Email { get; } = new();
 
     protected override void ConfigureApp(IWebHostBuilder builder)
     {
-        keepAliveConnection = new SqliteConnection(connectionString);
-        keepAliveConnection.Open();
+        database.Open();
 
         builder.UseEnvironment("Testing");
 
-        builder.UseSetting("ConnectionStrings:AppDb", connectionString);
+        builder.UseSetting("ConnectionStrings:AppDb", database.ConnectionString);
         builder.UseSetting("Auth:Pepper", TestConfig.Pepper);
         builder.UseSetting("Auth:JwtSigningKey", TestConfig.JwtSigningKey);
         builder.UseSetting("Auth:JwtIssuer", TestConfig.JwtIssuer);
@@ -49,7 +40,9 @@ public sealed class EmailEnabledApp : AppFixture<Program>
     {
         services.RemoveAll<DbContextOptions<AppDbContext>>();
         services.RemoveAll<AppDbContext>();
-        services.AddDbContext<AppDbContext>(options => options.UseSqlite(connectionString));
+        services.AddDbContext<AppDbContext>(options =>
+            options.UseSqlite(database.ConnectionString)
+        );
 
         // Swap the real SMTP sender for the recorder (IsEnabled = true) so the endpoint runs the real
         // PDF render and the captured attachment is observable — no real SMTP server needed.
@@ -65,11 +58,18 @@ public sealed class EmailEnabledApp : AppFixture<Program>
         await Services.SeedMenuAsync();
         await Services.SeedNotificationTemplatesAsync();
         await Services.SeedStandardTestUsersAsync();
+
+        database.CaptureSnapshot();
     }
 
     protected override ValueTask TearDownAsync()
     {
-        keepAliveConnection.Dispose();
+        database.Dispose();
         return ValueTask.CompletedTask;
+    }
+
+    public void ResetDatabase()
+    {
+        database.RestoreSnapshot();
     }
 }
