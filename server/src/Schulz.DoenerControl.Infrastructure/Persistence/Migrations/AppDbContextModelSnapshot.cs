@@ -206,6 +206,41 @@ namespace Schulz.DoenerControl.Infrastructure.Persistence.Migrations
                     b.ToTable("FieldOptions", (string)null);
                 });
 
+            modelBuilder.Entity("Schulz.DoenerControl.Core.Entities.GameScore", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Hits")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Misses")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid?>("OrderDayId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("PlayedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Score")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Score");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("OrderDayId", "Score");
+
+                    b.ToTable("GameScores", (string)null);
+                });
+
             modelBuilder.Entity("Schulz.DoenerControl.Core.Entities.MenuItem", b =>
                 {
                     b.Property<string>("Id")
@@ -729,6 +764,24 @@ namespace Schulz.DoenerControl.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("FieldDefinition");
+                });
+
+            modelBuilder.Entity("Schulz.DoenerControl.Core.Entities.GameScore", b =>
+                {
+                    b.HasOne("Schulz.DoenerControl.Core.Entities.OrderDay", "OrderDay")
+                        .WithMany()
+                        .HasForeignKey("OrderDayId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Schulz.DoenerControl.Core.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("OrderDay");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Schulz.DoenerControl.Core.Entities.MenuItem", b =>

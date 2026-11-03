@@ -20,3 +20,4 @@ export {
   buildAtBeat,
   useBuildReplay,
 } from "./use-build-replay";
+export type { ImpactWord } from "./use-impact-word";

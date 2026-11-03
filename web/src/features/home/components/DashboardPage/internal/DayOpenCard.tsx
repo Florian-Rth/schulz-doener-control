@@ -18,6 +18,7 @@ import { AdminEndDayButton } from "./AdminEndDayButton";
 import { CollectorControls } from "./CollectorControls";
 import { OrderRowItem } from "./OrderRowItem";
 import { TakeOverCollectorButton } from "./TakeOverCollectorButton";
+import { WaitingGameTile } from "./WaitingGameTile";
 
 interface DayOpenCardProps {
   day: DashboardDay;
@@ -214,6 +215,9 @@ export const DayOpenCard: FC<DayOpenCardProps> = ({ day }) => {
               {orderingClosedInfo}
             </Typography>
           </Stack>
+        ) : null}
+        {day.isOrderingClosed && day.abholer !== null && !day.amICollector ? (
+          <WaitingGameTile />
         ) : null}
         <CollectorControls day={day} />
         {/* A non-collector admin reaches the destructive abort here — the

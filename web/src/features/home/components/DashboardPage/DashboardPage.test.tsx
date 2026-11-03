@@ -293,6 +293,29 @@ describe("DashboardPage", () => {
     expect(await findByText("Bestellschluss 12:47 Uhr")).toBeInTheDocument();
   });
 
+  it("verlinkt während der Abholer unterwegs ist auf den Döner-Weitwurf, nicht für den Abholer selbst", async () => {
+    const waitingDay = { ...openDay, isOrderingClosed: true, cutoffLabel: "12:47" };
+    useDashboardHandlers(buildDashboard({ day: waitingDay }));
+    const first = renderApp({ initialPath: "/" });
+
+    const tile = await first.findByRole("link", { name: /Warten auf den Abholer/ });
+    expect(tile).toHaveAttribute("href", "/weitwurf");
+    first.unmount();
+
+    useDashboardHandlers(buildDashboard({ day: { ...waitingDay, amICollector: true } }));
+    const second = renderApp({ initialPath: "/" });
+    expect(await second.findByText("Döner-Tag läuft")).toBeInTheDocument();
+    expect(second.queryByRole("link", { name: /Warten auf den Abholer/ })).not.toBeInTheDocument();
+  });
+
+  it("bietet den Döner-Weitwurf nicht an, solange noch bestellt wird", async () => {
+    useDashboardHandlers(buildDashboard());
+    const { findByText, queryByRole } = renderApp({ initialPath: "/" });
+
+    expect(await findByText("Döner-Tag läuft")).toBeInTheDocument();
+    expect(queryByRole("link", { name: /Warten auf den Abholer/ })).not.toBeInTheDocument();
+  });
+
   it("zeigt im CLOSED-Zustand die Eröffnungs-CTA", async () => {
     useDashboardHandlers(buildDashboard({ day: closedDay }));
     const { findByRole, findByText } = renderApp({ initialPath: "/" });

@@ -40,6 +40,8 @@ public sealed class AppDbContext : DbContext
 
     public DbSet<PushSubscription> PushSubscriptions => Set<PushSubscription>();
 
+    public DbSet<GameScore> GameScores => Set<GameScore>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
