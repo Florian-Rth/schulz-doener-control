@@ -1,7 +1,7 @@
 import Dialog from "@mui/material/Dialog";
 import Stack from "@mui/material/Stack";
 import { type FC, useState } from "react";
-import { rollSeed } from "../../funny-lines";
+import { rollSeed } from "@/lib/funny-lines";
 import { useDoenerKonfigurator } from "../../hooks/use-doener-konfigurator";
 import { KonfiguratorHeader } from "./internal/KonfiguratorHeader";
 import { KonfiguratorStage } from "./internal/KonfiguratorStage";

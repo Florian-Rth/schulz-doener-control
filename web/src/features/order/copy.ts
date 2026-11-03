@@ -50,16 +50,6 @@ export const konfiguratorCopy = {
   stepOf: (step: number, total: number): string => `Schritt ${step} von ${total}`,
   close: "Konfigurator schließen",
   back: "Zurück",
-  loading: [
-    "Brot wird aufgebacken …",
-    "Drehspieß wird angeworfen …",
-    "Physik wird kalibriert …",
-    "Soßenflaschen werden geschüttelt …",
-    "Zwiebeln werden zum Weinen gebracht …",
-    "Messer wird gewetzt …",
-  ],
-  noWebgl: "Dein Gerät kann leider kein 3D, Chef. Zusammenstellen geht trotzdem.",
-  sceneLabel: "3D-Vorschau deines Döners",
   meatQuestions: [
     "Welches Fleisch, Chef?",
     "Was darf vom Spieß, Chef?",
@@ -156,18 +146,4 @@ export const konfiguratorCopy = {
     "😋 Das Meeting nach der Mittagspause wird hart.",
     "📸 Instagram-tauglich, Chef.",
   ],
-  // Comic bursts when something slams into the bread.
-  impactWords: [
-    "KLATSCH!",
-    "WUMMS!",
-    "ZACK!",
-    "BÄM!",
-    "RUMMS!",
-    "FLATSCH!",
-    "PATSCH!",
-    "KAWUMM!",
-    "PLATSCH!",
-    "SCHEPPER!",
-  ],
-  sauceWords: ["SPRITZ!", "SCHLOTZ!", "SPLATSCH!", "BLUBB!", "SCHMATZ!", "PLÖRR!"],
 } as const;

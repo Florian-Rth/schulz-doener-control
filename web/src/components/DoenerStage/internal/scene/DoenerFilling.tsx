@@ -1,6 +1,5 @@
 import type { FC } from "react";
-import type { DoenerBuild } from "../../../../hooks/use-doener-konfigurator";
-import { VEGGIE_KEYS } from "../../../../konfigurator";
+import { type DoenerBuild, VEGGIE_KEYS } from "../../build";
 import { meatSpec, sauceColor, VEGGIE_SPECS } from "./food";
 import { IngredientBatch } from "./IngredientBatch";
 import { SauceStream } from "./SauceStream";

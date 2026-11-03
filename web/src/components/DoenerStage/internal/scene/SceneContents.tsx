@@ -10,8 +10,8 @@ import { useThree } from "@react-three/fiber";
 import { Bloom, EffectComposer, SMAA, ToneMapping, Vignette } from "@react-three/postprocessing";
 import { Physics } from "@react-three/rapier";
 import { ToneMappingMode } from "postprocessing";
-import { type FC, useEffect, useRef, useState } from "react";
-import type { DoenerBuild } from "../../../../hooks/use-doener-konfigurator";
+import { type FC, type ReactNode, useEffect, useRef, useState } from "react";
+import type { DoenerBuild } from "../../build";
 import { Bread } from "./Bread";
 import { DoenerFilling } from "./DoenerFilling";
 import { ImpactShake } from "./ImpactShake";
@@ -26,6 +26,10 @@ export interface SceneContentsProps {
   sauceKeys: readonly string[];
   presenting: boolean;
   gentle: boolean;
+  /** Called on every hit on the bread, with the hit strength. */
+  onHit?: (strength: number) => void;
+  /** Extra scene content, rendered inside the physics world. */
+  children?: ReactNode;
 }
 
 export const FIELD_OF_VIEW = 36;
@@ -85,6 +89,8 @@ export const SceneContents: FC<SceneContentsProps> = ({
   sauceKeys,
   presenting,
   gentle,
+  onHit: onHitOutside,
+  children,
 }) => {
   const theme = useTheme();
   const impact = useRef(0);
@@ -92,6 +98,7 @@ export const SceneContents: FC<SceneContentsProps> = ({
   const [quality, setQuality] = useState<Quality>(initialQuality);
 
   const onHit = (strength: number): void => {
+    onHitOutside?.(strength);
     impact.current = Math.min(1.4, impact.current + strength);
     if (!gentle) {
       shake.current = Math.min(0.6, shake.current + strength * 1.2);
@@ -162,6 +169,7 @@ export const SceneContents: FC<SceneContentsProps> = ({
           onHit={onHit}
           gentle={gentle}
         />
+        {children}
       </Physics>
 
       <FittedControls presenting={presenting} />

@@ -1,4 +1,4 @@
-import { pickLine } from "../../funny-lines";
+import { pickLine } from "@/lib/funny-lines";
 import { useKonfiguratorContext } from "./konfigurator-context";
 
 // A prime stride, so consecutive steps land on different lines of a pool.

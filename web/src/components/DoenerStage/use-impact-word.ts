@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { konfiguratorCopy } from "../../copy";
-import { pickLine } from "../../funny-lines";
-import type { DoenerBuild } from "../../hooks/use-doener-konfigurator";
+import { pickLine } from "@/lib/funny-lines";
+import type { DoenerBuild } from "./build";
+import { doenerStageCopy } from "./copy";
 
 export interface ImpactWord {
   /** Changes on every new burst — used as React key to restart the animation. */
@@ -30,9 +30,9 @@ export const useImpactWord = (build: DoenerBuild, seed: number): ImpactWord | nu
     const id = (word?.id ?? 0) + 1;
     const meatChanged = build.meat !== null && build.meat !== previous.meat;
     if (meatChanged || countSolids(build) > countSolids(previous)) {
-      setWord({ id, text: pickLine(konfiguratorCopy.impactWords, seed + id * WORD_STRIDE) });
+      setWord({ id, text: pickLine(doenerStageCopy.impactWords, seed + id * WORD_STRIDE) });
     } else if (build.sauces.length > previous.sauces.length) {
-      setWord({ id, text: pickLine(konfiguratorCopy.sauceWords, seed + id * WORD_STRIDE) });
+      setWord({ id, text: pickLine(doenerStageCopy.sauceWords, seed + id * WORD_STRIDE) });
     }
   }
 

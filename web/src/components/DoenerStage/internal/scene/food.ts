@@ -1,4 +1,4 @@
-import type { VeggieKey } from "../../../../konfigurator";
+import type { VeggieKey } from "../../build";
 
 // Food look for the 3D scene. These are material colors of rendered
 // ingredients, not UI colors, so they deliberately live outside the MUI theme.
@@ -24,6 +24,9 @@ const MEAT_COLORS: Record<string, readonly [string, string]> = {
   haehnchen: ["#B8722F", "#E0A25A"],
   gemischt: ["#7A4325", "#D99A52"],
 };
+
+/** Meats (and sauces below) with a dedicated look; other keys get a fallback. */
+export const KNOWN_MEAT_KEYS: readonly string[] = Object.keys(MEAT_COLORS);
 
 export const meatSpec = (optionKey: string): IngredientSpec => ({
   shape: "strip",
@@ -88,6 +91,8 @@ const SAUCE_COLORS: Record<string, string> = {
   knoblauch: "#FBF8F0",
   scharf: "#C7361F",
 };
+
+export const KNOWN_SAUCE_KEYS: readonly string[] = Object.keys(SAUCE_COLORS);
 
 export const sauceColor = (optionKey: string): string =>
   SAUCE_COLORS[optionKey.toLowerCase()] ?? "#E9D8A6";
