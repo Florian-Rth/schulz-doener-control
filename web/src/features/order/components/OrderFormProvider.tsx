@@ -39,6 +39,8 @@ const OrderFormReady: FC<ReadyProps> = ({ dayId, menu }) => {
     removeOrder: form.removeOrder,
     isRemoving: form.isRemoving,
     removeError: form.removeError,
+    celebration: form.celebration,
+    finishCelebration: form.finishCelebration,
   };
 
   return (

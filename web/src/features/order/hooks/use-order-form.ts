@@ -4,6 +4,7 @@ import { useState } from "react";
 import { type FieldErrors, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { ApiError } from "@/lib/api";
 import { useDeleteMyOrder, useSubmitOrder } from "../api";
+import { type Celebration, celebrationOf } from "../celebration";
 import { orderCopy } from "../copy";
 import { blankLine } from "../order-context";
 import { buildOrderFormSchema } from "../schemas";
@@ -42,6 +43,14 @@ interface UseOrderFormResult {
   removeOrder: () => void;
   isRemoving: boolean;
   removeError: string | null;
+  /** Set once the order is saved — the Bestell-Feier plays before the success screen. */
+  celebration: Celebration | null;
+  /** Ends the Bestell-Feier and routes to the success screen. */
+  finishCelebration: () => void;
+}
+
+interface PendingCelebration extends Celebration {
+  orderId: string;
 }
 
 const MAX_LINES = 20;
@@ -118,14 +127,15 @@ const buildDefaults = (existing: MyOrder | undefined): OrderForm => {
 
 // Logic layer for the order screen: RHF + Zod resolver over a LIST of lines
 // (useFieldArray), defaults seeded from any existing order, per-line product
-// auto-fill, a running order total, and the upsert submit that routes to the
-// success screen on the returned order id.
+// auto-fill, a running order total, and the upsert submit that plays the
+// Bestell-Feier and then routes to the success screen on the returned order id.
 export const useOrderForm = ({ dayId, menu, existing }: UseOrderFormArgs): UseOrderFormResult => {
   const navigate = useNavigate();
   const submitMutation = useSubmitOrder();
   const deleteMutation = useDeleteMyOrder();
   const [serverError, setServerError] = useState<string | null>(null);
   const [removeError, setRemoveError] = useState<string | null>(null);
+  const [celebration, setCelebration] = useState<PendingCelebration | null>(null);
 
   const form = useForm<OrderForm>({
     resolver: zodResolver(buildOrderFormSchema(menu)),
@@ -230,7 +240,7 @@ export const useOrderForm = ({ dayId, menu, existing }: UseOrderFormArgs): UseOr
       setServerError(null);
       try {
         const result = await submitMutation.mutateAsync({ dayId, values });
-        await navigate({ to: "/erledigt", search: { orderId: result.id } });
+        setCelebration({ orderId: result.id, ...celebrationOf(menu, values.lines) });
       } catch (error) {
         if (error instanceof ApiError && error.status === 409) {
           setServerError(orderCopy.cutoffPassed);
@@ -258,6 +268,13 @@ export const useOrderForm = ({ dayId, menu, existing }: UseOrderFormArgs): UseOr
     })();
   };
 
+  const finishCelebration = (): void => {
+    if (celebration === null) {
+      return;
+    }
+    void navigate({ to: "/erledigt", search: { orderId: celebration.orderId } });
+  };
+
   return {
     form,
     fields: fieldArray.fields,
@@ -275,5 +292,7 @@ export const useOrderForm = ({ dayId, menu, existing }: UseOrderFormArgs): UseOr
     removeOrder,
     isRemoving: deleteMutation.isPending,
     removeError,
+    celebration,
+    finishCelebration,
   };
 };
