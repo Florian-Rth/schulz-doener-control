@@ -1,7 +1,13 @@
 // German UI strings for the PWA install guide. Single-locale app — the user is the "Chef". Playful
 // tone consistent with the rest of the app. Mirrors the iOS-install wording from the push feature.
 export const installGuideCopy = {
-  eyebrow: "Fast geschafft",
+  // Playful eyebrow, one rolled per mount via useFunnyLine.
+  eyebrows: [
+    "Fast geschafft",
+    "Letzter Schritt, Chef",
+    "Noch ein Handgriff",
+    "Gleich gibt's Döner",
+  ],
   title: "So installierst du die App",
   intro:
     "Döner Control läuft nur als installierte App, Chef — nur so landen die Push-Benachrichtigungen zum Döner-Tag auch wirklich bei dir. Einmal kurz einrichten, dann hast du sie direkt auf dem Home-Bildschirm.",

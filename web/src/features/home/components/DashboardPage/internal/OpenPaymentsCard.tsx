@@ -2,6 +2,7 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { FC } from "react";
+import { useFunnyLine } from "@/lib/use-funny-line";
 import { homeCopy } from "../../../copy";
 import { useDashboardContext } from "../../../dashboard-context";
 import { DebtRowItem } from "./DebtRowItem";
@@ -10,6 +11,7 @@ import { DebtRowItem } from "./DebtRowItem";
 // debt rows. Renders nothing when the caller owes nobody.
 export const OpenPaymentsCard: FC = () => {
   const { debts } = useDashboardContext();
+  const nudge = useFunnyLine(homeCopy.paymentsNudges);
 
   if (debts.rows.length === 0) {
     return null;
@@ -48,6 +50,9 @@ export const OpenPaymentsCard: FC = () => {
           {debts.totalLabel} €
         </Typography>
       </Stack>
+      <Typography sx={{ fontSize: "0.75rem", color: "muted.main", lineHeight: 1.4, mb: 0.75 }}>
+        {nudge}
+      </Typography>
 
       <Stack>
         {debts.rows.map((debt, index) => (

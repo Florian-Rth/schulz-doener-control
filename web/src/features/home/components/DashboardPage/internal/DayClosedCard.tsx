@@ -3,6 +3,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { FC } from "react";
 import { MaterialIcon, PrimaryButton } from "@/components";
+import { useFunnyLine } from "@/lib/use-funny-line";
 import { homeCopy } from "../../../copy";
 import { useDashboardContext } from "../../../dashboard-context";
 
@@ -10,6 +11,8 @@ import { useDashboardContext } from "../../../dashboard-context";
 // open-day CTA.
 export const DayClosedCard: FC = () => {
   const { openDay, isOpeningDay } = useDashboardContext();
+  const title = useFunnyLine(homeCopy.dayClosedTitles);
+  const body = useFunnyLine(homeCopy.dayClosedBodies);
 
   return (
     <Paper
@@ -36,10 +39,10 @@ export const DayClosedCard: FC = () => {
         </Typography>
         <MaterialIcon name="no_meals" sx={{ fontSize: 46, color: "muted.main", opacity: 0.6 }} />
         <Typography sx={{ fontSize: "1.0625rem", fontWeight: 700, color: "navy.main", mt: 0.5 }}>
-          {homeCopy.dayClosedTitle}
+          {title}
         </Typography>
         <Typography sx={{ fontSize: "0.8125rem", color: "muted.main", lineHeight: 1.45, mb: 1.5 }}>
-          {homeCopy.dayClosedBody}
+          {body}
         </Typography>
         <PrimaryButton onClick={openDay} loading={isOpeningDay} startIcon="campaign">
           {homeCopy.openDay}

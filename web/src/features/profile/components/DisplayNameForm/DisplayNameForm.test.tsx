@@ -8,6 +8,8 @@ import { describe, expect, it, vi } from "vitest";
 import { DisplayNameForm } from "@/features/profile";
 import { theme } from "@/styles/theme";
 import { mswServer } from "@/test/mswServer";
+import { oneOf } from "@/test/oneOf";
+import { settingsCopy } from "../../copy";
 
 // Seeds the CSRF cookie the apiClient echoes on the PUT mutation.
 const seedXsrfCookie = (): void => {
@@ -85,6 +87,6 @@ describe("DisplayNameForm", () => {
       expect(onSaved).toHaveBeenCalledWith("Markus W.");
     });
     expect(receivedBody).toEqual({ displayName: "Markus W." });
-    expect(await findByText(/gespeichert/i)).toBeInTheDocument();
+    expect(await findByText(oneOf(settingsCopy.displayNameSaved))).toBeInTheDocument();
   });
 });

@@ -2,7 +2,9 @@ import { HttpResponse, http } from "msw";
 import { describe, expect, it } from "vitest";
 import type { Dashboard } from "@/features/home";
 import { mswServer } from "@/test/mswServer";
+import { oneOf } from "@/test/oneOf";
 import { renderApp } from "@/test/renderApp";
+import { homeCopy } from "../../../copy";
 
 // The "Was mir noch zusteht" card self-fetches GET /api/debts/receivables (NOT
 // the dashboard aggregate). These tests drive the full dashboard route and only
@@ -126,7 +128,7 @@ describe("ReceivablesCard", () => {
     const { findByText, queryByText } = renderApp({ initialPath: "/" });
 
     // wait for the page to settle, then assert the card is absent
-    expect(await findByText(/Heute hat noch niemand Hunger angemeldet/)).toBeInTheDocument();
+    expect(await findByText(oneOf(homeCopy.dayClosedTitles))).toBeInTheDocument();
     expect(queryByText("Was mir noch zusteht")).not.toBeInTheDocument();
   });
 

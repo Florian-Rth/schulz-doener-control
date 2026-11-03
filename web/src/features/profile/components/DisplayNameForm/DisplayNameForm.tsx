@@ -2,6 +2,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { FC } from "react";
 import { PrimaryButton } from "@/components";
+import { useFunnyLine } from "@/lib/use-funny-line";
 import { settingsCopy } from "../../copy";
 import { useDisplayNameForm } from "../../hooks/use-display-name-form";
 import { DisplayNameField } from "./internal/DisplayNameField";
@@ -22,6 +23,7 @@ export const DisplayNameForm: FC<DisplayNameFormProps> = ({ initialName, onSaved
     onSaved,
   });
   const { isDirty } = form.formState;
+  const savedLine = useFunnyLine(settingsCopy.displayNameSaved);
 
   return (
     <Stack component="form" noValidate onSubmit={onSubmit} sx={{ gap: 0.5 }}>
@@ -49,7 +51,7 @@ export const DisplayNameForm: FC<DisplayNameFormProps> = ({ initialName, onSaved
           role="status"
           sx={{ fontSize: "0.8125rem", color: "success.main", fontWeight: 700 }}
         >
-          {settingsCopy.displayNameSaved}
+          {savedLine}
         </Typography>
       ) : null}
 

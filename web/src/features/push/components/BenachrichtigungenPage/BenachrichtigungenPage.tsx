@@ -1,6 +1,7 @@
 import Typography from "@mui/material/Typography";
 import type { FC } from "react";
 import { GhostButton, PageLayout } from "@/components";
+import { useFunnyLine } from "@/lib/use-funny-line";
 import { pushCopy } from "../../copy";
 import { usePushNavigation } from "../../hooks/use-push-navigation";
 import { PushSubscribeCard } from "../PushSubscribeCard";
@@ -10,6 +11,7 @@ import { PushPageHeader } from "./internal/PushPageHeader";
 // back CTA. Routes compose this; the card owns the Web-Push logic internally.
 export const BenachrichtigungenPage: FC = () => {
   const { goHome } = usePushNavigation();
+  const intro = useFunnyLine(pushCopy.pageIntros);
 
   return (
     <PageLayout bg="app">
@@ -18,7 +20,7 @@ export const BenachrichtigungenPage: FC = () => {
       </PageLayout.Header>
       <PageLayout.Content sx={{ gap: 1.75 }}>
         <Typography sx={{ fontSize: "0.8125rem", color: "label.main", lineHeight: 1.5, px: 0.25 }}>
-          {pushCopy.pageIntro}
+          {intro}
         </Typography>
         <PushSubscribeCard />
         <GhostButton onClick={goHome} sx={{ mt: 0.75 }}>
