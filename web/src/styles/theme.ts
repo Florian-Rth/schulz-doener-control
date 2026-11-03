@@ -45,6 +45,7 @@ const keyframes = {
   pulseDot: "pulseDot",
   slideDown: "slideDown",
   spin360: "spin360",
+  impactPop: "impactPop",
 } as const;
 
 const dsTokens = {

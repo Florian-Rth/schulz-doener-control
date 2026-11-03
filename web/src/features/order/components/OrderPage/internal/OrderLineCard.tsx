@@ -13,6 +13,7 @@ import {
   useOrderFormContext,
 } from "../../../order-context";
 import { FieldRenderer } from "./FieldRenderer";
+import { KonfiguratorLauncher } from "./KonfiguratorLauncher";
 import { PriceField } from "./PriceField";
 import { ProductGridField } from "./ProductGridField";
 import { QuantityField } from "./QuantityField";
@@ -74,6 +75,8 @@ export const OrderLineCard: FC<OrderLineCardProps> = ({ index }) => {
           <SectionLabel variant="eyebrow" label={orderCopy.productSection} />
           <ProductGridField />
         </Stack>
+
+        <KonfiguratorLauncher />
 
         {lineFields.map((field) => (
           <FieldRenderer key={field.key} field={field} index={index} />

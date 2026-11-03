@@ -33,6 +33,7 @@ import RestaurantOutlined from "@mui/icons-material/RestaurantOutlined";
 import SetMealOutlined from "@mui/icons-material/SetMealOutlined";
 import TakeoutDiningOutlined from "@mui/icons-material/TakeoutDiningOutlined";
 import TuneOutlined from "@mui/icons-material/TuneOutlined";
+import ViewInArOutlined from "@mui/icons-material/ViewInArOutlined";
 import WorkspacePremiumOutlined from "@mui/icons-material/WorkspacePremiumOutlined";
 import WrapTextOutlined from "@mui/icons-material/WrapTextOutlined";
 
@@ -75,6 +76,7 @@ export const ICON_MAP = {
   set_meal: SetMealOutlined,
   takeout_dining: TakeoutDiningOutlined,
   tune: TuneOutlined,
+  view_in_ar: ViewInArOutlined,
   workspace_premium: WorkspacePremiumOutlined,
   wrap_text: WrapTextOutlined,
 } satisfies Record<string, SvgIconComponent>;
