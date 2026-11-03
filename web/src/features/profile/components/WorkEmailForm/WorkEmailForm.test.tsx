@@ -8,6 +8,8 @@ import { describe, expect, it } from "vitest";
 import { WorkEmailForm } from "@/features/profile";
 import { theme } from "@/styles/theme";
 import { mswServer } from "@/test/mswServer";
+import { oneOf } from "@/test/oneOf";
+import { settingsCopy } from "../../copy";
 
 // Seeds the CSRF cookie the apiClient echoes on the PUT mutation.
 const seedXsrfCookie = (): void => {
@@ -75,6 +77,6 @@ describe("WorkEmailForm", () => {
     await waitFor(() => {
       expect(receivedBody).toEqual({ workEmail: "max@schulz.st" });
     });
-    expect(await findByText(/gespeichert/i)).toBeInTheDocument();
+    expect(await findByText(oneOf(settingsCopy.workEmailSaved))).toBeInTheDocument();
   });
 });

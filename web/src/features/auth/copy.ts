@@ -3,13 +3,26 @@
 export const authCopy = {
   eyebrow: "DÖNER-KOMMANDO LEIPZIG",
   heading: "Mitarbeiter-Login",
-  subline: "Zugang nur für autorisiertes Döner-Personal. Bitte Büro-Kennung eingeben.",
+  // Playful lines come in pools (one line rolled per mount via useFunnyLine).
+  sublines: [
+    "Zugang nur für autorisiertes Döner-Personal. Bitte Büro-Kennung eingeben.",
+    "Unbefugte bekommen hier nur Salat. Bitte Büro-Kennung eingeben.",
+    "Der Spieß dreht sich nicht für Fremde. Bitte Büro-Kennung eingeben.",
+    "Nur für Personal mit Soßen-Freigabe. Bitte Büro-Kennung eingeben.",
+    "Zutritt nur mit Hunger und Büro-Kennung, Chef.",
+  ],
   usernameLabel: "Benutzername",
   usernamePlaceholder: "z. B. m.wagner",
   passwordLabel: "Passwort",
   passwordPlaceholder: "••••••••",
   submit: "Anmelden",
-  serverStatus: "Döner-Server erreichbar · Büro Leipzig · v3.0",
+  serverStatuses: [
+    "Döner-Server erreichbar · Büro Leipzig · v3.0",
+    "Spieß-Rotation stabil · Büro Leipzig · v3.0",
+    "Soßen-Druck nominal · Büro Leipzig · v3.0",
+    "Fleisch-Telemetrie online · Büro Leipzig · v3.0",
+    "Knoblauch-Pegel im grünen Bereich · Büro Leipzig · v3.0",
+  ],
   loginFailed: "Anmeldung fehlgeschlagen. Benutzername oder Passwort prüfen, Chef.",
   brandAlt: "Schulz Döner Control",
   profileMenuLabel: "Profilmenü öffnen",
@@ -25,8 +38,12 @@ export const authCopy = {
   loginToRegister: "Noch kein Konto? Jetzt registrieren",
   registerEyebrow: "Neuzugang im Döner-Trupp",
   registerHeading: "Konto anlegen",
-  registerSubline:
+  registerSublines: [
     "Einmal registrieren, dann mitdrehen, Chef. Deine Zugangsdaten wählst du selbst.",
+    "Ein Konto, unbegrenzt Döner-Ruhm. Deine Zugangsdaten wählst du selbst.",
+    "Zugangsdaten selbst wählen, Hunger selbst mitbringen, Chef.",
+    "Kurz eintragen, dann bist du bei jeder Runde dabei. Deine Zugangsdaten wählst du selbst.",
+  ],
   registerUsernameLabel: "Benutzername",
   registerUsernamePlaceholder: "z. B. m.wagner",
   registerDisplayNameLabel: "Anzeigename",
@@ -52,9 +69,18 @@ export const authCopy = {
   registerSecretRequiredBody:
     "Die Türen sind zu, Chef. Zum Anlegen eines Kontos brauchst du den Registrierungs-Link mit gültigem Code. Frag im Büro nach dem QR-Code.",
   // Login screen: the register link is hidden when registration is switched off server-side.
-  registerSuccessTitle: "Konto erstellt, Chef!",
-  registerSuccessBody:
+  registerSuccessTitles: [
+    "Konto erstellt, Chef!",
+    "Willkommen im Döner-Trupp, Chef!",
+    "Du bist drin, Chef!",
+    "Konto steht, Chef!",
+  ],
+  registerSuccessBodies: [
     "Dein Zugang steht. Melde dich jetzt an und reih dich in den Döner-Trupp ein.",
+    "Jetzt nur noch anmelden, und der nächste Döner-Tag gehört dir.",
+    "Melde dich an. Der Spieß dreht sich schon warm.",
+    "Melde dich jetzt an, Chef. Ab heute zählt jeder Döner für dein Döner-Tier.",
+  ],
   toLogin: "Zur Anmeldung",
   // Field-level validation copy (mirrors the backend rules).
   registerUsernameRequired: "Pflichtfeld",

@@ -1,12 +1,24 @@
 // German UI strings for the success feature. Single-locale app — plain constants.
 export const successCopy = {
-  title: "Erledigt, Chef",
-  subline: "Bestellung in der Döner-Telemetrie verbucht ✓",
+  // Playful lines come in pools (one line rolled per mount via useFunnyLine).
+  titles: ["Erledigt, Chef", "Bestellt, Chef", "Sitzt, Chef", "Ist drin, Chef", "Läuft, Chef"],
+  sublines: [
+    "Bestellung in der Döner-Telemetrie verbucht ✓",
+    "Der Drehspieß weiß jetzt Bescheid ✓",
+    "Dein Döner ist offiziell im System ✓",
+    "Fleisch-Rucksack reserviert ✓",
+    "Bestellung gespeichert. Der Hunger bleibt bis Mittag. ✓",
+  ],
   total: "Gesamt",
   owesEyebrow: "Bezahlung an Abholer",
   owesInfoNote:
     "Bezahlen kannst du auf der Startseite, sobald der Abholer den Tag abschließt und abrechnet, Chef.",
-  pickupTitle: "Du holst heute ab, Chef!",
+  pickupTitles: [
+    "Du holst heute ab, Chef!",
+    "Du bist heute der Fahrer, Chef!",
+    "Abholer-Dienst heute: du, Chef!",
+    "Heute trägst du den Fleischeimer, Chef!",
+  ],
   pickupCaption: "Die PayPal-Links sind automatisch an dich verschickt 📲",
   back: "Zurück zur Übersicht",
   loading: "Lädt …",

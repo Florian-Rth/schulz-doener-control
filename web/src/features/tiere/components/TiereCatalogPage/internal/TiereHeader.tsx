@@ -3,6 +3,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { FC } from "react";
 import { MaterialIcon, RedChromeSurface } from "@/components";
+import { useFunnyLine } from "@/lib/use-funny-line";
 import { tiereCopy } from "../../../copy";
 
 interface TiereHeaderProps {
@@ -11,6 +12,8 @@ interface TiereHeaderProps {
 
 // Red chrome catalog header with a back button + title block (mock's tiere head).
 export const TiereHeader: FC<TiereHeaderProps> = ({ onBack }) => {
+  const subtitle = useFunnyLine(tiereCopy.subtitles);
+
   return (
     <RedChromeSurface
       start={
@@ -35,7 +38,7 @@ export const TiereHeader: FC<TiereHeaderProps> = ({ onBack }) => {
           {tiereCopy.title}
         </Typography>
         <Typography sx={{ fontSize: "0.6875rem", color: "rgba(255,255,255,.78)" }}>
-          {tiereCopy.subtitle}
+          {subtitle}
         </Typography>
       </Stack>
     </RedChromeSurface>

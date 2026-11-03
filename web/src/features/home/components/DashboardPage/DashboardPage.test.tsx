@@ -4,7 +4,9 @@ import { HttpResponse, http } from "msw";
 import { describe, expect, it } from "vitest";
 import type { Dashboard } from "@/features/home";
 import { mswServer } from "@/test/mswServer";
+import { oneOf } from "@/test/oneOf";
 import { renderApp } from "@/test/renderApp";
+import { homeCopy, untilNextSentence, untilNextTemplates } from "../../copy";
 
 const authenticatedSession = {
   userId: "11111111-1111-1111-1111-111111111111",
@@ -295,7 +297,7 @@ describe("DashboardPage", () => {
     useDashboardHandlers(buildDashboard({ day: closedDay }));
     const { findByRole, findByText } = renderApp({ initialPath: "/" });
 
-    expect(await findByText(/Heute hat noch niemand Hunger angemeldet/)).toBeInTheDocument();
+    expect(await findByText(oneOf(homeCopy.dayClosedTitles))).toBeInTheDocument();
     expect(await findByRole("button", { name: /Ich will heute Döner!/ })).toBeInTheDocument();
   });
 
@@ -311,7 +313,8 @@ describe("DashboardPage", () => {
     // current-user highlight: name + "· du"
     expect(await findByText("Markus Wagner")).toBeInTheDocument();
     expect(await findByText("· du")).toBeInTheDocument();
-    expect(await findByText(/Nur noch 6 Döner bis Platz 3/)).toBeInTheDocument();
+    const untilNextLines = untilNextTemplates.map((template) => untilNextSentence(template, 6, 3));
+    expect(await findByText(oneOf(untilNextLines))).toBeInTheDocument();
   });
 
   it("zeigt für offene Schulden funktionierende PayPal-Buttons", async () => {
@@ -319,6 +322,7 @@ describe("DashboardPage", () => {
     const { findByText, findAllByRole } = renderApp({ initialPath: "/" });
 
     expect(await findByText("Offene Zahlungen")).toBeInTheDocument();
+    expect(await findByText(oneOf(homeCopy.paymentsNudges))).toBeInTheDocument();
     expect(await findByText("Ayran-Schulden")).toBeInTheDocument();
 
     const payLinks = await findAllByRole("link", { name: /PayPal/ });
@@ -796,7 +800,7 @@ describe("DashboardPage", () => {
     );
     const { findByText } = renderApp({ initialPath: "/" });
 
-    expect(await findByText("Kein PayPal hinterlegt, Chef")).toBeInTheDocument();
+    expect(await findByText(oneOf(homeCopy.paypalNudgeTitles))).toBeInTheDocument();
   });
 
   it("blendet den PayPal-Hinweis aus, wenn ein PayPal-Handle hinterlegt ist", async () => {
@@ -805,7 +809,7 @@ describe("DashboardPage", () => {
     const { findByText, queryByText } = renderApp({ initialPath: "/" });
 
     expect(await findByText("Döner-Tag läuft")).toBeInTheDocument();
-    expect(queryByText("Kein PayPal hinterlegt, Chef")).not.toBeInTheDocument();
+    expect(queryByText(oneOf(homeCopy.paypalNudgeTitles))).not.toBeInTheDocument();
   });
 
   it("ordnet die offenen Zahlungen direkt unter den Döner-Tag, vor Tier und Stats", async () => {

@@ -1,3 +1,12 @@
+// Save confirmations, shared by every profile form — one line rolled per mount via useFunnyLine.
+const savedLines = [
+  "Gespeichert ✓",
+  "Sitzt, Chef ✓",
+  "Gebongt ✓",
+  "Ist notiert, Chef ✓",
+  "Fest eingewickelt ✓",
+] as const;
+
 // German UI strings for the profile / PayPal-handle UI. Single-locale app.
 export const profileCopy = {
   eyebrow: "Geld kassieren",
@@ -8,7 +17,7 @@ export const profileCopy = {
   fieldPlaceholder: "https://paypal.me/deinname",
   submit: "Speichern",
   saving: "Speichern …",
-  saved: "Gespeichert ✓",
+  saved: savedLines,
   errorGeneric: "Konnte nicht gespeichert werden, Chef. Versuch es nochmal.",
   gatedNotice: "PayPal-Buttons bleiben deaktiviert, bis du deinen Link hinterlegt hast.",
   // Clear-to-cash action — only offered when a handle is currently set.
@@ -24,19 +33,29 @@ export const profileCopy = {
 // German UI strings for the self-service settings hub at /einstellungen.
 export const settingsCopy = {
   eyebrow: "Einstellungen",
-  title: "Dein Profil, Chef",
+  titles: [
+    "Dein Profil, Chef",
+    "Deine Kommandozentrale, Chef",
+    "Alles über dich, Chef",
+    "Dein Döner-Dossier, Chef",
+  ],
   back: "Zurück zur Übersicht",
   backIconLabel: "Zurück zur Übersicht",
   loading: "Einen Moment, Chef …",
   // Identität section.
   identitySectionEyebrow: "Identität",
-  identitySectionTitle: "Wer bist du, Chef?",
+  identitySectionTitles: [
+    "Wer bist du, Chef?",
+    "Wie heißt du eigentlich, Chef?",
+    "Name, Rang, Lieblingssoße",
+    "Wer bestellt hier eigentlich so viel?",
+  ],
   displayNameLabel: "Anzeigename",
   displayNameHelper: "So sehen dich die Kollegen, Chef.",
   displayNamePlaceholder: "z. B. Markus Wagner",
   displayNameSubmit: "Namen speichern",
   displayNameSaving: "Speichern …",
-  displayNameSaved: "Gespeichert ✓",
+  displayNameSaved: savedLines,
   displayNameError: "Konnte nicht gespeichert werden, Chef. Versuch es nochmal.",
   // Work-email field (optional) — the address the order-list PDF is mailed to.
   workEmailLabel: "Arbeits-E-Mail (optional)",
@@ -44,7 +63,7 @@ export const settingsCopy = {
   workEmailPlaceholder: "z. B. max@schulz.st",
   workEmailSubmit: "Arbeits-Mail speichern",
   workEmailSaving: "Speichern …",
-  workEmailSaved: "Gespeichert ✓",
+  workEmailSaved: savedLines,
   workEmailError: "Arbeits-Mail konnte nicht gespeichert werden, Chef.",
   // Read-only identity preview. The session does not carry the login username,
   // so we show the live avatar + first name (the greeting name) as the identity.
@@ -52,7 +71,12 @@ export const settingsCopy = {
   // Sicherheit section.
   securitySectionEyebrow: "Sicherheit",
   securitySectionTitle: "Passwort",
-  securityIntro: "Zeit für ein frisches Passwort, Chef?",
+  securityIntros: [
+    "Zeit für ein frisches Passwort, Chef?",
+    "Passwort älter als der Spieß von gestern? Zeit für was Frisches, Chef.",
+    "Ein gutes Passwort ist wie ein guter Döner: lang und ordentlich gewürzt.",
+    "„dönerstag123“ zählt nicht als sicher, Chef.",
+  ],
   changePasswordLink: "Passwort ändern",
 } as const;
 

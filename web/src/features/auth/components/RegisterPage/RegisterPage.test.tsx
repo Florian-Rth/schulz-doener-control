@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { HttpResponse, http } from "msw";
 import { describe, expect, it } from "vitest";
 import { mswServer } from "@/test/mswServer";
+import { oneOf } from "@/test/oneOf";
 import { renderApp } from "@/test/renderApp";
 import { authCopy } from "../../copy";
 
@@ -125,7 +126,7 @@ describe("RegisterPage", () => {
     await fillValidForm(user, findByLabelText);
     await user.click(await findByRole("button", { name: "Konto anlegen" }));
 
-    expect(await findByText("Konto erstellt, Chef!")).toBeInTheDocument();
+    expect(await findByText(oneOf(authCopy.registerSuccessTitles))).toBeInTheDocument();
   });
 
   it("surfaces the duplicate-username error from a 409", async () => {

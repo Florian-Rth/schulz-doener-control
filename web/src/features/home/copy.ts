@@ -17,8 +17,22 @@ export const homeCopy = {
   streakUnit: " Wo.",
   // Day — closed state
   dayClosedEyebrow: "Status: Kein Döner-Tag",
-  dayClosedTitle: "Heute hat noch niemand Hunger angemeldet",
-  dayClosedBody: "Eröffne den Döner-Tag und die Kollegen können einsteigen.",
+  // Playful lines come in pools (one line rolled per mount via useFunnyLine).
+  dayClosedTitles: [
+    "Heute hat noch niemand Hunger angemeldet",
+    "Der Spieß dreht sich heute ohne Publikum",
+    "Kein Döner-Tag. Noch nicht.",
+    "Totenstille am Drehspieß",
+    "Keiner traut sich, den ersten Döner zu rufen",
+    "Der Dönermann wartet auf dein Signal",
+  ],
+  dayClosedBodies: [
+    "Eröffne den Döner-Tag und die Kollegen können einsteigen.",
+    "Einer muss den Anfang machen, Chef. Warum nicht du?",
+    "Ein Klick, und das ganze Büro weiß Bescheid.",
+    "Eröffne den Tag, der Rest kommt von allein. Der Hunger auch.",
+    "Sei der Held, den das Büro verdient, Chef. Eröffne den Döner-Tag.",
+  ],
   openDay: "Ich will heute Döner!",
   openDayFailed: "Döner-Tag konnte nicht eröffnet werden, Chef.",
   // Day — open state
@@ -33,17 +47,39 @@ export const homeCopy = {
   editOrder: "Meine Bestellung ändern",
   // CTA + info line once the collector has closed ordering (FEATURE 4).
   orderingClosedCta: "Bestellung geschlossen",
-  orderingClosedInfo: "Der Abholer hat die Bestellung geschlossen, Chef.",
+  orderingClosedInfos: [
+    "Der Abholer hat die Bestellung geschlossen, Chef.",
+    "Bestellung zu, Chef. Wer jetzt noch Hunger hat, hat Pech.",
+    "Zu spät, Chef. Der Abholer hat dichtgemacht.",
+    "Die Liste ist zu. Nächste Woche schneller sein, Chef.",
+  ],
   printList: "Bestellliste drucken",
   // Empty running-day order list nudge.
-  noOrdersYet: "Noch keine Bestellungen — sei der Erste, Chef.",
+  noOrdersYet: [
+    "Noch keine Bestellungen — sei der Erste, Chef.",
+    "Noch leer hier. Der Erste kriegt die frischeste Soße, Chef.",
+    "Null Bestellungen. Die Kollegen zieren sich noch.",
+    "So leer wie ein Fladenbrot ohne Füllung.",
+    "Noch traut sich keiner. Zeig, wie's geht, Chef.",
+  ],
   // Personal status eyebrow on the running-day card (derived from the day).
   statusOrderingInfo: "Bestellung läuft · du bist dabei",
   statusOrderingMissing: "Bestellung läuft · du fehlst noch",
   statusOrderingClosed: "Bestellung geschlossen · warte auf Abholung",
   // No-collector warning + "Ich hole heute ab" (FEATURE 2).
-  noCollectorTitle: "Noch kein Abholer, Chef!",
-  noCollectorBody: "Ohne Fahrer bleibt der Döner im Laden.",
+  noCollectorTitles: [
+    "Noch kein Abholer, Chef!",
+    "Abholer gesucht, Chef!",
+    "Kein Fahrer in Sicht, Chef!",
+    "Wer holt den Fleischeimer?",
+  ],
+  noCollectorBodies: [
+    "Ohne Fahrer bleibt der Döner im Laden.",
+    "Der Döner läuft nicht von allein ins Büro.",
+    "Ruhm, Ehre und ein Fleisch-Rucksack warten auf dich.",
+    "Irgendwer muss los. Die Drehspieß-Taschen tragen sich nicht selbst.",
+    "Ohne Abholer gibt's heute nur Sehnsucht.",
+  ],
   // Shown in the no-collector alert when the caller hasn't ordered yet — the
   // backend gates the "Ich hole heute ab" claim on an existing order, so point
   // them at ordering first.
@@ -94,21 +130,49 @@ export const homeCopy = {
   adminEndCancel: "Doch nicht",
   adminEndFailed: "Döner-Tag konnte nicht abgebrochen werden, Chef.",
   // PayPal nudge — shown to a user who hasn't set a PayPal handle (dismissable).
-  paypalNudgeTitle: "Kein PayPal hinterlegt, Chef",
-  paypalNudgeBody:
+  paypalNudgeTitles: [
+    "Kein PayPal hinterlegt, Chef",
+    "Wohin mit dem Geld, Chef?",
+    "Dein PayPal fehlt, Chef",
+    "Du lässt Geld liegen, Chef",
+  ],
+  paypalNudgeBodies: [
     "Ohne PayPal-Link müssen dir die Kollegen bar zahlen. Hinterlege ihn einmal in den Einstellungen.",
+    "Ohne PayPal-Link kriegst du dein Döner-Geld nur in Münzen. Einmal hinterlegen, fertig.",
+    "Die Kollegen wollen zahlen, wissen aber nicht wohin. Hinterleg deinen PayPal-Link.",
+    "Bargeld ist so 2009, Chef. Hinterleg deinen PayPal-Link in den Einstellungen.",
+    "Du holst den Döner und kriegst dafür Kleingeld? Hinterleg lieber deinen PayPal-Link.",
+  ],
   paypalNudgeCta: "PayPal-Link hinterlegen",
   paypalNudgeDismissLabel: "Hinweis ausblenden",
   // Push-notification nudge — shown when notifications are off but switch-on-able (dismissable, once).
-  pushNudgeTitle: "Benachrichtigungen aus, Chef",
-  pushNudgeBody:
+  pushNudgeTitles: [
+    "Benachrichtigungen aus, Chef",
+    "Funkstille, Chef",
+    "Der Döner-Gong ist stumm, Chef",
+    "Du hörst nichts, Chef",
+  ],
+  pushNudgeBodies: [
     "Lass dich pingen, sobald ein Kollege den Döner-Tag eröffnet — dann verpasst du keine Runde.",
+    "Schalt Push ein, sonst erfährst du vom Döner-Tag erst durch die Knoblauchfahne der Kollegen.",
+    "Ohne Push merkst du den Döner-Tag erst, wenn alle schon kauen.",
+    "Ein Ping, und du bist bei der nächsten Runde dabei. Ohne Ping: Kantine.",
+  ],
   pushNudgeCta: "Benachrichtigungen einschalten",
   pushNudgeDismissLabel: "Hinweis ausblenden",
   // Leaderboard
   leaderboardTitle: "Döner-Bestenliste",
   // Open payments
   paymentsTitle: "Offene Zahlungen",
+  // Roast line under the header while the caller still owes someone.
+  paymentsNudges: [
+    "Zahl mal, Chef. Der Dönermann hat auch Kinder.",
+    "Schulden sind wie Zwiebeln, Chef: Sie bleiben hängen.",
+    "Der Abholer zählt schon die Tage, Chef.",
+    "Ein Klick auf PayPal, und dein Gewissen ist wieder sauber.",
+    "Offene Döner-Schulden machen Falten, Chef.",
+    "Zahl, bevor der Abholer ein Döner-Tier nach dir benennt.",
+  ],
   pay: "PayPal",
   // Read-only settled-payment history (FEATURE 4 / B12).
   paymentHistoryTitle: "Meine letzten Zahlungen",
@@ -135,21 +199,57 @@ export const homeCopy = {
   retry: "Nochmal versuchen",
 } as const;
 
-// A funny Döner pun for the greeting subline, keyed by JS weekday (0 = Sonntag … 6 = Samstag).
+// Döner puns for the greeting subline, a pool per JS weekday (0 = Sonntag … 6 = Samstag).
 // The greeting under the name changes with the actual day — Donnerstag is the holy "Dönerstag".
-const greetingSublinesByWeekday: Readonly<Record<number, string>> = {
-  0: "Spieß-Sonntag · auch sonntags dreht sich was",
-  1: "Mampf-Montag · der Spieß rotiert schon",
-  2: "Drehspieß-Dienstag · die Rotation beginnt",
-  3: "Mampf-Mittwoch · Bergfest mit Fleisch",
-  4: "Dönerstag · die heilige Döner-Schicht",
-  5: "Fladen-Freitag · Wochenende mit extra Soße",
-  6: "Soßen-Samstag · auch am Wochenende wird gedreht",
+const greetingSublinesByWeekday: Readonly<Record<number, readonly string[]>> = {
+  0: [
+    "Spieß-Sonntag · auch sonntags dreht sich was",
+    "Sofa-Sonntag · der Spieß hat frei, dein Magen nicht",
+    "Sonntag · Kraft tanken für Dönerstag",
+    "Sonntag · Ruhetag. Außer für den Hunger.",
+  ],
+  1: [
+    "Mampf-Montag · der Spieß rotiert schon",
+    "Montag · nur noch drei Tage bis Dönerstag",
+    "Montag · die Woche beginnt, der Hunger auch",
+    "Montag · Wochenstart ohne Knoblauchfahne. Noch.",
+  ],
+  2: [
+    "Drehspieß-Dienstag · die Rotation beginnt",
+    "Dienstag · zwei Tage noch, dann Dönerstag",
+    "Dienstag · der Spieß wird schon warmgedreht",
+    "Dienstag · scharfe Soße? Wir urteilen nicht",
+  ],
+  3: [
+    "Mampf-Mittwoch · Bergfest mit Fleisch",
+    "Mittwoch · morgen ist Dönerstag, nur so als Hinweis",
+    "Mittwoch · halbe Woche, ganzer Döner",
+    "Mittwoch · Fleisch-Rucksack schon mal packen",
+  ],
+  4: [
+    "Dönerstag · die heilige Döner-Schicht",
+    "Dönerstag · der Tag, für den du arbeitest",
+    "Dönerstag · Hosenknopf schon mal lockern",
+    "Dönerstag · der Osmanische Fleischeimer ruft",
+    "Dönerstag · heute ohne Zwiebeln ist Verrat",
+  ],
+  5: [
+    "Fladen-Freitag · Wochenende mit extra Soße",
+    "Freitag · Feierabend-Döner ist auch ein Döner",
+    "Freitag · die Woche war hart, der Spieß war härter",
+    "Freitag · noch sechs Tage bis Dönerstag. Halt durch.",
+  ],
+  6: [
+    "Soßen-Samstag · auch am Wochenende wird gedreht",
+    "Samstag · kein Büro, trotzdem Hunger",
+    "Samstag · Klappkatze to go?",
+    "Samstag · der Spieß macht Überstunden",
+  ],
 };
 
-// The greeting subline for a given JS weekday (Date.getDay()); falls back to the Dönerstag line.
-export const greetingSublineForWeekday = (weekday: number): string =>
-  greetingSublinesByWeekday[weekday] ?? greetingSublinesByWeekday[4];
+// The greeting subline pool for a JS weekday (Date.getDay()); falls back to the Dönerstag pool.
+export const greetingSublinesForWeekday = (weekday: number): readonly string[] =>
+  greetingSublinesByWeekday[weekday] ?? greetingSublinesByWeekday[4] ?? [];
 
 // "{name} ist gerade dran. …" — the take-over confirmation body naming the
 // current Abholer (item 3).
@@ -162,9 +262,18 @@ export const cutoffSentence = (cutoffLabel: string): string => `Bestellschluss $
 // "{n} dabei" — the participant-count pill on the running day.
 export const participantPill = (count: number): string => `${count} dabei`;
 
-// "Nur noch X Döner bis Platz N 🌯" — the footer under the leaderboard.
-export const untilNextSentence = (toNext: number, nextRank: number): string =>
-  `Nur noch ${toNext} Döner bis Platz ${nextRank} 🌯`;
+// The footer under the leaderboard — templates with {n} (Döner to go) and {rank} (next rank).
+export const untilNextTemplates = [
+  "Nur noch {n} Döner bis Platz {rank} 🌯",
+  "Noch {n} Döner, dann gehört Platz {rank} dir, Chef",
+  "Platz {rank} ist nur {n} Döner entfernt. Kau schneller, Chef.",
+  "Noch {n} Döner bis Platz {rank}. Der Hosenknopf hält das aus.",
+  "Platz {rank} in Sicht: noch {n} Döner 🌯",
+] as const;
+
+// "Nur noch X Döner bis Platz N 🌯" — fills one of the untilNextTemplates.
+export const untilNextSentence = (template: string, toNext: number, nextRank: number): string =>
+  template.replace("{n}", String(toNext)).replace("{rank}", String(nextRank));
 
 // "Aus N Bestellungen der letzten 3 Monate" — the tier order-count line.
 export const tierOrderCountSentence = (count: number): string =>

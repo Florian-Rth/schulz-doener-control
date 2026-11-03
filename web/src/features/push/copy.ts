@@ -4,17 +4,34 @@ export const pushCopy = {
   // Page shell (the dedicated notification-settings screen).
   pageTitle: "Benachrichtigungen",
   pageSubtitle: "BÜRO LEIPZIG · L-01",
-  pageIntro: "Lass dich pingen, sobald die heilige Döner-Schicht beginnt, Chef.",
+  // Playful lines come in pools (one line rolled per mount via useFunnyLine).
+  pageIntros: [
+    "Lass dich pingen, sobald die heilige Döner-Schicht beginnt, Chef.",
+    "Nie wieder vom Döner-Tag aus zweiter Hand erfahren, Chef.",
+    "Wer Push hat, isst zuerst, Chef.",
+    "Ein Ping, und dein Magen weiß Bescheid, Chef.",
+  ],
   back: "Zurück zur Übersicht",
   backIconLabel: "Zurück",
   eyebrow: "Benachrichtigungen",
-  title: "Verpass keinen Döner-Tag",
+  titles: [
+    "Verpass keinen Döner-Tag",
+    "Kein Döner ohne dich",
+    "Ohren auf, Chef",
+    "Der Spieß ruft. Hörst du ihn?",
+  ],
   intro:
     "Aktiviere Push und du bekommst sofort Bescheid, sobald ein Kollege den Döner-Tag eröffnet, Chef.",
   enable: "Push aktivieren",
   enabling: "Wird aktiviert …",
   disable: "Push deaktivieren",
-  subscribed: "Push ist aktiv. Du wirst beim nächsten Döner-Tag geweckt. 🥙",
+  // Every line starts with "Push ist aktiv." so the state stays unmistakable.
+  subscribedLines: [
+    "Push ist aktiv. Du wirst beim nächsten Döner-Tag geweckt. 🥙",
+    "Push ist aktiv. Ab jetzt entgeht dir kein Spieß mehr. 🥙",
+    "Push ist aktiv. Dein Handy knurrt jetzt mit deinem Magen. 🥙",
+    "Push ist aktiv. Wir melden uns, sobald es nach Knoblauch riecht. 🥙",
+  ],
   deniedTitle: "Benachrichtigungen sind blockiert",
   denied:
     "Du hast Push abgelehnt, Chef. Erlaube Benachrichtigungen in den Browser-Einstellungen und versuch es erneut.",

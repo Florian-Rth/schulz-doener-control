@@ -5,6 +5,7 @@ import { Link } from "@tanstack/react-router";
 import type { FC } from "react";
 import logoUrl from "@/assets/logo.png";
 import { PrimaryButton } from "@/components/buttons";
+import { useFunnyLine } from "@/lib/use-funny-line";
 import { authCopy } from "../../copy";
 import { useLoginForm } from "../../hooks/use-login-form";
 import { AuthRegistrationMode } from "../../schemas";
@@ -30,6 +31,8 @@ export const LoginPage: FC<LoginPageProps> = ({
 }) => {
   const { form, onSubmit, isPending, serverError } = useLoginForm({ redirect });
   const showRegisterLink = registrationMode !== AuthRegistrationMode.Disabled;
+  const subline = useFunnyLine(authCopy.sublines);
+  const serverStatus = useFunnyLine(authCopy.serverStatuses);
 
   return (
     <Stack
@@ -87,7 +90,7 @@ export const LoginPage: FC<LoginPageProps> = ({
         <Typography
           sx={{ fontSize: 13, color: "muted.main", maxWidth: 260, lineHeight: 1.45, mb: 1.5 }}
         >
-          {authCopy.subline}
+          {subline}
         </Typography>
 
         <Stack
@@ -134,7 +137,7 @@ export const LoginPage: FC<LoginPageProps> = ({
         ) : null}
 
         <Stack sx={{ mt: 2.25 }}>
-          <ServerStatusLine label={authCopy.serverStatus} />
+          <ServerStatusLine label={serverStatus} />
         </Stack>
       </Stack>
     </Stack>

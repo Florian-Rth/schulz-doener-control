@@ -2,10 +2,14 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { FC } from "react";
 import { MaterialIcon } from "@/components";
+import { useFunnyLine } from "@/lib/use-funny-line";
 import { successCopy } from "../../../copy";
 
 // Green check tile + title + subline. Presentational only.
 export const SuccessHeader: FC = () => {
+  const title = useFunnyLine(successCopy.titles);
+  const subline = useFunnyLine(successCopy.sublines);
+
   return (
     <Stack sx={{ alignItems: "center", gap: 0.5 }}>
       <Stack
@@ -22,10 +26,10 @@ export const SuccessHeader: FC = () => {
         <MaterialIcon name="check" sx={{ fontSize: 46, color: "success.main" }} />
       </Stack>
       <Typography variant="h1" component="h1" sx={{ fontSize: "1.4375rem", color: "navy.main" }}>
-        {successCopy.title}
+        {title}
       </Typography>
       <Typography sx={{ fontSize: "0.875rem", color: "muted.main", textAlign: "center" }}>
-        {successCopy.subline}
+        {subline}
       </Typography>
     </Stack>
   );

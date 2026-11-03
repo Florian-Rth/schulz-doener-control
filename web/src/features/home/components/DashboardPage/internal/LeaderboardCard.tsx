@@ -3,7 +3,8 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { FC } from "react";
 import { MaterialIcon, MedalRow } from "@/components";
-import { homeCopy, untilNextSentence } from "../../../copy";
+import { useFunnyLine } from "@/lib/use-funny-line";
+import { homeCopy, untilNextSentence, untilNextTemplates } from "../../../copy";
 import { useDashboardContext } from "../../../dashboard-context";
 import type { LeaderboardRow } from "../../../types";
 
@@ -22,6 +23,7 @@ const visibleRows = (rows: readonly LeaderboardRow[]): LeaderboardRow[] => {
 // + the "Nur noch X bis Platz N" footer.
 export const LeaderboardCard: FC = () => {
   const { leaderboard } = useDashboardContext();
+  const untilNextTemplate = useFunnyLine(untilNextTemplates);
   const rows = visibleRows(leaderboard.rows);
   const showUntilNext = leaderboard.doenerToNextRank !== null && leaderboard.nextRank !== null;
 
@@ -63,7 +65,11 @@ export const LeaderboardCard: FC = () => {
         <Typography
           sx={{ textAlign: "center", fontSize: "0.6875rem", color: "muted.main", mt: 1.25 }}
         >
-          {untilNextSentence(leaderboard.doenerToNextRank ?? 0, leaderboard.nextRank ?? 0)}
+          {untilNextSentence(
+            untilNextTemplate,
+            leaderboard.doenerToNextRank ?? 0,
+            leaderboard.nextRank ?? 0,
+          )}
         </Typography>
       ) : null}
     </Paper>

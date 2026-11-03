@@ -2,6 +2,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { FC } from "react";
 import { PrimaryButton } from "@/components";
+import { useFunnyLine } from "@/lib/use-funny-line";
 import { profileCopy } from "../../copy";
 import { usePayPalHandleForm } from "../../hooks/use-paypal-handle-form";
 import { PayPalHandleField } from "./internal/PayPalHandleField";
@@ -21,6 +22,7 @@ export const PayPalHandleForm: FC<PayPalHandleFormProps> = ({ initialHandle, onS
     initialHandle,
     onSaved,
   });
+  const savedLine = useFunnyLine(profileCopy.saved);
 
   return (
     <Stack component="form" noValidate onSubmit={onSubmit} sx={{ gap: 0.5 }}>
@@ -60,7 +62,7 @@ export const PayPalHandleForm: FC<PayPalHandleFormProps> = ({ initialHandle, onS
           role="status"
           sx={{ fontSize: "0.8125rem", color: "success.main", fontWeight: 700 }}
         >
-          {profileCopy.saved}
+          {savedLine}
         </Typography>
       ) : null}
 
