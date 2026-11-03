@@ -14,18 +14,14 @@ namespace Schulz.DoenerControl.Api.Tests.Push;
 // F19 first-failing test: a subscription POSTed by the caller is stored; opening a day fans a Web
 // Push (the synonym body) to every OTHER active subscriber via the transport double — never to the
 // opener; DELETE removes the caller's subscription.
-public sealed class PushSubscriptionTests : TestBase<PushTestApp>
+public sealed class PushSubscriptionTests : IsolatedTestBase<PushTestApp>
 {
     private const string LoginUrl = "/api/auth/login";
     private const string SubscriptionsUrl = "/api/push/subscriptions";
     private const string OpenUrl = "/api/order-days/open";
 
-    private readonly PushTestApp app;
-
     public PushSubscriptionTests(PushTestApp app)
-    {
-        this.app = app;
-    }
+        : base(app) { }
 
     [Fact]
     public async Task Should_Store_Push_Subscription_When_Posted_By_Caller()
@@ -51,7 +47,7 @@ public sealed class PushSubscriptionTests : TestBase<PushTestApp>
         Assert.Equal("https://push.example.com/chef-device", echoed!.Endpoint);
 
         var chefId = await ResolveUserIdAsync("m.wagner");
-        using var scope = app.Services.CreateScope();
+        using var scope = App.Services.CreateScope();
         var database = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var stored = await database.PushSubscriptions.SingleAsync(
             subscription => subscription.UserId == chefId,
@@ -90,7 +86,7 @@ public sealed class PushSubscriptionTests : TestBase<PushTestApp>
         );
         Assert.NotNull(body);
 
-        var sends = app.Transport.Sends;
+        var sends = App.Transport.Sends;
         // Exactly one push: to the subscribed colleague, never the opener.
         Assert.Single(sends);
         var sent = sends[0];
@@ -123,7 +119,7 @@ public sealed class PushSubscriptionTests : TestBase<PushTestApp>
 
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
 
-        using var scope = app.Services.CreateScope();
+        using var scope = App.Services.CreateScope();
         var database = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var exists = await database.PushSubscriptions.AnyAsync(
             subscription => subscription.Endpoint == endpoint,
@@ -134,7 +130,7 @@ public sealed class PushSubscriptionTests : TestBase<PushTestApp>
 
     private async Task<AuthTestClient> LoginAsChefAsync()
     {
-        var auth = new AuthTestClient(app.CreateClient());
+        var auth = new AuthTestClient(App.CreateClient());
         await auth.PostJsonAsync(
             LoginUrl,
             new { Username = "m.wagner", Password = "doener-dev-2026" }
@@ -144,7 +140,7 @@ public sealed class PushSubscriptionTests : TestBase<PushTestApp>
 
     private async Task<Guid> ResolveUserIdAsync(string normalizedUserName)
     {
-        using var scope = app.Services.CreateScope();
+        using var scope = App.Services.CreateScope();
         var database = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         return await database
             .Users.Where(user => user.NormalizedUserName == normalizedUserName)
@@ -154,7 +150,7 @@ public sealed class PushSubscriptionTests : TestBase<PushTestApp>
 
     private async Task<Guid> ResolveOtherActiveUserIdAsync(Guid excludeId)
     {
-        using var scope = app.Services.CreateScope();
+        using var scope = App.Services.CreateScope();
         var database = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         return await database
             .Users.Where(user => user.IsActive && user.Id != excludeId)
@@ -170,7 +166,7 @@ public sealed class PushSubscriptionTests : TestBase<PushTestApp>
         string secret
     )
     {
-        using var scope = app.Services.CreateScope();
+        using var scope = App.Services.CreateScope();
         var database = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         database.PushSubscriptions.Add(
             new PushSubscription

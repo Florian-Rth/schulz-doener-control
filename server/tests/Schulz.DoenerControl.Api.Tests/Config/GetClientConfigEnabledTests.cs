@@ -9,17 +9,13 @@ namespace Schulz.DoenerControl.Api.Tests.Config;
 // With Auth:PwaGateEnabled configured true, /api/config must report the install gate as active so
 // the SPA enforces PWA-only access. Uses a dedicated fixture because the flag is bound once at host
 // startup; the default-disabled case lives in GetClientConfigTests against the standard harness.
-public sealed class GetClientConfigEnabledTests : TestBase<PwaGateEnabledApp>
+public sealed class GetClientConfigEnabledTests : IsolatedTestBase<PwaGateEnabledApp>
 {
     private const string LoginUrl = "/api/auth/login";
     private const string ConfigUrl = "/api/config";
 
-    private readonly PwaGateEnabledApp app;
-
     public GetClientConfigEnabledTests(PwaGateEnabledApp app)
-    {
-        this.app = app;
-    }
+        : base(app) { }
 
     [Fact]
     public async Task Should_Return_Gate_Enabled_When_Configured()
@@ -38,7 +34,7 @@ public sealed class GetClientConfigEnabledTests : TestBase<PwaGateEnabledApp>
 
     private async Task<AuthTestClient> LoginAsChefAsync()
     {
-        var auth = new AuthTestClient(app.CreateClient());
+        var auth = new AuthTestClient(App.CreateClient());
         await auth.PostJsonAsync(
             LoginUrl,
             new { Username = "m.wagner", Password = "doener-dev-2026" }
