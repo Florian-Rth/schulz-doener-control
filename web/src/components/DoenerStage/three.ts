@@ -1,5 +1,5 @@
 // The 3D toolkit behind the Döner stage, for extra scene content passed as
-// `<DoenerStage>` children (mascots, games …).
+// `<DoenerStage>` children (games …).
 //
 // Import this ONLY from modules that are themselves loaded lazily
 // (`React.lazy(() => import(...))`) — it pulls in three.js and Rapier, which

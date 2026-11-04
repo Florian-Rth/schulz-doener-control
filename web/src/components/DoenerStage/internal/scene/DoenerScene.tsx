@@ -5,9 +5,10 @@ import { type FC, type ReactNode, Suspense, useState } from "react";
 import { PCFShadowMap } from "three";
 import type { DoenerBuild } from "../../build";
 import { doenerStageCopy } from "../../copy";
-import { FIELD_OF_VIEW, SceneContents } from "./SceneContents";
+import { FIELD_OF_VIEW, SceneContents, type Scenery } from "./SceneContents";
 
 export interface DoenerSceneProps {
+  scenery: Scenery;
   build: DoenerBuild;
   meatKeys: readonly string[];
   sauceKeys: readonly string[];
@@ -40,6 +41,7 @@ const prefersReducedMotion = (): boolean =>
 // The three.js stage. Loaded lazily (three.js + Rapier are big), so the rest of
 // the order screen never pays for it.
 export const DoenerScene: FC<DoenerSceneProps> = ({
+  scenery,
   build,
   meatKeys,
   sauceKeys,
@@ -75,6 +77,7 @@ export const DoenerScene: FC<DoenerSceneProps> = ({
       {/* Rapier's WASM loads asynchronously; render nothing until it is ready. */}
       <Suspense fallback={null}>
         <SceneContents
+          scenery={scenery}
           build={build}
           meatKeys={meatKeys}
           sauceKeys={sauceKeys}

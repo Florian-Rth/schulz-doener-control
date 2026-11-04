@@ -11,13 +11,15 @@ import { Color, DoubleSide, FrontSide, type InstancedMesh } from "three";
 import {
   createPieceGeometry,
   createRandom,
+  FLOOR_Y,
   type IngredientSpec,
   physicsDelta,
   SETTLE_CHECK_SECONDS,
   surfaceTextures,
+  useShadowPoke,
 } from "@/components/DoenerStage/three";
-import type { PieceKind } from "../../../../scoring";
-import { isInBread, verdictFor } from "./landing";
+import { type Bucket, bucketAt, type PieceKind } from "../../../../scoring";
+import { verdictFor } from "./landing";
 import type { PendingThrow } from "./throw-queue";
 
 interface PiecePoolProps {
@@ -27,7 +29,7 @@ interface PiecePoolProps {
   poolIndex: number;
   /** Throws to launch on the next frame; filled by the ThrowController. */
   queue: PendingThrow[];
-  onLanded: (kind: PieceKind, inBread: boolean) => void;
+  onLanded: (kind: PieceKind, bucket: Bucket | null) => void;
 }
 
 /** Bodies per ingredient. Six pools of five: never more than 30 live bodies. */
@@ -62,7 +64,7 @@ const isResting = (body: RapierRigidBody): boolean => {
 
 // A small recycled set of one ingredient's pieces. Bodies wait weightless and
 // asleep far below the floor; a throw teleports the oldest one to the spawn
-// point. Once a piece has landed and settled it is judged (in the bread or
+// point. Once a piece has landed and settled it is judged (in a bucket or
 // Sauerei) and put to sleep, so the pile costs nothing.
 export const PiecePool: FC<PiecePoolProps> = ({ kind, spec, poolIndex, queue, onLanded }) => {
   const bodies = useRef<(RapierRigidBody | null)[] | null>(null);
@@ -80,6 +82,7 @@ export const PiecePool: FC<PiecePoolProps> = ({ kind, spec, poolIndex, queue, on
   const clock = useRef(0);
   const settleTimer = useRef(0);
   const textures = surfaceTextures(spec.surface);
+  const pokeShadow = useShadowPoke();
 
   useLayoutEffect(() => {
     const node = mesh.current;
@@ -101,7 +104,7 @@ export const PiecePool: FC<PiecePoolProps> = ({ kind, spec, poolIndex, queue, on
   const judge = (slot: number, body: RapierRigidBody): void => {
     slots.flying[slot] = 0;
     const position = body.translation();
-    onLanded(kind, isInBread(position.x, position.y, position.z));
+    onLanded(kind, bucketAt(position.x, position.y - FLOOR_Y, position.z));
   };
 
   const launch = (slot: number, body: RapierRigidBody, shot: PendingThrow): void => {
@@ -109,13 +112,15 @@ export const PiecePool: FC<PiecePoolProps> = ({ kind, spec, poolIndex, queue, on
     body.setLinvel(shot.velocity, true);
     body.setAngvel(shot.spin, true);
     body.setGravityScale(1, true);
-    body.setLinearDamping(0.05);
+    // No air drag in flight: planThrow computes a pure ballistic arc.
+    body.setLinearDamping(0);
     body.setAngularDamping(0.8);
     body.collider(0).setActiveEvents(rapier.ActiveEvents.COLLISION_EVENTS);
     slots.launchedAt[slot] = clock.current;
     slots.contactAt[slot] = Number.NaN;
     slots.flying[slot] = 1;
     slots.used[slot] = 1;
+    pokeShadow();
   };
 
   const check = (list: readonly (RapierRigidBody | null)[]): void => {

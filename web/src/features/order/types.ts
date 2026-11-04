@@ -7,7 +7,6 @@ import type {
   MenuItemSchema,
   MenuSchema,
   MyOrderSchema,
-  MyTierSchema,
   OrderDetailsSchema,
   OrderFormSchema,
   OrderLineFormSchema,
@@ -24,7 +23,6 @@ export type AnswerValue = z.infer<typeof AnswerValueSchema>;
 export type OrderLine = z.infer<typeof OrderLineSchema>;
 export type OrderDetails = z.infer<typeof OrderDetailsSchema>;
 export type MyOrder = z.infer<typeof MyOrderSchema>;
-export type MyTier = z.infer<typeof MyTierSchema>;
 export type TodayOrderDay = z.infer<typeof TodayOrderDaySchema>;
 
 export type OrderForm = z.infer<typeof OrderFormSchema>;

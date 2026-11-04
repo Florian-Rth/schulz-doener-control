@@ -1,4 +1,4 @@
-// The pure rules of the Döner-Weitwurf: what a piece is worth, how combos
+// The pure rules of the Döner-Weitwurf: which bucket is worth what, how combos
 // multiply, and how a fling on the screen turns into a throw. No React, no
 // three.js, so all of it is unit-testable. The server re-checks the bounds
 // (server/…/GameScoreRules.cs): keep MAX_POINTS_PER_PIECE and
@@ -21,17 +21,28 @@ export const PIECE_KINDS: readonly PieceKind[] = [
   "rotkohl",
 ];
 
-// Heavy and rare is worth more; flimsy lettuce flutters in easily.
-export const PIECE_POINTS: Record<PieceKind, number> = {
-  fleisch: 30,
-  zwiebel: 25,
-  tomate: 20,
-  gurke: 20,
-  rotkohl: 15,
-  salat: 10,
-};
+export type BucketId = "bambini" | "stammkunde" | "meister";
 
-export const MAX_POINTS_PER_PIECE = 30;
+export interface Bucket {
+  id: BucketId;
+  /** What a piece that stays in this bucket is worth, before the combo. */
+  points: number;
+  /** Floor position (x sideways, z towards the thrower) and size, in scene units. */
+  x: number;
+  z: number;
+  radius: number;
+  height: number;
+}
+
+// Near and wide is easy, far and narrow is the jackpot. The thrower stands
+// behind z ≈ 4.5, so depth is the difficulty.
+export const BUCKETS: readonly Bucket[] = [
+  { id: "bambini", points: 10, x: -0.7, z: 1.5, radius: 0.8, height: 0.5 },
+  { id: "stammkunde", points: 25, x: 0.75, z: -0.9, radius: 0.65, height: 0.55 },
+  { id: "meister", points: 50, x: -0.25, z: -3.6, radius: 0.55, height: 0.6 },
+];
+
+export const MAX_POINTS_PER_PIECE = Math.max(...BUCKETS.map((bucket) => bucket.points));
 export const MAX_COMBO_MULTIPLIER = 3;
 
 /** ×1 for a single hit, +0.5 per hit in a row, capped at ×3 (5 in a row). */
@@ -41,7 +52,7 @@ export const comboMultiplier = (combo: number): number =>
 export interface GameTally {
   score: number;
   hits: number;
-  /** Pieces that ended up on the floor or the plate: the "Sauerei". */
+  /** Pieces that ended up on the floor: the "Sauerei". */
   misses: number;
   /** Hits in a row right now. */
   combo: number;
@@ -50,14 +61,14 @@ export interface GameTally {
 
 export const INITIAL_TALLY: GameTally = { score: 0, hits: 0, misses: 0, combo: 0, bestCombo: 0 };
 
-/** Points a hit of `kind` is worth with `combo` hits in a row (this one included). */
-export const pointsFor = (kind: PieceKind, combo: number): number =>
-  Math.round(PIECE_POINTS[kind] * comboMultiplier(combo));
+/** Points a hit in `bucket` is worth with `combo` hits in a row (this one included). */
+export const pointsFor = (bucket: Bucket, combo: number): number =>
+  Math.round(bucket.points * comboMultiplier(combo));
 
-export const applyHit = (tally: GameTally, kind: PieceKind): GameTally => {
+export const applyHit = (tally: GameTally, bucket: Bucket): GameTally => {
   const combo = tally.combo + 1;
   return {
-    score: tally.score + pointsFor(kind, combo),
+    score: tally.score + pointsFor(bucket, combo),
     hits: tally.hits + 1,
     misses: tally.misses,
     combo,
@@ -70,6 +81,15 @@ export const applyMiss = (tally: GameTally): GameTally => ({
   misses: tally.misses + 1,
   combo: 0,
 });
+
+/** The bucket a resting piece lies in, or null for a Sauerei. */
+export const bucketAt = (x: number, height: number, z: number): Bucket | null =>
+  BUCKETS.find(
+    (bucket) =>
+      Math.hypot(x - bucket.x, z - bucket.z) < bucket.radius &&
+      height >= -0.05 &&
+      height <= bucket.height + 0.08,
+  ) ?? null;
 
 /** Picks the next piece from a 0..1 random number. Lettuce is common, meat a bit rarer. */
 const KIND_WEIGHTS: readonly (readonly [PieceKind, number])[] = [
@@ -93,7 +113,10 @@ export const pickPieceKind = (random: number): PieceKind => {
   return "fleisch";
 };
 
-/** A swipe on the canvas, in fractions of the canvas height (y grows downwards). */
+/**
+ * The end of a swipe on the canvas — its last ~100 ms, so the release speed
+ * counts, not a slow start. In fractions of the canvas height (y grows downwards).
+ */
 export interface Fling {
   dx: number;
   dy: number;
@@ -101,17 +124,20 @@ export interface Fling {
 }
 
 /**
- * Where a throw goes, relative to a perfect one. `reach` 1 lands in the middle
- * of the bread; less falls short, more overshoots. `lateral` is the sideways
- * offset in bread half-lengths (±1 = the ends of the bread).
+ * A throw as the player meant it. `power` 1 is a swipe at the ideal speed;
+ * slower throws shorter, faster further. `dx`/`dy` is the swipe direction on
+ * the screen (unit length) — the piece flies towards what the swipe points at.
  */
 export interface ThrowAim {
-  reach: number;
-  lateral: number;
+  power: number;
+  dx: number;
+  dy: number;
 }
 
-/** Swipe speed (canvas heights per second) that throws exactly into the bread. */
+/** Swipe speed (canvas heights per second) for a power-1 throw. */
 export const IDEAL_FLING_SPEED = 2.4;
+export const MIN_POWER = 0.3;
+export const MAX_POWER = 2.6;
 const MIN_FLING_UP = 0.05;
 const MIN_FLING_MS = 40;
 
@@ -120,14 +146,25 @@ export const aimFromFling = ({ dx, dy, durationMs }: Fling): ThrowAim | null => 
   if (-dy < MIN_FLING_UP) {
     return null;
   }
+  const length = Math.hypot(dx, dy);
   const seconds = Math.max(MIN_FLING_MS, durationMs) / 1000;
-  const speed = Math.hypot(dx, dy) / seconds;
   return {
-    reach: Math.min(2, Math.max(0.35, speed / IDEAL_FLING_SPEED)),
-    // The swipe angle: 45° to the side puts it far past the end of the bread.
-    lateral: Math.max(-2, Math.min(2, (dx / -dy) * 1.6)),
+    power: Math.min(MAX_POWER, Math.max(MIN_POWER, length / seconds / IDEAL_FLING_SPEED)),
+    dx: dx / length,
+    dy: dy / length,
   };
 };
+
+/** Ground distance of a throw: power 1 reaches the middle bucket. */
+export const IDEAL_THROW_DISTANCE = 5.6;
+// Distance grows slower than the swipe speed: a finger is not that precise,
+// so 10 % too fast is ~7 % too far, not 10 %.
+const DISTANCE_EXPONENT = 0.7;
+export const throwDistance = (power: number): number =>
+  IDEAL_THROW_DISTANCE * power ** DISTANCE_EXPONENT;
+/** The power that throws exactly `distance` far. */
+export const powerForDistance = (distance: number): number =>
+  (distance / IDEAL_THROW_DISTANCE) ** (1 / DISTANCE_EXPONENT);
 
 export type RoastTier = "sauerei" | "solide" | "meister";
 
@@ -136,5 +173,5 @@ export const roastTierFor = (tally: GameTally): RoastTier => {
   if (tally.hits === 0 || tally.misses > tally.hits * 2) {
     return "sauerei";
   }
-  return tally.score >= 600 ? "meister" : "solide";
+  return tally.score >= 900 ? "meister" : "solide";
 };

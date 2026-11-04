@@ -5,6 +5,7 @@ import { useWeitwurfRound } from "../../hooks/use-weitwurf-round";
 import { WeitwurfContext } from "../../weitwurf-context";
 import { EndScreen } from "./internal/EndScreen";
 import { GameHud } from "./internal/GameHud";
+import { NextPieceLabel } from "./internal/NextPieceLabel";
 import { StartCard } from "./internal/StartCard";
 
 // The throw controller pulls in three.js + Rapier: only loaded with the stage.
@@ -14,8 +15,9 @@ const ThrowController = lazy(() =>
   })),
 );
 
-// The Döner-Weitwurf: a full-screen Döner stage where colleagues fling
-// ingredients into an empty bread while the Abholer is on the way.
+// The Döner-Weitwurf: a full-screen arena where colleagues fling ingredients
+// into buckets — near and easy, or far and worth a lot — while the Abholer is
+// on the way.
 export const WeitwurfPage: FC = () => {
   const round = useWeitwurfRound();
 
@@ -24,10 +26,11 @@ export const WeitwurfPage: FC = () => {
       <Stack sx={{ height: "100dvh", backgroundColor: "navy.main", overflow: "hidden" }}>
         <DoenerStage
           build={EMPTY_BUILD}
-          word={round.word}
+          scenery="arena"
           overlay={
             <>
               <GameHud />
+              {round.phase === "playing" ? <NextPieceLabel /> : null}
               {round.phase === "ready" ? <StartCard /> : null}
               {round.phase === "over" ? <EndScreen /> : null}
             </>
@@ -36,6 +39,8 @@ export const WeitwurfPage: FC = () => {
           <ThrowController
             key={round.round}
             active={round.phase === "playing"}
+            nextKind={round.nextKind}
+            onThrow={round.onThrow}
             onLanded={round.onLanded}
           />
         </DoenerStage>

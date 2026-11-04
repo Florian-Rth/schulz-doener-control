@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { mswServer } from "@/test/mswServer";
 import { renderApp } from "@/test/renderApp";
 import { gameCopy } from "../../copy";
+import { BUCKETS, type Bucket, PIECE_KINDS, type PieceKind } from "../../scoring";
 import type { GameLeaderboard } from "../../types";
 
 // jsdom has no WebGL — the stage renders its children into a plain probe.
@@ -14,21 +15,37 @@ vi.mock("@/components/DoenerStage/internal/scene/DoenerScene", () => ({
   ),
 }));
 
-// The physics is replaced by buttons that report landings like the real pools.
+// The physics is replaced by buttons that throw and report landings like the real pools.
 vi.mock("./internal/scene/ThrowController", () => ({
   ThrowController: ({
     active,
+    nextKind,
+    onThrow,
     onLanded,
   }: {
     active: boolean;
-    onLanded: (kind: string, inBread: boolean) => void;
+    nextKind: PieceKind;
+    onThrow: () => void;
+    onLanded: (kind: PieceKind, bucket: Bucket | null) => void;
   }) => (
-    <div data-testid="throw-controller" data-active={String(active)}>
-      <button type="button" onClick={() => onLanded("fleisch", true)}>
-        Fleisch rein
+    <div data-testid="throw-controller" data-active={String(active)} data-next={nextKind}>
+      <button
+        type="button"
+        onClick={() => {
+          onThrow();
+          onLanded(nextKind, BUCKETS[1] ?? null);
+        }}
+      >
+        Stammkunde rein
       </button>
-      <button type="button" onClick={() => onLanded("tomate", false)}>
-        Tomate daneben
+      <button
+        type="button"
+        onClick={() => {
+          onThrow();
+          onLanded(nextKind, null);
+        }}
+      >
+        Daneben
       </button>
     </div>
   ),
@@ -120,14 +137,19 @@ describe("WeitwurfPage", () => {
     await user.click(getByRole("button", { name: gameCopy.start }));
     expect((await findByTestId("throw-controller")).dataset.active).toBe("true");
 
-    await user.click(getByRole("button", { name: "Fleisch rein" }));
-    await user.click(getByRole("button", { name: "Fleisch rein" }));
-    // 30 + 30 × 1.5 for the second hit in a row.
-    expect(within(getByRole("group", { name: gameCopy.scoreLabel })).getByText("75")).toBeVisible();
+    // The piece in the hand is named under the stage.
+    const held = (await findByTestId("throw-controller")).dataset.next as PieceKind;
+    expect(PIECE_KINDS).toContain(held);
+    expect(getByText(gameCopy.nextPiece(gameCopy.pieceNames[held]))).toBeInTheDocument();
+
+    await user.click(getByRole("button", { name: "Stammkunde rein" }));
+    await user.click(getByRole("button", { name: "Stammkunde rein" }));
+    // 25 + 25 × 1.5 for the second hit in a row.
+    expect(within(getByRole("group", { name: gameCopy.scoreLabel })).getByText("63")).toBeVisible();
     expect(getByText(gameCopy.comboBadge(1.5))).toBeInTheDocument();
 
-    await user.click(getByRole("button", { name: "Tomate daneben" }));
-    expect(getByText(oneOf(gameCopy.missWords))).toBeInTheDocument();
+    await user.click(getByRole("button", { name: "Daneben" }));
+    expect(within(getByRole("group", { name: gameCopy.missesLabel })).getByText("1")).toBeVisible();
 
     act(() => {
       vi.advanceTimersByTime(30_200);
@@ -138,12 +160,12 @@ describe("WeitwurfPage", () => {
     });
 
     expect(await findByRole("dialog", { name: gameCopy.endTitle })).toBeInTheDocument();
-    expect(getByText("75 Pkt.")).toBeInTheDocument();
+    expect(getByText("63 Pkt.")).toBeInTheDocument();
     expect(await findByText("Sara Yılmaz")).toBeInTheDocument();
     expect(getByText("Lukas Brandt")).toBeInTheDocument();
     expect(await findByText(gameCopy.personalBest)).toBeInTheDocument();
     await waitFor(() => {
-      expect(submitted).toEqual([{ score: 75, hits: 2, misses: 1 }]);
+      expect(submitted).toEqual([{ score: 63, hits: 2, misses: 1 }]);
     });
     // The roast comes from the pool matching the round.
     expect(getByText(oneOf(gameCopy.roasts.solide))).toBeInTheDocument();

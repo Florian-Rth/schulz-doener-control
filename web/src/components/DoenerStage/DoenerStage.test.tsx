@@ -4,7 +4,6 @@ import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { theme } from "@/styles/theme";
 import { EMPTY_BUILD } from "./build";
-import { doenerStageCopy } from "./copy";
 import { DoenerStage } from "./DoenerStage";
 import { buildAtBeat, useBuildReplay } from "./use-build-replay";
 
@@ -30,13 +29,8 @@ const Themed = ({ children }: { children: ReactNode }) => (
   <ThemeProvider theme={theme}>{children}</ThemeProvider>
 );
 
-const oneOf =
-  (pool: readonly string[]) =>
-  (text: string): boolean =>
-    pool.includes(text);
-
 describe("DoenerStage", () => {
-  it("renders the build, extra scene content and an impact word on every throw", async () => {
+  it("renders the build, extra scene content and the overlay", async () => {
     const { rerender } = render(
       <DoenerStage build={EMPTY_BUILD} overlay={<span>Punkte: 3</span>}>
         <span>Maskottchen</span>
@@ -50,7 +44,6 @@ describe("DoenerStage", () => {
     expect(screen.getByTestId("scene")).toHaveTextContent("pute|salat");
     // Unknown meats are pre-mounted next to the known ones.
     expect(screen.getByTestId("scene").dataset.meatKeys).toContain("pute");
-    expect(screen.getByText(oneOf(doenerStageCopy.impactWords))).toBeInTheDocument();
   });
 });
 

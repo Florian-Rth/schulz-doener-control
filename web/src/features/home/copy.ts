@@ -291,5 +291,5 @@ export const formatSettledDate = (settledAt: string): string =>
 // The Döner-Weitwurf entry tile on the running day, shown while the Abholer is on the way.
 export const waitingGameCopy = {
   title: "Warten auf den Abholer?",
-  body: "Wirf ein paar Tomaten, Chef. 30 Sekunden Döner-Weitwurf.",
+  body: "Wirf ein paar Tomaten in die Eimer, Chef. 30 Sekunden Döner-Weitwurf.",
 } as const;

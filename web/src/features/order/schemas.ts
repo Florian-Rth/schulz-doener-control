@@ -196,11 +196,3 @@ export const buildOrderFormSchema = (menu: Menu): OrderFormResolverSchema =>
       }
     });
   });
-
-// GET /api/tiere/mine — the caller's own Döner-Tier, here only for the mascot
-// standee in the Konfigurator (the catalog lives in the tiere feature).
-export const MyTierSchema = z.object({
-  emoji: z.string(),
-  name: z.string(),
-  tagline: z.string(),
-});

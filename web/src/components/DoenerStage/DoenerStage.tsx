@@ -5,9 +5,7 @@ import { type FC, lazy, type ReactNode, Suspense } from "react";
 import { pickLine } from "@/lib/funny-lines";
 import type { DoenerBuild } from "./build";
 import { doenerStageCopy } from "./copy";
-import { ImpactBurst } from "./internal/ImpactBurst";
 import { KNOWN_MEAT_KEYS, KNOWN_SAUCE_KEYS } from "./internal/scene/food";
-import { type ImpactWord, useImpactWord } from "./use-impact-word";
 
 // three.js + Rapier are only downloaded when a stage is actually shown.
 const DoenerScene = lazy(() =>
@@ -17,14 +15,15 @@ const DoenerScene = lazy(() =>
 export interface DoenerStageProps {
   /** What is in the bread. Every change throws the new ingredients in. */
   build: DoenerBuild;
+  /**
+   * "arena": the same showroom, but an empty floor — no bread, no plate, no
+   * orbit camera. For games whose children place their own targets and camera.
+   */
+  scenery?: "doener" | "arena";
   /** Turntable mode: the camera circles the Döner like a showroom car. */
   presenting?: boolean;
-  /** Seeds the playful lines (loading text, impact words) — roll once per screen with `rollSeed`. */
+  /** Seeds the playful loading line — roll once per screen with `rollSeed`. */
   seed?: number;
-  /** Comic "KLATSCH!" words over the stage. */
-  impactWords?: boolean;
-  /** A comic word from outside (games …), shown instead of the build's own words. */
-  word?: ImpactWord | null;
   /**
    * Option keys to pre-mount, so their shaders compile before the first throw.
    * Defaults to every meat / sauce with a dedicated look, plus the build's own.
@@ -34,7 +33,7 @@ export interface DoenerStageProps {
   /** Every hit on the bread, with its strength (≈ 0.03 lettuce … 0.1 meat). */
   onHit?: (strength: number) => void;
   /**
-   * Extra 3D content, rendered inside the physics world (mascots, games …).
+   * Extra 3D content, rendered inside the physics world (games …).
    * It must come from a lazily imported module so three.js stays out of the
    * main bundle — see `./three.ts`.
    */
@@ -67,32 +66,31 @@ const StageLoading: FC<{ seed: number }> = ({ seed }) => (
 // height); the navy background belongs to the scene.
 export const DoenerStage: FC<DoenerStageProps> = ({
   build,
+  scenery = "doener",
   presenting = false,
   seed = 0,
-  impactWords = true,
-  word,
   meatKeys,
   sauceKeys,
   onHit,
   children,
   overlay,
 }) => {
-  const impactWord = useImpactWord(build, seed);
+  const doener = scenery === "doener";
 
   return (
     <Stack sx={{ flex: 1, minHeight: 0, position: "relative", touchAction: "none" }}>
       <Suspense fallback={<StageLoading seed={seed} />}>
         <DoenerScene
+          scenery={scenery}
           build={build}
-          meatKeys={withKeys(meatKeys ?? KNOWN_MEAT_KEYS, [build.meat])}
-          sauceKeys={withKeys(sauceKeys ?? KNOWN_SAUCE_KEYS, build.sauces)}
+          meatKeys={doener ? withKeys(meatKeys ?? KNOWN_MEAT_KEYS, [build.meat]) : []}
+          sauceKeys={doener ? withKeys(sauceKeys ?? KNOWN_SAUCE_KEYS, build.sauces) : []}
           presenting={presenting}
           onHit={onHit}
         >
           {children}
         </DoenerScene>
       </Suspense>
-      {impactWords ? <ImpactBurst word={word ?? impactWord} /> : null}
       {overlay}
     </Stack>
   );

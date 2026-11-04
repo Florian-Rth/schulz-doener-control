@@ -21,7 +21,11 @@ import { ShadowUpdater } from "./ShadowUpdater";
 import { Showroom } from "./Showroom";
 import { ShadowPokeContext } from "./shadow-poke-context";
 
+export type Scenery = "doener" | "arena";
+
 export interface SceneContentsProps {
+  /** "arena": an empty floor for games — no bread, no plate, the child owns the camera. */
+  scenery: Scenery;
   build: DoenerBuild;
   meatKeys: readonly string[];
   sauceKeys: readonly string[];
@@ -85,6 +89,7 @@ const QualityDpr: FC<{ quality: Quality }> = ({ quality }) => {
 // Everything inside the canvas. Owns the "hit" feedback: every impact on the
 // bread wobbles it and shakes the camera — the harder the throw, the more.
 export const SceneContents: FC<SceneContentsProps> = ({
+  scenery,
   build,
   meatKeys,
   sauceKeys,
@@ -98,6 +103,7 @@ export const SceneContents: FC<SceneContentsProps> = ({
   const shake = useRef(0);
   const shadowPokes = useRef(0);
   const [quality, setQuality] = useState<Quality>(initialQuality);
+  const doener = scenery === "doener";
 
   const onHit = (strength: number): void => {
     onHitOutside?.(strength);
@@ -110,7 +116,8 @@ export const SceneContents: FC<SceneContentsProps> = ({
   return (
     <>
       <color attach="background" args={[theme.palette.navy.main]} />
-      <fog attach="fog" args={[theme.palette.navy.main, 11, 22]} />
+      {/* The arena is deeper than the showroom: its far bucket must not vanish in the fog. */}
+      <fog attach="fog" args={[theme.palette.navy.main, doener ? 11 : 18, doener ? 22 : 36]} />
 
       <Environment resolution={256} frames={1}>
         <Lightformer
@@ -159,22 +166,27 @@ export const SceneContents: FC<SceneContentsProps> = ({
           next frame even slower. */}
       <Physics gravity={[0, -GRAVITY, 0]} timeStep="vary">
         <Showroom
+          plate={doener}
           floorColor={theme.palette.navy.main}
           plateColor={theme.palette.label.main}
           accentColor={theme.palette.primary.main}
         />
-        <Bread impact={impact} paperInk={theme.palette.primary.main} />
-        <DoenerFilling
-          build={build}
-          meatKeys={meatKeys}
-          sauceKeys={sauceKeys}
-          onHit={onHit}
-          gentle={gentle}
-        />
+        {doener ? (
+          <>
+            <Bread impact={impact} paperInk={theme.palette.primary.main} />
+            <DoenerFilling
+              build={build}
+              meatKeys={meatKeys}
+              sauceKeys={sauceKeys}
+              onHit={onHit}
+              gentle={gentle}
+            />
+          </>
+        ) : null}
         <ShadowPokeContext.Provider value={shadowPokes}>{children}</ShadowPokeContext.Provider>
       </Physics>
 
-      <FittedControls presenting={presenting} />
+      {doener ? <FittedControls presenting={presenting} /> : null}
       <ImpactShake intensity={shake} />
 
       <ShadowUpdater

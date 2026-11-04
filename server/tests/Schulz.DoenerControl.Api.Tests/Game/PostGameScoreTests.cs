@@ -77,7 +77,7 @@ public sealed class PostGameScoreTests : DoenerControlTestBase
     [InlineData(-1, 0, 0)]
     [InlineData(10, -1, 0)]
     [InlineData(10, 1, -1)]
-    [InlineData(91, 1, 0)]
+    [InlineData(151, 1, 0)]
     [InlineData(0, 100, 21)]
     [InlineData(100000, 120, 0)]
     public async Task Should_Reject_Round_When_Numbers_Are_Implausible(

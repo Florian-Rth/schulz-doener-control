@@ -1,16 +1,17 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import type { ImpactWord } from "@/components/DoenerStage";
 import { pickLine, rollSeed } from "@/lib/funny-lines";
 import { useGameLeaderboard, useSubmitGameScore } from "../api";
 import { gameCopy } from "../copy";
 import {
   applyHit,
   applyMiss,
+  type Bucket,
   type GameTally,
   INITIAL_TALLY,
   OVERTIME_SECONDS,
   type PieceKind,
+  pickPieceKind,
   ROUND_SECONDS,
   roastTierFor,
 } from "../scoring";
@@ -24,7 +25,8 @@ export interface WeitwurfRound {
   round: number;
   tally: GameTally;
   secondsLeft: number;
-  word: ImpactWord | null;
+  /** The piece in the hand: what the next swipe throws. */
+  nextKind: PieceKind;
   introLine: string;
   roastLine: string;
   isPersonalBest: boolean;
@@ -34,14 +36,12 @@ export interface WeitwurfRound {
   leaderboardPending: boolean;
   leaderboardError: boolean;
   start: () => void;
-  onLanded: (kind: PieceKind, inBread: boolean) => void;
+  onThrow: () => void;
+  onLanded: (kind: PieceKind, bucket: Bucket | null) => void;
   goHome: () => void;
 }
 
 const TICK_MS = 200;
-// Prime stride: consecutive words differ.
-const WORD_STRIDE = 7;
-const COMBO_WORD_FROM = 3;
 
 // One Weitwurf round after the other: start → 30 s of throwing → a short
 // overtime for the pieces still in the air → score saved, end screen.
@@ -53,7 +53,7 @@ export const useWeitwurfRound = (): WeitwurfRound => {
   const [tally, setTally] = useState<GameTally>(INITIAL_TALLY);
   const [endsAt, setEndsAt] = useState(0);
   const [now, setNow] = useState(0);
-  const [word, setWord] = useState<ImpactWord | null>(null);
+  const [nextKind, setNextKind] = useState<PieceKind>(() => pickPieceKind(Math.random()));
   // Landings arrive from the render loop; the timer needs the latest tally.
   const latest = useRef<GameTally>(INITIAL_TALLY);
   const submit = useSubmitGameScore();
@@ -87,7 +87,6 @@ export const useWeitwurfRound = (): WeitwurfRound => {
     const time = Date.now();
     latest.current = INITIAL_TALLY;
     setTally(INITIAL_TALLY);
-    setWord(null);
     setEndsAt(time + ROUND_SECONDS * 1000);
     setNow(time);
     setRound((value) => value + 1);
@@ -95,23 +94,24 @@ export const useWeitwurfRound = (): WeitwurfRound => {
     submit.reset();
   };
 
-  const shout = (pool: readonly string[]): void => {
-    const id = (word?.id ?? 0) + 1;
-    setWord({ id, text: pickLine(pool, seed + id * WORD_STRIDE) });
+  const onThrow = (): void => {
+    setNextKind(pickPieceKind(Math.random()));
   };
 
-  const onLanded = (kind: PieceKind, inBread: boolean): void => {
+  // The bucket decides the points; the piece only decides the look.
+  const onLanded = (_kind: PieceKind, bucket: Bucket | null): void => {
     if (phase !== "playing" && phase !== "overtime") {
       return;
     }
-    const next = inBread ? applyHit(latest.current, kind) : applyMiss(latest.current);
+    if (bucket === null) {
+      const next = applyMiss(latest.current);
+      latest.current = next;
+      setTally(next);
+      return;
+    }
+    const next = applyHit(latest.current, bucket);
     latest.current = next;
     setTally(next);
-    if (!inBread) {
-      shout(gameCopy.missWords);
-    } else {
-      shout(next.combo >= COMBO_WORD_FROM ? gameCopy.comboWords : gameCopy.hitWords);
-    }
   };
 
   const goHome = (): void => {
@@ -123,7 +123,7 @@ export const useWeitwurfRound = (): WeitwurfRound => {
     round,
     tally,
     secondsLeft: phase === "ready" ? ROUND_SECONDS : Math.max(0, Math.ceil((endsAt - now) / 1000)),
-    word,
+    nextKind,
     introLine: pickLine(gameCopy.intros, seed),
     roastLine: pickLine(gameCopy.roasts[roastTierFor(tally)], seed + round),
     isPersonalBest: submit.data?.isPersonalBest ?? false,
@@ -133,6 +133,7 @@ export const useWeitwurfRound = (): WeitwurfRound => {
     leaderboardPending: leaderboardQuery.isPending,
     leaderboardError: leaderboardQuery.isError,
     start,
+    onThrow,
     onLanded,
     goHome,
   };

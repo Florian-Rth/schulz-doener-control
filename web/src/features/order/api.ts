@@ -1,19 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
-import {
-  MenuSchema,
-  MyOrderSchema,
-  MyTierSchema,
-  OrderDetailsSchema,
-  TodayOrderDaySchema,
-} from "./schemas";
-import type { Menu, MyOrder, MyTier, OrderDetails, OrderForm, TodayOrderDay } from "./types";
+import { MenuSchema, MyOrderSchema, OrderDetailsSchema, TodayOrderDaySchema } from "./schemas";
+import type { Menu, MyOrder, OrderDetails, OrderForm, TodayOrderDay } from "./types";
 
 export const orderKeys = {
   menu: ["order", "menu"] as const,
   today: ["order", "today"] as const,
   myOrder: (dayId: string) => ["order", "my-order", dayId] as const,
-  myTier: ["order", "my-tier"] as const,
 };
 
 const fetchMenu = async (signal: AbortSignal): Promise<Menu> => {
@@ -49,21 +42,6 @@ export const useMyOrder = (dayId: string | null) =>
     queryKey: orderKeys.myOrder(dayId ?? ""),
     queryFn: ({ signal }) => fetchMyOrder(dayId as string, signal),
     enabled: dayId !== null,
-  });
-
-const fetchMyTier = async (signal: AbortSignal): Promise<MyTier> => {
-  const data = await apiClient.get("/api/tiere/mine", signal);
-  return MyTierSchema.parse(data);
-};
-
-// The caller's Döner-Tier — it stands next to the Döner in the Konfigurator.
-// Purely decorative: no retries, a failure just means no mascot.
-export const useMyTier = () =>
-  useQuery({
-    queryKey: orderKeys.myTier,
-    queryFn: ({ signal }) => fetchMyTier(signal),
-    staleTime: 10 * 60 * 1000,
-    retry: false,
   });
 
 interface SubmitOrderArgs {

@@ -1,4 +1,4 @@
-import type { RoastTier } from "./scoring";
+import type { BucketId, PieceKind, RoastTier } from "./scoring";
 
 // Copy of the Döner-Weitwurf. Playful lines are pools — pick with `pickLine`
 // from "@/lib/funny-lines".
@@ -7,8 +7,23 @@ export const gameCopy = {
   back: "Zurück",
   introTitle: "Döner-Weitwurf",
   introBody:
-    "Wisch von unten nach oben, Chef: Richtung und Tempo bestimmen den Wurf. Alles, was im Brot liegen bleibt, gibt Punkte. Treffer am Stück geben Kombo-Bonus.",
-  introPoints: "Fleisch 30 · Zwiebel 25 · Tomate/Gurke 20 · Rotkohl 15 · Salat 10",
+    "Unten hältst du die nächste Zutat. Wisch Richtung Eimer, Chef: Je schneller der Wisch, desto weiter fliegt sie. Was im Eimer liegen bleibt, gibt Punkte. Treffer am Stück geben Kombo-Bonus.",
+  introPoints: "Bambini 10 · Stammkunde 25 · Dönermeister 50",
+  // The signs over the buckets, near (easy) to far (hard).
+  bucketNames: {
+    bambini: "Bambini",
+    stammkunde: "Stammkunde",
+    meister: "Dönermeister",
+  } satisfies Record<BucketId, string>,
+  pieceNames: {
+    fleisch: "Fleisch",
+    tomate: "Tomate",
+    gurke: "Gurke",
+    zwiebel: "Zwiebel",
+    salat: "Salat",
+    rotkohl: "Rotkohl",
+  } satisfies Record<PieceKind, string>,
+  nextPiece: (name: string): string => `In der Hand: ${name}`,
   start: "Los geht's",
   intros: [
     "Der Abholer ist unterwegs. Zeit für Sport, Chef.",
@@ -22,10 +37,6 @@ export const gameCopy = {
   missesLabel: "Sauerei",
   bestComboLabel: "Beste Kombo",
   comboBadge: (combo: number): string => `Kombo ×${combo}`,
-  // Comic words over the stage.
-  hitWords: ["ZACK!", "VOLLTREFFER!", "KLATSCH!", "DRIN!", "BÄM!", "SAUBER!"],
-  comboWords: ["KOMBO!", "LÄUFT!", "UNAUFHALTSAM!", "DÖNER-GOTT!", "WAHNSINN!"],
-  missWords: ["SAUEREI!", "PLATSCH!", "DANEBEN!", "OH NEIN!", "BODENHAFTUNG!"],
   overtime: "Abpfiff! Die letzten Stücke landen …",
   endTitle: "Abpfiff, Chef!",
   personalBest: "Neuer persönlicher Rekord!",
@@ -44,6 +55,7 @@ export const gameCopy = {
     sauerei: [
       "Der Boden hat heute mehr gegessen als du, Chef.",
       "Das war kein Weitwurf, das war Bodenpflege.",
+      "Die Eimer sind noch leer. Der Boden nicht.",
       "Die Putzkraft hat dich gerade auf die Liste gesetzt.",
       "Zielwasser vergessen? Passiert. Ständig, offenbar.",
     ],
@@ -57,10 +69,10 @@ export const gameCopy = {
       "Döner-Meister! Der Laden will dich einstellen.",
       "Das war Präzisionsarbeit. Respekt, Chef.",
       "Wenn Döner-Weitwurf olympisch wäre: Gold.",
-      "So sauber hat noch keiner gefüllt. Legendär.",
+      "So sauber hat noch keiner eingelocht. Legendär.",
     ],
   } satisfies Record<RoastTier, readonly string[]>,
-  sceneHint: "Wisch nach oben, um zu werfen",
+  sceneHint: "Wisch Richtung Eimer, um zu werfen",
 } as const;
 
 export const timeLeftLabel = (seconds: number): string => `${seconds}s`;
