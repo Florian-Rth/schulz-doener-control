@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError, apiClient } from "@/lib/api";
 import { homeCopy } from "./copy";
 import { DashboardSchema, PaymentHistorySchema, ReceivablesSchema } from "./schemas";
@@ -31,18 +31,27 @@ export const useDashboard = () =>
     refetchIntervalInBackground: false,
   });
 
-// GET /api/debts/history — the caller's own settled payments (newest first,
-// capped at 10). A standalone read-only query, deliberately NOT folded into the
-// dashboard aggregate, so the history card can fetch independently.
-const fetchPaymentHistory = async (signal: AbortSignal): Promise<PaymentHistory> => {
-  const data = await apiClient.get("/api/debts/history", signal);
+const paymentHistoryPageSize = 10;
+
+// GET /api/debts/history?skip=&take= — one page of the caller's own settled
+// payments (newest first). A standalone read-only query, deliberately NOT
+// folded into the dashboard aggregate, so the history card can fetch
+// independently and grow page by page instead of loading everything.
+const fetchPaymentHistory = async (skip: number, signal: AbortSignal): Promise<PaymentHistory> => {
+  const data = await apiClient.get(
+    `/api/debts/history?skip=${skip}&take=${paymentHistoryPageSize}`,
+    signal,
+  );
   return PaymentHistorySchema.parse(data);
 };
 
 export const useMyPaymentHistory = () =>
-  useQuery({
+  useInfiniteQuery({
     queryKey: paymentHistoryKeys.all,
-    queryFn: ({ signal }) => fetchPaymentHistory(signal),
+    queryFn: ({ pageParam, signal }) => fetchPaymentHistory(pageParam, signal),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage: PaymentHistory, allPages: PaymentHistory[]): number | undefined =>
+      lastPage.hasMore ? allPages.length * paymentHistoryPageSize : undefined,
   });
 
 // GET /api/debts/receivables — what the collector is still owed (open debts
@@ -156,6 +165,7 @@ export const useSettleDebt = () => {
     mutationFn: settleDebt,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
+      void queryClient.invalidateQueries({ queryKey: paymentHistoryKeys.all });
     },
     onError: (error) => {
       if (error instanceof ApiError && error.status === 409) {

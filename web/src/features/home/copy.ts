@@ -199,6 +199,7 @@ export const homeCopy = {
   pushNudgeDismissLabel: "Hinweis ausblenden",
   // Leaderboard
   leaderboardTitle: "Döner-Bestenliste",
+  leaderboardShowLess: "Nur die Spitze zeigen",
   // Open payments
   paymentsTitle: "Offene Zahlungen",
   // Roast line under the header while the caller still owes someone.
@@ -213,6 +214,7 @@ export const homeCopy = {
   pay: "PayPal",
   // Read-only settled-payment history (FEATURE 4 / B12).
   paymentHistoryTitle: "Meine letzten Zahlungen",
+  paymentHistoryLoadMore: "Ältere Zahlungen laden",
   // Read-only collector receivables card (FEATURE C-2) — what others still owe the caller.
   receivablesTitle: "Was mir noch zusteht",
   receivableOpen: "Offen",
@@ -318,6 +320,15 @@ export const untilNextTemplates = [
 // "Nur noch X Döner bis Platz N 🌯" — fills one of the untilNextTemplates.
 export const untilNextSentence = (template: string, toNext: number, nextRank: number): string =>
   template.replace("{n}", String(toNext)).replace("{rank}", String(nextRank));
+
+// "Alle 12 anzeigen" — the leaderboard expander, naming the full field size.
+export const leaderboardShowAll = (total: number): string => `Alle ${total} anzeigen`;
+
+const pickupQuoteFormat = new Intl.NumberFormat("de-DE", { maximumFractionDigits: 1 });
+
+// "🛵 Holt 2,5 von 10 ab" — the Abholer-Quote under each leaderboard name.
+export const pickupQuote = (pickupsPerTenOrders: number): string =>
+  `🛵 Holt ${pickupQuoteFormat.format(pickupsPerTenOrders)} von 10 ab`;
 
 // "Aus N Bestellungen der letzten 3 Monate" — the tier order-count line.
 export const tierOrderCountSentence = (count: number): string =>

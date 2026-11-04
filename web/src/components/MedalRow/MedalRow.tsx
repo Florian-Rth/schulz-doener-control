@@ -15,6 +15,8 @@ interface MedalRowProps {
   tierEmoji?: string;
   /** Highlights the current user's row (red text + pink tint + "· du"). */
   isMe?: boolean;
+  /** Optional small muted line under the name (e.g. the Abholer-Quote). */
+  subline?: string;
   sx?: SxProps<Theme>;
 }
 
@@ -28,6 +30,7 @@ export const MedalRow: FC<MedalRowProps> = ({
   medal,
   tierEmoji,
   isMe = false,
+  subline,
   sx,
 }) => {
   return (
@@ -58,36 +61,39 @@ export const MedalRow: FC<MedalRowProps> = ({
         {medal ?? `${rank}.`}
       </Typography>
       <Avatar displayName={displayName} colorHex={avatarColorHex} size={34} />
-      <Typography
-        sx={(theme) => ({
-          flex: 1,
-          minWidth: 0,
-          fontSize: "0.875rem",
-          fontWeight: isMe ? 700 : 600,
-          color: isMe ? theme.palette.primary.main : theme.palette.navy.main,
-        })}
-      >
-        {tierEmoji !== undefined ? (
-          <Typography component="span" sx={{ mr: 0.5 }}>
-            {tierEmoji}
-          </Typography>
+      <Stack sx={{ flex: 1, minWidth: 0 }}>
+        <Typography
+          sx={(theme) => ({
+            fontSize: "0.875rem",
+            fontWeight: isMe ? 700 : 600,
+            color: isMe ? theme.palette.primary.main : theme.palette.navy.main,
+          })}
+        >
+          {tierEmoji !== undefined ? (
+            <Typography component="span" sx={{ mr: 0.5 }}>
+              {tierEmoji}
+            </Typography>
+          ) : null}
+          {displayName}
+          {isMe ? (
+            <Typography
+              component="span"
+              sx={(theme) => ({
+                fontSize: "0.6875rem",
+                fontWeight: 600,
+                color: theme.palette.primary.main,
+                opacity: 0.7,
+                ml: 0.5,
+              })}
+            >
+              · du
+            </Typography>
+          ) : null}
+        </Typography>
+        {subline !== undefined ? (
+          <Typography sx={{ fontSize: "0.6875rem", color: "muted.main" }}>{subline}</Typography>
         ) : null}
-        {displayName}
-        {isMe ? (
-          <Typography
-            component="span"
-            sx={(theme) => ({
-              fontSize: "0.6875rem",
-              fontWeight: 600,
-              color: theme.palette.primary.main,
-              opacity: 0.7,
-              ml: 0.5,
-            })}
-          >
-            · du
-          </Typography>
-        ) : null}
-      </Typography>
+      </Stack>
       <Typography
         sx={(theme) => ({
           fontSize: "0.875rem",

@@ -4,27 +4,24 @@ import Typography from "@mui/material/Typography";
 import type { FC } from "react";
 import { MaterialIcon, MedalRow } from "@/components";
 import { useFunnyLine } from "@/lib/use-funny-line";
-import { homeCopy, untilNextSentence, untilNextTemplates } from "../../../copy";
+import {
+  homeCopy,
+  leaderboardShowAll,
+  pickupQuote,
+  untilNextSentence,
+  untilNextTemplates,
+} from "../../../copy";
 import { useDashboardContext } from "../../../dashboard-context";
-import type { LeaderboardRow } from "../../../types";
+import { useLeaderboardRows } from "../../../hooks/use-leaderboard-rows";
+import { CardExpander } from "./CardExpander";
 
-// Builds the rows to show: the top 3 (medalled), plus the caller's own row when
-// they sit outside the top 3 (mock parity — the highlighted "4." row).
-const visibleRows = (rows: readonly LeaderboardRow[]): LeaderboardRow[] => {
-  const top = rows.filter((row) => row.medal !== null);
-  const me = rows.find((row) => row.isMe);
-  if (me !== undefined && !top.some((row) => row.userId === me.userId)) {
-    return [...top, me];
-  }
-  return top;
-};
-
-// White Döner-Bestenliste card: header + medalled rows + current-user highlight
-// + the "Nur noch X bis Platz N" footer.
+// White Döner-Bestenliste card: header + medalled rows + current-user highlight,
+// each row carrying the person's Abholer-Quote, an expander to the full field,
+// and the "Nur noch X bis Platz N" footer.
 export const LeaderboardCard: FC = () => {
   const { leaderboard } = useDashboardContext();
   const untilNextTemplate = useFunnyLine(untilNextTemplates);
-  const rows = visibleRows(leaderboard.rows);
+  const { rows, isExpanded, canExpand, total, toggle } = useLeaderboardRows(leaderboard.rows);
   const showUntilNext = leaderboard.doenerToNextRank !== null && leaderboard.nextRank !== null;
 
   return (
@@ -57,9 +54,19 @@ export const LeaderboardCard: FC = () => {
             medal={row.medal ?? undefined}
             tierEmoji={row.tierEmoji ?? undefined}
             isMe={row.isMe}
+            subline={pickupQuote(row.pickupsPerTenOrders)}
           />
         ))}
       </Stack>
+
+      {canExpand ? (
+        <CardExpander
+          label={isExpanded ? homeCopy.leaderboardShowLess : leaderboardShowAll(total)}
+          direction={isExpanded ? "less" : "more"}
+          onClick={toggle}
+          sx={{ mt: 0.5 }}
+        />
+      ) : null}
 
       {showUntilNext ? (
         <Typography

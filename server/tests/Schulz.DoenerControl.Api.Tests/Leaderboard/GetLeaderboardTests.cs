@@ -198,6 +198,37 @@ public sealed class GetLeaderboardTests : DoenerControlTestBase
     }
 
     [Fact]
+    public async Task Should_Report_Pickups_Per_Ten_Orders()
+    {
+        // A dedicated future year isolates this test's standings from the shared fixture database.
+        var year = 2096;
+        var chefId = await UserIdAsync("m.wagner");
+        var saraId = await UserIdAsync("s.yilmaz");
+
+        await SeedAsync(database =>
+        {
+            SeedYearOrders(database, chefId, year, 4, pickups: 1);
+            SeedYearOrders(database, saraId, year, 3);
+        });
+
+        var chef = await LoginAsChefAsync();
+        var response = await chef.GetAsync($"{LeaderboardUrl}?year={year}");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<GetLeaderboardResponse>(
+            TestContext.Current.CancellationToken
+        );
+        Assert.NotNull(body);
+
+        var chefEntry = body!.Entries.Single(entry => entry.UserId == chefId);
+        Assert.Equal(1, chefEntry.PickupCount);
+        Assert.Equal(2.5m, chefEntry.PickupsPerTenOrders);
+
+        var saraEntry = body.Entries.Single(entry => entry.UserId == saraId);
+        Assert.Equal(0, saraEntry.PickupCount);
+        Assert.Equal(0m, saraEntry.PickupsPerTenOrders);
+    }
+
+    [Fact]
     public async Task Should_Reject_Year_Out_Of_Range()
     {
         var chef = await LoginAsChefAsync();
@@ -213,7 +244,14 @@ public sealed class GetLeaderboardTests : DoenerControlTestBase
     // process-wide counter so dates never collide across the test methods that share one fixture DB.
     // Each order gets a SETTLED debt so it counts under the fail-safe stats rule (day closed AND, for a
     // non-pickup order, its debt settled = money confirmed sent).
-    private static void SeedYearOrders(AppDbContext database, Guid userId, int year, int count)
+    // The first `pickups` of them are flagged as the user's own Abholer orders.
+    private static void SeedYearOrders(
+        AppDbContext database,
+        Guid userId,
+        int year,
+        int count,
+        int pickups = 0
+    )
     {
         for (var i = 0; i < count; i++)
         {
@@ -240,7 +278,7 @@ public sealed class GetLeaderboardTests : DoenerControlTestBase
                     Id = orderId,
                     OrderDayId = day.Id,
                     UserId = userId,
-                    IsPickup = false,
+                    IsPickup = i < pickups,
                     OccurredOn = occurredOn,
                     CreatedAt = occurredOn,
                     UpdatedAt = occurredOn,

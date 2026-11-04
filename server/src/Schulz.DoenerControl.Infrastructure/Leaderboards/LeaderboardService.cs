@@ -40,7 +40,8 @@ public sealed class LeaderboardService : ILeaderboardService
                 order.UserId,
                 order.User!.DisplayName,
                 order.User!.AvatarColorHex,
-                order.OccurredOn
+                order.OccurredOn,
+                order.IsPickup
             ))
             .ToListAsync(ct);
 
@@ -55,7 +56,8 @@ public sealed class LeaderboardService : ILeaderboardService
             .Select(group => new LeaderboardEntryInput(
                 group.Key.UserId,
                 group.Key.DisplayName,
-                group.Count()
+                group.Count(),
+                group.Count(order => order.IsPickup)
             ))
             .ToList();
 
@@ -72,7 +74,9 @@ public sealed class LeaderboardService : ILeaderboardService
                 avatarColours.GetValueOrDefault(row.UserId, string.Empty),
                 row.Count,
                 row.IsCurrentUser,
-                tierEmojis.GetValueOrDefault(row.UserId)
+                tierEmojis.GetValueOrDefault(row.UserId),
+                row.PickupCount,
+                row.PickupsPerTenOrders
             ))
             .ToList();
 
@@ -100,6 +104,7 @@ public sealed class LeaderboardService : ILeaderboardService
         Guid UserId,
         string DisplayName,
         string AvatarColorHex,
-        DateTimeOffset OccurredOn
+        DateTimeOffset OccurredOn,
+        bool IsPickup
     );
 }

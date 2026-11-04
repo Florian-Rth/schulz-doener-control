@@ -118,7 +118,7 @@ const useReceivablesHandlers = (receivables: ReceivablesPayload): void => {
   mswServer.use(
     http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
     http.get("*/api/dashboard", () => HttpResponse.json(baseDashboard)),
-    http.get("*/api/debts/history", () => HttpResponse.json({ payments: [] })),
+    http.get("*/api/debts/history", () => HttpResponse.json({ payments: [], hasMore: false })),
     http.get("*/api/debts/receivables", () => HttpResponse.json(receivables)),
   );
 };

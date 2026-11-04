@@ -17,10 +17,10 @@ public sealed class LeaderboardCalculatorTests
     private static IReadOnlyList<LeaderboardEntryInput> MockCounts() =>
         new[]
         {
-            new LeaderboardEntryInput(Sara, "Sara Yılmaz", 97),
-            new LeaderboardEntryInput(Markus, "Markus Wagner", 91),
-            new LeaderboardEntryInput(Tobias, "Tobias Klein", 142),
-            new LeaderboardEntryInput(Lukas, "Lukas Brandt", 119),
+            new LeaderboardEntryInput(Sara, "Sara Yılmaz", 97, 0),
+            new LeaderboardEntryInput(Markus, "Markus Wagner", 91, 0),
+            new LeaderboardEntryInput(Tobias, "Tobias Klein", 142, 0),
+            new LeaderboardEntryInput(Lukas, "Lukas Brandt", 119, 0),
         };
 
     [Fact]
@@ -83,9 +83,9 @@ public sealed class LeaderboardCalculatorTests
     {
         var counts = new[]
         {
-            new LeaderboardEntryInput(Tobias, "Tobias Klein", 100),
-            new LeaderboardEntryInput(Lukas, "Lukas Brandt", 100),
-            new LeaderboardEntryInput(Sara, "Sara Yılmaz", 80),
+            new LeaderboardEntryInput(Tobias, "Tobias Klein", 100, 0),
+            new LeaderboardEntryInput(Lukas, "Lukas Brandt", 100, 0),
+            new LeaderboardEntryInput(Sara, "Sara Yılmaz", 80, 0),
         };
 
         var board = LeaderboardCalculator.Rank(counts, Sara);
@@ -102,10 +102,10 @@ public sealed class LeaderboardCalculatorTests
         // The exact scenario from the bug report: 3, 2, 2, 1, 1 → ranks 1, 2, 2, 3, 3 (never a gap).
         var counts = new[]
         {
-            new LeaderboardEntryInput(Tobias, "Tobias Klein", 3),
-            new LeaderboardEntryInput(Lukas, "Lukas Brandt", 2),
-            new LeaderboardEntryInput(Sara, "Sara Yılmaz", 2),
-            new LeaderboardEntryInput(Markus, "Markus Wagner", 1),
+            new LeaderboardEntryInput(Tobias, "Tobias Klein", 3, 0),
+            new LeaderboardEntryInput(Lukas, "Lukas Brandt", 2, 0),
+            new LeaderboardEntryInput(Sara, "Sara Yılmaz", 2, 0),
+            new LeaderboardEntryInput(Markus, "Markus Wagner", 1, 0),
         };
 
         var board = LeaderboardCalculator.Rank(counts, Markus);
@@ -121,9 +121,9 @@ public sealed class LeaderboardCalculatorTests
     {
         var counts = new[]
         {
-            new LeaderboardEntryInput(Tobias, "Tobias Klein", 100),
-            new LeaderboardEntryInput(Lukas, "Lukas Brandt", 80),
-            new LeaderboardEntryInput(Sara, "Sara Yılmaz", 80),
+            new LeaderboardEntryInput(Tobias, "Tobias Klein", 100, 0),
+            new LeaderboardEntryInput(Lukas, "Lukas Brandt", 80, 0),
+            new LeaderboardEntryInput(Sara, "Sara Yılmaz", 80, 0),
         };
 
         var board = LeaderboardCalculator.Rank(counts, Lukas);
@@ -141,5 +141,20 @@ public sealed class LeaderboardCalculatorTests
         Assert.Empty(board.Rows);
         Assert.Null(board.NextRankDiff);
         Assert.Null(board.NextRank);
+    }
+
+    [Theory]
+    [InlineData(1, 4, 2.5)]
+    [InlineData(0, 7, 0)]
+    [InlineData(1, 3, 3.3)]
+    [InlineData(5, 5, 10)]
+    [InlineData(0, 0, 0)]
+    public void Should_Normalise_Pickups_To_Per_Ten_Orders_When_Ranking(
+        int pickups,
+        int orders,
+        decimal expected
+    )
+    {
+        Assert.Equal(expected, LeaderboardCalculator.PickupsPerTenOrders(pickups, orders));
     }
 }

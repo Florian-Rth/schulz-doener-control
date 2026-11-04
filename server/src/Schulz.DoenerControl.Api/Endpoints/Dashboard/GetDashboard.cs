@@ -38,7 +38,9 @@ public sealed record DashboardLeaderboardRowDto(
     int Count,
     bool IsMe,
     string? Medal,
-    string? TierEmoji
+    string? TierEmoji,
+    int PickupCount,
+    decimal PickupsPerTenOrders
 );
 
 public sealed record DashboardLeaderboardDto(
@@ -224,7 +226,9 @@ public sealed class GetDashboard : EndpointWithoutRequest<GetDashboardResponse>
             entry.Count,
             entry.IsCurrentUser,
             MedalFor(entry.Rank),
-            entry.TierEmoji
+            entry.TierEmoji,
+            entry.PickupCount,
+            entry.PickupsPerTenOrders
         );
 
     private static DashboardDayDto MapDay(OrderDayDetails? day)

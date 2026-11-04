@@ -2,17 +2,17 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { FC } from "react";
-import { useMyPaymentHistory } from "../../../api";
 import { homeCopy } from "../../../copy";
+import { usePaymentHistory } from "../../../hooks/use-payment-history";
+import { CardExpander } from "./CardExpander";
 import { PaymentHistoryRowItem } from "./PaymentHistoryRowItem";
 
 // White "Meine letzten Zahlungen" card: header (title) over the settled-payment
-// rows (newest-settled first, capped at 10 by the backend). Read-only history —
-// no PayPal/settle actions. Fetches via its own query (NOT the dashboard
+// rows (newest-settled first, paged by 10 — older pages load on demand via the
+// expander). Read-only history — no PayPal/settle actions. Fetches via its own query (NOT the dashboard
 // aggregate). Renders nothing while loading or when the caller has paid nobody.
 export const MyRecentPaymentsCard: FC = () => {
-  const historyQuery = useMyPaymentHistory();
-  const payments = historyQuery.data?.payments ?? [];
+  const { payments, hasMore, isLoadingMore, loadMore } = usePaymentHistory();
 
   if (payments.length === 0) {
     return null;
@@ -43,6 +43,16 @@ export const MyRecentPaymentsCard: FC = () => {
           />
         ))}
       </Stack>
+
+      {hasMore ? (
+        <CardExpander
+          label={homeCopy.paymentHistoryLoadMore}
+          direction="more"
+          onClick={loadMore}
+          loading={isLoadingMore}
+          sx={{ mt: 0.5 }}
+        />
+      ) : null}
     </Paper>
   );
 };
