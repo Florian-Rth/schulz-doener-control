@@ -192,3 +192,29 @@ export const useClaimCollector = ({ onError }: CloseMutationOptions) => {
     },
   });
 };
+
+// POST /api/order-days/{dayId}/pickup-wheel/excuse — the Glücksrad's chosen one has a VERY
+// important reason: they drop off the wheel and the server spins again among the rest. Contract:
+// 200 re-spun · 403 caller is not the chosen one · 409 nobody left / day locked. On success we
+// invalidate so the new spin arrives and every device shows its "Rad drehen" button again.
+const excusePickupWheel = async (dayId: string): Promise<void> => {
+  await apiClient.post(`/api/order-days/${dayId}/pickup-wheel/excuse`);
+};
+
+export const useExcusePickupWheel = ({ onError }: CloseMutationOptions) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: excusePickupWheel,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
+    },
+    onError: (error) => {
+      void queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
+      if (error instanceof ApiError && error.status === 409) {
+        onError(homeCopy.wheelNobodyLeft);
+      } else {
+        onError(homeCopy.wheelExcuseFailed);
+      }
+    },
+  });
+};

@@ -98,6 +98,43 @@ export const homeCopy = {
   claimFailed: "Hat nicht geklappt, Chef.",
   // claimCollector 409 — ordering already locked, the Abholer is final (B-2).
   claimOrderingClosed: "Die Bestellung ist schon zu, Chef — der Abholer steht fest.",
+  // Abholer-Glücksrad — spins at 12:00 when nobody volunteered.
+  wheelTitle: "Abholer-Glücksrad",
+  wheelIntros: [
+    "12 Uhr, kein Freiwilliger. Jetzt entscheidet das Schicksal, Chef.",
+    "Keiner wollte. Also hat das Rad entschieden.",
+    "Das Büro hat gekniffen. Das Rad nicht.",
+    "Freiwillige vor! … Niemand? Dann eben das Rad.",
+  ],
+  wheelRespinIntros: [
+    "Jemand hatte einen SEHR wichtigen Grund. Das Rad dreht neu.",
+    "Ausrede akzeptiert. Widerwillig. Neue Runde!",
+    "Einer hat sich rausgeredet. Wen trifft es jetzt?",
+  ],
+  wheelSpin: "Rad drehen",
+  wheelSpinning: "Das Rad dreht …",
+  wheelReplay: "Nochmal ansehen",
+  wheelVerdictMeTitles: [
+    "Tja, Chef. Das Rad hat DICH gewählt.",
+    "Glückwunsch, Chef! Du fährst.",
+    "Das Schicksal hat gesprochen: Du bist dran, Chef.",
+  ],
+  wheelExcuseButtons: [
+    "Ich hab einen SEHR wichtigen Grund — nochmal drehen",
+    "Ich hab gleich ein Meeting mit dem Vorstand — nochmal drehen",
+    "Mein Auto ist … äh … in der Werkstatt — nochmal drehen",
+    "Meine Oma hat Geburtstag. Schon wieder. — nochmal drehen",
+    "Ich bin allergisch gegen Autoschlüssel — nochmal drehen",
+    "Ich muss dringend … Dinge tun — nochmal drehen",
+  ],
+  wheelExcuseDialogTitle: "Wirklich rausreden?",
+  wheelExcuseDialogBody:
+    "Du fliegst für heute vom Rad und es dreht neu unter den anderen. Alle bekommen Bescheid, Chef. Alle.",
+  wheelExcuseConfirm: "Ja, ich kann wirklich nicht",
+  wheelExcuseCancel: "Na gut, ich fahr ja schon",
+  wheelNoEscape: "Keiner mehr übrig zum Rausreden. Das Rad bleibt bei dir, Chef.",
+  wheelNobodyLeft: "Keiner mehr übrig, Chef — das Rad bleibt bei dir.",
+  wheelExcuseFailed: "Ausrede abgelehnt, Chef. Versuch's nochmal.",
   // Cash fallback when the recipient has no PayPal handle (item 6).
   payCash: "Bar zahlen",
   // Collector-only close actions (Abholer steuert den Tag)
@@ -255,6 +292,13 @@ export const greetingSublinesForWeekday = (weekday: number): readonly string[] =
 // current Abholer (item 3).
 export const takeOverDialogBody = (name: string): string =>
   `${name} ist gerade dran. Wenn du übernimmst, sammelst DU das Geld ein und schließt den Tag, Chef.`;
+
+// "Das Rad hat gesprochen: Sara holt ab!" — the wheel's verdict for everyone but the chosen one.
+export const wheelVerdict = (name: string): string => `Das Rad hat gesprochen: ${name} holt ab!`;
+
+// "Ausreden des Tages: Florian, Sara 🙄" — the public shame line under the wheel.
+export const wheelExcusedLine = (names: readonly string[]): string =>
+  `Ausreden des Tages: ${names.join(", ")} 🙄`;
 
 // "Bestellschluss 11:30 Uhr" — assembled from the cutoff label.
 export const cutoffSentence = (cutoffLabel: string): string => `Bestellschluss ${cutoffLabel} Uhr`;

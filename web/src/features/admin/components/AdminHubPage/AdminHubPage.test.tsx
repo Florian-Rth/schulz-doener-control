@@ -41,6 +41,7 @@ const closedDashboard: Dashboard = {
     abholer: null,
     orders: [],
     printLines: [],
+    wheel: null,
   },
   debts: { openCount: 0, totalCents: 0, totalLabel: "0,00", rows: [] },
   toast: null,

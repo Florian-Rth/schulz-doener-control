@@ -1,6 +1,7 @@
 using FastEndpoints;
 using FastEndpoints.Swagger;
 using Schulz.DoenerControl.Api.Auth;
+using Schulz.DoenerControl.Api.Background;
 using Schulz.DoenerControl.Application;
 using Schulz.DoenerControl.Infrastructure;
 
@@ -14,6 +15,13 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddDoenerAuth(builder.Configuration, builder.Environment);
 builder.Services.AddFastEndpoints();
+
+// The integration tests drive the Glücksrad deterministically through the service; a live heartbeat
+// would spin behind their back.
+if (!builder.Environment.IsEnvironment("Testing"))
+{
+    builder.Services.AddHostedService<PickupWheelWorker>();
+}
 
 if (builder.Environment.IsDevelopment())
 {

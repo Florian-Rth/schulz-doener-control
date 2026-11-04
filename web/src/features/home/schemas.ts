@@ -93,6 +93,28 @@ const DayAbholerSchema = z.object({
   payPalUrl: z.string().nullable(),
 });
 
+// One slice of the Abholer-Glücksrad. Exactly one candidate per spin is `isChosen`.
+const WheelCandidateSchema = z.object({
+  name: z.string(),
+  initials: z.string(),
+  colorHex: z.string(),
+  isChosen: z.boolean(),
+});
+
+// The latest Abholer-Glücksrad spin (null until nobody volunteered by the deadline). The server
+// already picked the winner — the client only animates towards it. `spinId` lets each device
+// remember which spin it has watched; `canExcuse` is true only for the chosen one while a re-spin
+// is still possible.
+const PickupWheelSchema = z.object({
+  spinId: z.string(),
+  round: z.number().int(),
+  candidates: z.array(WheelCandidateSchema),
+  chosenName: z.string(),
+  amIChosen: z.boolean(),
+  canExcuse: z.boolean(),
+  excusedNames: z.array(z.string()),
+});
+
 // Today's Döner-Tag. `isOpen` is the discriminant the section switches on;
 // the rich fields are present (synonym/pushText/orders…) only when open.
 // `abholer` is null until a collector is designated; `amICollector` flags
@@ -115,6 +137,7 @@ const DashboardDaySchema = z.object({
   // The Abholer's printable order sheet, built server-side (also drives the e-mailed PDF): numbered
   // per-package lines in article-type order.
   printLines: z.array(PrintLineSchema),
+  wheel: PickupWheelSchema.nullable(),
 });
 
 // One open debt the caller owes ("Offene Zahlungen"). `paypalUrl` is null when

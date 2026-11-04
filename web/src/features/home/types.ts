@@ -10,6 +10,8 @@ export type DashboardDay = Dashboard["day"];
 export type DayAbholer = NonNullable<DashboardDay["abholer"]>;
 export type OrderRow = DashboardDay["orders"][number];
 export type PrintLine = DashboardDay["printLines"][number];
+export type PickupWheel = NonNullable<DashboardDay["wheel"]>;
+export type WheelCandidate = PickupWheel["candidates"][number];
 export type DashboardDebts = Dashboard["debts"];
 export type DebtRow = DashboardDebts["rows"][number];
 

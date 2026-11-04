@@ -11,4 +11,8 @@ public interface IPushBroadcaster
         Guid openerUserId,
         CancellationToken ct
     );
+
+    // Fans a push out to every active user's subscriptions (nobody excluded), e.g. the Glücksrad
+    // verdict that everyone — including the chosen one — must hear about.
+    Task<int> BroadcastToEveryoneAsync(string title, string body, CancellationToken ct);
 }

@@ -20,6 +20,13 @@ export {
   type VeggieDecisions,
   type VeggieKey,
 } from "./DoenerStage";
+export {
+  FortuneWheel,
+  type FortuneWheelControl,
+  type FortuneWheelSlice,
+  type SpinOptions,
+  useFortuneWheel,
+} from "./FortuneWheel";
 export { IconChipBox } from "./IconChipBox";
 export { LiveDot } from "./LiveDot";
 export { isMaterialIconName, MaterialIcon, type MaterialIconName } from "./MaterialIcon";

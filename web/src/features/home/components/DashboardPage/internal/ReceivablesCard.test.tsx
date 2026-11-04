@@ -36,6 +36,7 @@ const closedDay = {
   abholer: null,
   orders: [],
   printLines: [],
+  wheel: null,
 };
 
 const baseDashboard: Dashboard = {

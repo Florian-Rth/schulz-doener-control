@@ -4,6 +4,7 @@ import {
   useClaimCollector,
   useCloseDay,
   useCloseOrdering,
+  useExcusePickupWheel,
   useForceEndDay,
   useOpenDay,
   useSettleDebt,
@@ -24,6 +25,9 @@ export interface DashboardOperations {
   /** Become the designated Abholer for the running day ("Ich hole heute ab" / take-over). */
   claimCollector: (dayId: string) => void;
   isClaimingCollector: boolean;
+  /** The Glücksrad's chosen one talks their way out: off the wheel, re-spin among the rest. */
+  excusePickupWheel: (dayId: string) => void;
+  isExcusingPickupWheel: boolean;
   /** Personal "ich hab bezahlt" confirmation for an open debt (one-way settle). */
   settle: (debtId: string) => void;
   /** True only for the debt row whose settle is currently in flight. */
@@ -58,6 +62,7 @@ export const useDashboardOperations = ({
   const closeDayMutation = useCloseDay({ onError: showError });
   const forceEndDayMutation = useForceEndDay({ onError: showError });
   const claimCollectorMutation = useClaimCollector({ onError: showError });
+  const excusePickupWheelMutation = useExcusePickupWheel({ onError: showError });
   const settleMutation = useSettleDebt();
   // The debt row whose settle is in flight, so only that row disables its
   // control. null = none pending.
@@ -101,6 +106,11 @@ export const useDashboardOperations = ({
       claimCollectorMutation.mutate(dayId);
     },
     isClaimingCollector: claimCollectorMutation.isPending,
+    excusePickupWheel: (dayId: string) => {
+      setErrorToast(null);
+      excusePickupWheelMutation.mutate(dayId);
+    },
+    isExcusingPickupWheel: excusePickupWheelMutation.isPending,
     settle: (debtId: string) => {
       setSettlingDebtId(debtId);
       settleMutation.mutate(debtId, {

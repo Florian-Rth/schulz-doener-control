@@ -25,10 +25,24 @@ public sealed class PushBroadcaster : IPushBroadcaster
         CancellationToken ct
     )
     {
-        var targets = await database
+        var targets = await LoadTargetsAsync(openerUserId, ct);
+        return await SendAllAsync(targets, new WebPushPayload(title, body), ct);
+    }
+
+    public async Task<int> BroadcastToEveryoneAsync(string title, string body, CancellationToken ct)
+    {
+        var targets = await LoadTargetsAsync(excludedUserId: null, ct);
+        return await SendAllAsync(targets, new WebPushPayload(title, body), ct);
+    }
+
+    private async Task<IReadOnlyList<WebPushTarget>> LoadTargetsAsync(
+        Guid? excludedUserId,
+        CancellationToken ct
+    ) =>
+        await database
             .PushSubscriptions.AsNoTracking()
             .Where(subscription =>
-                subscription.UserId != openerUserId
+                subscription.UserId != excludedUserId
                 && subscription.User != null
                 && subscription.User.IsActive
             )
@@ -39,7 +53,12 @@ public sealed class PushBroadcaster : IPushBroadcaster
             ))
             .ToListAsync(ct);
 
-        var payload = new WebPushPayload(title, body);
+    private async Task<int> SendAllAsync(
+        IReadOnlyList<WebPushTarget> targets,
+        WebPushPayload payload,
+        CancellationToken ct
+    )
+    {
         var sent = 0;
         foreach (var target in targets)
         {

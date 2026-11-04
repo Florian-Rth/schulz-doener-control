@@ -1,7 +1,7 @@
 import { waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { HttpResponse, http } from "msw";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import type { Dashboard } from "@/features/home";
 import { mswServer } from "@/test/mswServer";
 import { oneOf } from "@/test/oneOf";
@@ -168,6 +168,7 @@ const openDay = {
     },
   ],
   printLines: [],
+  wheel: null,
 };
 
 const closedDay = {
@@ -184,6 +185,7 @@ const closedDay = {
   abholer: null,
   orders: [],
   printLines: [],
+  wheel: null,
 };
 
 // Read-only settled-payment history (GET /api/debts/history). Newest-settled
@@ -249,7 +251,32 @@ const useDashboardHandlers = (dashboard: Dashboard): void => {
   );
 };
 
+const wheelSpinId = "spin-1";
+
+// The Glücksrad picked Lukas (the shown pickup); the caller is a bystander unless overridden.
+const spunWheel = {
+  spinId: wheelSpinId,
+  round: 1,
+  candidates: [
+    { name: "Lukas Brandt", initials: "LB", colorHex: "#00728E", isChosen: true },
+    { name: "Sara Yılmaz", initials: "SY", colorHex: "#ED701C", isChosen: false },
+    { name: "Tobias Klein", initials: "TK", colorHex: "#45B8A1", isChosen: false },
+  ],
+  chosenName: "Lukas Brandt",
+  amIChosen: false,
+  canExcuse: false,
+  excusedNames: [],
+};
+
+const markWheelWatched = (): void => {
+  window.localStorage.setItem("doener.pickupWheel.watchedSpinId", wheelSpinId);
+};
+
 describe("DashboardPage", () => {
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
   it("rendert die Bestellzeilen, den Abholer, '{n} dabei' und den Bestell-Button im OPEN-Zustand", async () => {
     useDashboardHandlers(buildDashboard());
     const { findByText, findByRole } = renderApp({ initialPath: "/" });
@@ -872,5 +899,70 @@ describe("DashboardPage", () => {
 
     const openTile = await findByText("Offen");
     expect(openTile.closest("button")).toBeNull();
+  });
+
+  it("bietet das Glücksrad zum Drehen an, solange der Spin auf diesem Gerät nicht angesehen wurde", async () => {
+    useDashboardHandlers(buildDashboard({ day: { ...openDay, wheel: spunWheel } }));
+    const { findByRole, findByText } = renderApp({ initialPath: "/" });
+    const user = userEvent.setup();
+
+    expect(await findByRole("img", { name: homeCopy.wheelTitle })).toBeInTheDocument();
+    await user.click(await findByRole("button", { name: homeCopy.wheelSpin }));
+
+    expect(await findByText(homeCopy.wheelSpinning)).toBeInTheDocument();
+  });
+
+  it("zeigt das Urteil direkt, wenn der Spin schon angesehen wurde", async () => {
+    markWheelWatched();
+    useDashboardHandlers(buildDashboard({ day: { ...openDay, wheel: spunWheel } }));
+    const { findByText, findByRole, queryByRole } = renderApp({ initialPath: "/" });
+
+    expect(await findByText("Das Rad hat gesprochen: Lukas Brandt holt ab!")).toBeInTheDocument();
+    expect(await findByRole("button", { name: homeCopy.wheelReplay })).toBeInTheDocument();
+    // A bystander has nothing to excuse themselves from.
+    expect(queryByRole("button", { name: /nochmal drehen/ })).not.toBeInTheDocument();
+  });
+
+  it("lässt den Gewählten sich nach Bestätigung rausreden und feuert den Re-Spin", async () => {
+    markWheelWatched();
+    let excuseHit = false;
+    useDashboardHandlers(
+      buildDashboard({
+        day: {
+          ...openDay,
+          amICollector: true,
+          wheel: { ...spunWheel, amIChosen: true, canExcuse: true, excusedNames: ["Pia Weber"] },
+        },
+      }),
+    );
+    mswServer.use(
+      http.post("*/api/order-days/day-1/pickup-wheel/excuse", () => {
+        excuseHit = true;
+        return HttpResponse.json({ day: {} });
+      }),
+    );
+    const { findByRole, findByText } = renderApp({ initialPath: "/" });
+    const user = userEvent.setup();
+
+    expect(await findByText("Ausreden des Tages: Pia Weber 🙄")).toBeInTheDocument();
+    await user.click(await findByRole("button", { name: /nochmal drehen/ }));
+    await user.click(await findByRole("button", { name: homeCopy.wheelExcuseConfirm }));
+
+    await waitFor(() => {
+      expect(excuseHit).toBe(true);
+    });
+  });
+
+  it("sagt dem Gewählten, dass es keinen Ausweg mehr gibt, wenn keiner mehr übrig ist", async () => {
+    markWheelWatched();
+    useDashboardHandlers(
+      buildDashboard({
+        day: { ...openDay, amICollector: true, wheel: { ...spunWheel, amIChosen: true } },
+      }),
+    );
+    const { findByText, queryByRole } = renderApp({ initialPath: "/" });
+
+    expect(await findByText(homeCopy.wheelNoEscape)).toBeInTheDocument();
+    expect(queryByRole("button", { name: /nochmal drehen/ })).not.toBeInTheDocument();
   });
 });

@@ -42,6 +42,8 @@ public sealed class AppDbContext : DbContext
 
     public DbSet<GameScore> GameScores => Set<GameScore>();
 
+    public DbSet<PickupWheelSpin> PickupWheelSpins => Set<PickupWheelSpin>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

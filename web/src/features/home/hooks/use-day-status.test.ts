@@ -40,6 +40,7 @@ const buildDay = (overrides: Partial<DashboardDay> = {}): DashboardDay => ({
   },
   orders: [buildOrder()],
   printLines: [],
+  wheel: null,
   ...overrides,
 });
 

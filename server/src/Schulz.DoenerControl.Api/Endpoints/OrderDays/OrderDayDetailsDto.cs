@@ -19,7 +19,26 @@ public sealed record OrderDayDetailsDto(
     bool IsOrderingClosed,
     Guid? MyOrderId,
     bool AmICollector,
-    AbholerDto? Abholer
+    AbholerDto? Abholer,
+    PickupWheelDto? Wheel
+);
+
+// The latest Abholer-Glücksrad spin (null until the wheel spun today). See PickupWheelDetails.
+public sealed record PickupWheelDto(
+    Guid SpinId,
+    int Round,
+    IReadOnlyList<WheelCandidateDto> Candidates,
+    string ChosenName,
+    bool AmIChosen,
+    bool CanExcuse,
+    IReadOnlyList<string> ExcusedNames
+);
+
+public sealed record WheelCandidateDto(
+    string Name,
+    string Initials,
+    string ColorHex,
+    bool IsChosen
 );
 
 // The designated Abholer (collector) for the day. PayPalUrl is the per-caller reimbursement deep
@@ -56,8 +75,29 @@ public static class OrderDayDetailsMapper
             details.IsOrderingClosed,
             details.MyOrderId,
             details.AmICollector,
-            details.Abholer is { } abholer ? ToAbholerDto(abholer) : null
+            details.Abholer is { } abholer ? ToAbholerDto(abholer) : null,
+            ToWheelDto(details.Wheel)
         );
+
+    public static PickupWheelDto? ToWheelDto(PickupWheelDetails? wheel) =>
+        wheel is null
+            ? null
+            : new PickupWheelDto(
+                wheel.SpinId,
+                wheel.Round,
+                wheel
+                    .Candidates.Select(candidate => new WheelCandidateDto(
+                        candidate.Name,
+                        candidate.Initials,
+                        candidate.ColorHex,
+                        candidate.IsChosen
+                    ))
+                    .ToList(),
+                wheel.ChosenName,
+                wheel.AmIChosen,
+                wheel.CanExcuse,
+                wheel.ExcusedNames
+            );
 
     private static AbholerDto ToAbholerDto(AbholerSummary abholer) =>
         new(abholer.Name, abholer.Initials, abholer.ColorHex, abholer.PayPalUrl);
