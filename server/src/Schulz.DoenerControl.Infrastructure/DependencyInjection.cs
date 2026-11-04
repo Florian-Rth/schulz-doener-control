@@ -14,6 +14,7 @@ using Schulz.DoenerControl.Application.Menu;
 using Schulz.DoenerControl.Application.Notifications;
 using Schulz.DoenerControl.Application.OrderDays;
 using Schulz.DoenerControl.Application.Orders;
+using Schulz.DoenerControl.Application.PickupWheel;
 using Schulz.DoenerControl.Application.Profile;
 using Schulz.DoenerControl.Application.Push;
 using Schulz.DoenerControl.Application.Security;
@@ -33,6 +34,7 @@ using Schulz.DoenerControl.Infrastructure.OrderDays;
 using Schulz.DoenerControl.Infrastructure.Orders;
 using Schulz.DoenerControl.Infrastructure.Persistence;
 using Schulz.DoenerControl.Infrastructure.Persistence.Seeding;
+using Schulz.DoenerControl.Infrastructure.PickupWheel;
 using Schulz.DoenerControl.Infrastructure.Profile;
 using Schulz.DoenerControl.Infrastructure.Push;
 using Schulz.DoenerControl.Infrastructure.Security;
@@ -209,6 +211,27 @@ public static class DependencyInjection
         services.AddScoped<INotificationBroadcaster, NotificationBroadcaster>();
         services.AddScoped<CloseDayDebtGenerator>();
         services.AddScoped<IOrderDayService, OrderDayService>();
+
+        services
+            .AddOptions<PickupWheelOptions>()
+            .Configure(options => BindPickupWheelOptions(configuration, options));
+        services.AddScoped<PickupWheelProjector>();
+        services.AddScoped<IPickupWheelService, PickupWheelService>();
+    }
+
+    private static void BindPickupWheelOptions(
+        IConfiguration configuration,
+        PickupWheelOptions options
+    )
+    {
+        var deadline = configuration[PickupWheelOptions.DeadlineConfigKey];
+        if (
+            !string.IsNullOrWhiteSpace(deadline)
+            && TimeOnly.TryParse(deadline, CultureInfo.InvariantCulture, out var parsed)
+        )
+        {
+            options.DeadlineLocalTime = parsed;
+        }
     }
 
     private static void BindOrderDayOptions(IConfiguration configuration, OrderDayOptions options)

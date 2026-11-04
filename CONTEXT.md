@@ -99,6 +99,23 @@ Plus one **global superlative** that overrides the per-user pattern tier above:
 Each Tier carries a German tagline + ~3 tag chips (exact text lives in the mock's
 `TIER_CATALOG`).
 
+### Abholer-Glücksrad
+
+Nobody wants to drive? If a running Döner-Tag still has **no Abholer at 12:00** (local,
+`PickupWheel:DeadlineLocalTime`), the server spins a wheel among everyone who has ordered and
+makes the winner the Abholer. Everyone gets a push naming the chosen one. Only the 12:00 deadline
+triggers it — a day opened after 12:00 never auto-spins.
+
+- **The server draws, the client animates.** Every device lands on the same person. Each device
+  watches a spin once via a "Rad drehen" tap (the tap is what lets the browser play sound), then
+  sees the verdict. Ticks + fanfare / sad trombone are synthesised with Web Audio — a Web Push
+  itself cannot carry a custom sound.
+- **The chosen one may excuse themselves** with a random funny button ("Ich hab einen SEHR
+  wichtigen Grund — nochmal drehen"). They drop off the wheel for the rest of the day, it
+  re-spins among the others, another push goes out, and their name lands on the public
+  "Ausreden des Tages" line. The last person standing cannot escape.
+- Volunteering still works after the spin (the normal take-over).
+
 ### Döner-Synonyme in notifications
 
 When an order day opens, colleagues get a push that **always uses a random absurd synonym

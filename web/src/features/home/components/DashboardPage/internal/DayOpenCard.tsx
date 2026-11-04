@@ -17,6 +17,7 @@ import type { DashboardDay } from "../../../types";
 import { AdminEndDayButton } from "./AdminEndDayButton";
 import { CollectorControls } from "./CollectorControls";
 import { OrderRowItem } from "./OrderRowItem";
+import { PickupWheelCard } from "./PickupWheelCard";
 import { TakeOverCollectorButton } from "./TakeOverCollectorButton";
 import { WaitingGameTile } from "./WaitingGameTile";
 
@@ -97,6 +98,16 @@ export const DayOpenCard: FC<DayOpenCardProps> = ({ day }) => {
         >
           {statusLine}
         </Typography>
+
+        {day.wheel !== null && dayId !== null ? (
+          // Keyed by spin so a re-spin remounts into a fresh, unwatched wheel.
+          <PickupWheelCard
+            key={day.wheel.spinId}
+            wheel={day.wheel}
+            dayId={dayId}
+            sx={{ mb: 1.75 }}
+          />
+        ) : null}
 
         {hasNoCollector ? (
           <Stack

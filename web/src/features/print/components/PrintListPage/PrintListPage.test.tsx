@@ -155,6 +155,7 @@ const openDay = {
       isBreadDoener: false,
     },
   ],
+  wheel: null,
 };
 
 const closedDay = {
@@ -171,6 +172,7 @@ const closedDay = {
   abholer: null,
   orders: [],
   printLines: [],
+  wheel: null,
 };
 
 const buildDashboard = (overrides: Partial<Dashboard> = {}): Dashboard => ({

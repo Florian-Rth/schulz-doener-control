@@ -6,6 +6,7 @@ import ArrowDownwardOutlined from "@mui/icons-material/ArrowDownwardOutlined";
 import ArrowUpwardOutlined from "@mui/icons-material/ArrowUpwardOutlined";
 import CampaignOutlined from "@mui/icons-material/CampaignOutlined";
 import CancelOutlined from "@mui/icons-material/CancelOutlined";
+import CasinoOutlined from "@mui/icons-material/CasinoOutlined";
 import CategoryOutlined from "@mui/icons-material/CategoryOutlined";
 import CheckCircleOutlined from "@mui/icons-material/CheckCircleOutlined";
 import CheckOutlined from "@mui/icons-material/CheckOutlined";
@@ -29,6 +30,7 @@ import NotificationsActiveOutlined from "@mui/icons-material/NotificationsActive
 import PaymentsOutlined from "@mui/icons-material/PaymentsOutlined";
 import PrintOutlined from "@mui/icons-material/PrintOutlined";
 import RemoveOutlined from "@mui/icons-material/RemoveOutlined";
+import ReplayOutlined from "@mui/icons-material/ReplayOutlined";
 import RestaurantOutlined from "@mui/icons-material/RestaurantOutlined";
 import SetMealOutlined from "@mui/icons-material/SetMealOutlined";
 import TakeoutDiningOutlined from "@mui/icons-material/TakeoutDiningOutlined";
@@ -49,6 +51,7 @@ export const ICON_MAP = {
   arrow_upward: ArrowUpwardOutlined,
   campaign: CampaignOutlined,
   cancel: CancelOutlined,
+  casino: CasinoOutlined,
   category: CategoryOutlined,
   check: CheckOutlined,
   check_circle: CheckCircleOutlined,
@@ -72,6 +75,7 @@ export const ICON_MAP = {
   payments: PaymentsOutlined,
   print: PrintOutlined,
   remove: RemoveOutlined,
+  replay: ReplayOutlined,
   restaurant: RestaurantOutlined,
   set_meal: SetMealOutlined,
   takeout_dining: TakeoutDiningOutlined,

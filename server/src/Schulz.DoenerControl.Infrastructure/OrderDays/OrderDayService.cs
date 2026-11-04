@@ -9,6 +9,7 @@ using Schulz.DoenerControl.Core.Enums;
 using Schulz.DoenerControl.Infrastructure.Debts;
 using Schulz.DoenerControl.Infrastructure.Menu;
 using Schulz.DoenerControl.Infrastructure.Persistence;
+using Schulz.DoenerControl.Infrastructure.PickupWheel;
 
 namespace Schulz.DoenerControl.Infrastructure.OrderDays;
 
@@ -22,6 +23,7 @@ public sealed class OrderDayService : IOrderDayService
     private readonly IPushBroadcaster pushBroadcaster;
     private readonly CloseDayDebtGenerator debtGenerator;
     private readonly CategorySpecStore categorySpecStore;
+    private readonly PickupWheelProjector wheelProjector;
 
     public OrderDayService(
         AppDbContext database,
@@ -29,7 +31,8 @@ public sealed class OrderDayService : IOrderDayService
         INotificationBroadcaster broadcaster,
         IPushBroadcaster pushBroadcaster,
         CloseDayDebtGenerator debtGenerator,
-        CategorySpecStore categorySpecStore
+        CategorySpecStore categorySpecStore,
+        PickupWheelProjector wheelProjector
     )
     {
         this.database = database;
@@ -38,6 +41,7 @@ public sealed class OrderDayService : IOrderDayService
         this.pushBroadcaster = pushBroadcaster;
         this.debtGenerator = debtGenerator;
         this.categorySpecStore = categorySpecStore;
+        this.wheelProjector = wheelProjector;
     }
 
     public async Task<Result<OrderDayDetails?>> GetTodayAsync(Guid callerId, CancellationToken ct)
@@ -312,6 +316,7 @@ public sealed class OrderDayService : IOrderDayService
 
         var amICollector = day.CollectorUserId == callerId;
         var abholer = await BuildAbholer(day, ct);
+        var wheel = await wheelProjector.ProjectAsync(day, orders, callerId, ct);
 
         return new OrderDayDetails(
             day.Id,
@@ -328,7 +333,8 @@ public sealed class OrderDayService : IOrderDayService
             day.OrderingClosedAt is not null,
             myOrder?.Id,
             amICollector,
-            abholer
+            abholer,
+            wheel
         );
     }
 

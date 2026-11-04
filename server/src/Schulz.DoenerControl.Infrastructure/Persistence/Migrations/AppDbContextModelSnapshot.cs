@@ -488,6 +488,37 @@ namespace Schulz.DoenerControl.Infrastructure.Persistence.Migrations
                     b.ToTable("OrderLines", (string)null);
                 });
 
+            modelBuilder.Entity("Schulz.DoenerControl.Core.Entities.PickupWheelSpin", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ChosenUserId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("ExcusedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("OrderDayId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Round")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset>("SpunAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChosenUserId");
+
+                    b.HasIndex("OrderDayId", "Round")
+                        .IsUnique();
+
+                    b.ToTable("PickupWheelSpins", (string)null);
+                });
+
             modelBuilder.Entity("Schulz.DoenerControl.Core.Entities.PushSubscription", b =>
                 {
                     b.Property<Guid>("Id")
@@ -885,6 +916,25 @@ namespace Schulz.DoenerControl.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("Schulz.DoenerControl.Core.Entities.PickupWheelSpin", b =>
+                {
+                    b.HasOne("Schulz.DoenerControl.Core.Entities.User", "ChosenUser")
+                        .WithMany()
+                        .HasForeignKey("ChosenUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Schulz.DoenerControl.Core.Entities.OrderDay", "OrderDay")
+                        .WithMany()
+                        .HasForeignKey("OrderDayId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ChosenUser");
+
+                    b.Navigation("OrderDay");
                 });
 
             modelBuilder.Entity("Schulz.DoenerControl.Core.Entities.PushSubscription", b =>

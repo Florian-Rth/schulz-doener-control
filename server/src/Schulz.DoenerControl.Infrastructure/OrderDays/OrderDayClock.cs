@@ -34,6 +34,9 @@ public sealed class OrderDayClock
 
     public DateTimeOffset UtcNow() => timeProvider.GetUtcNow();
 
+    public bool HasLocalTimePassed(TimeOnly localTime) =>
+        TimeOnly.FromDateTime(LocalNow().DateTime) >= localTime;
+
     // The bare "HH:mm" wall-clock label of an instant in the business timezone (no " Uhr" suffix —
     // the frontend appends it). Used to render the moment ordering was closed.
     public string LocalTimeLabel(DateTimeOffset instant) =>

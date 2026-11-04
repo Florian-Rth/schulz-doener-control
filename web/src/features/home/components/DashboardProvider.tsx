@@ -77,6 +77,8 @@ const DashboardReady: FC<ReadyProps> = ({ dashboard }) => {
     isForceEndingDay: operations.isForceEndingDay,
     claimCollector: operations.claimCollector,
     isClaimingCollector: operations.isClaimingCollector,
+    excusePickupWheel: operations.excusePickupWheel,
+    isExcusingPickupWheel: operations.isExcusingPickupWheel,
     settle: operations.settle,
     isSettling: operations.isSettling,
     goOrder: operations.goOrder,

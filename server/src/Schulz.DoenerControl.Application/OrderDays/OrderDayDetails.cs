@@ -19,5 +19,7 @@ public sealed record OrderDayDetails(
     bool IsOrderingClosed,
     Guid? MyOrderId,
     bool AmICollector,
-    AbholerSummary? Abholer
+    AbholerSummary? Abholer,
+    // The latest Glücksrad spin; null while the wheel has not spun today.
+    PickupWheelDetails? Wheel
 );

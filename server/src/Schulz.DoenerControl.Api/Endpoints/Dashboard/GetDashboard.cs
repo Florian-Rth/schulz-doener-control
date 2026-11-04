@@ -1,5 +1,6 @@
 using System.Globalization;
 using FastEndpoints;
+using Schulz.DoenerControl.Api.Endpoints.OrderDays;
 using Schulz.DoenerControl.Application.Calculators;
 using Schulz.DoenerControl.Application.Dashboard;
 using Schulz.DoenerControl.Application.Debts;
@@ -66,7 +67,9 @@ public sealed record DashboardDayDto(
     IReadOnlyList<DashboardOrderRowDto> Orders,
     // The Abholer's printable order sheet, built server-side: numbered per-package lines in
     // article-type order (also drives the e-mailed PDF).
-    IReadOnlyList<DashboardPrintLineDto> PrintLines
+    IReadOnlyList<DashboardPrintLineDto> PrintLines,
+    // The Abholer-Glücksrad's latest spin; null until it spun today.
+    PickupWheelDto? Wheel
 );
 
 public sealed record DashboardAbholerDto(
@@ -241,7 +244,8 @@ public sealed class GetDashboard : EndpointWithoutRequest<GetDashboardResponse>
                 AmICollector: false,
                 Abholer: null,
                 Orders: [],
-                PrintLines: []
+                PrintLines: [],
+                Wheel: null
             );
         }
 
@@ -258,7 +262,8 @@ public sealed class GetDashboard : EndpointWithoutRequest<GetDashboardResponse>
             day.AmICollector,
             MapAbholer(day.Abholer),
             day.Orders.Select(MapOrderRow).ToList(),
-            day.PrintList.Lines.Select(MapPrintLine).ToList()
+            day.PrintList.Lines.Select(MapPrintLine).ToList(),
+            OrderDayDetailsMapper.ToWheelDto(day.Wheel)
         );
     }
 

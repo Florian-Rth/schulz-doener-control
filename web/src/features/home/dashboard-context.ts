@@ -36,6 +36,9 @@ export interface DashboardContextValue {
   /** Become the designated Abholer for the running day ("Ich hole heute ab" / take-over). */
   claimCollector: (dayId: string) => void;
   isClaimingCollector: boolean;
+  /** The Glücksrad's chosen one talks their way out: off the wheel, re-spin among the rest. */
+  excusePickupWheel: (dayId: string) => void;
+  isExcusingPickupWheel: boolean;
   /** Personal "ich hab bezahlt" confirmation for an open debt (one-way). */
   settle: (debtId: string) => void;
   /** True only for the debt row whose settle is currently in flight. */
