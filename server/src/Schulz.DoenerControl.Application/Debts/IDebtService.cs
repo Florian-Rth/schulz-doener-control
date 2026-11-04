@@ -17,11 +17,10 @@ public interface IDebtService
         CancellationToken ct
     );
 
-    // The caller's recent payments (caller = debtor). Only Status=Settled, newest-settled first,
-    // capped at the last `take`. Rows describe the creditor (the colleague the caller paid).
-    Task<Result<IReadOnlyList<DebtHistorySummary>>> GetSettledForDebtorAsync(
-        Guid callerId,
-        int take,
+    // One page of the caller's payments (caller = debtor). Only Status=Settled, newest-settled
+    // first. Rows describe the creditor (the colleague the caller paid).
+    Task<Result<DebtHistoryPage>> GetSettledForDebtorAsync(
+        GetPaymentHistoryQuery query,
         CancellationToken ct
     );
 

@@ -139,6 +139,71 @@ public sealed class GetDebtHistoryTests : DoenerControlTestBase
     }
 
     [Fact]
+    public async Task Should_PageThroughOlderPayments_When_SkipIsGiven()
+    {
+        var (debtor, debtorId) = await SeedDebtorAsync("d.paging");
+        var lukasId = await DebtTestHelpers.UserIdAsync(App, "l.brandt");
+
+        for (var i = 0; i < 12; i++)
+        {
+            await DebtTestHelpers.SeedDebtAsync(
+                App,
+                debtorUserId: debtorId,
+                creditorUserId: lukasId,
+                amountCents: 100 + i,
+                reason: $"Zahlung {i}",
+                status: PaymentStatus.Settled,
+                settledAt: Anchor.AddHours(i)
+            );
+        }
+
+        var firstPage = await GetHistoryAsync(debtor);
+        var secondPage = await GetHistoryAsync(debtor, "?skip=10&take=10");
+
+        Assert.True(firstPage.HasMore);
+        Assert.False(secondPage.HasMore);
+        Assert.Equal(new[] { "Zahlung 1", "Zahlung 0" }, secondPage.Payments.Select(p => p.Reason));
+    }
+
+    [Fact]
+    public async Task Should_ReportNoMore_When_EverythingFitsOnePage()
+    {
+        var (debtor, debtorId) = await SeedDebtorAsync("d.nomore");
+        var lukasId = await DebtTestHelpers.UserIdAsync(App, "l.brandt");
+
+        await DebtTestHelpers.SeedDebtAsync(
+            App,
+            debtorUserId: debtorId,
+            creditorUserId: lukasId,
+            amountCents: 750,
+            reason: "einzige",
+            status: PaymentStatus.Settled,
+            settledAt: Anchor
+        );
+
+        var history = await GetHistoryAsync(debtor);
+
+        Assert.Single(history.Payments);
+        Assert.False(history.HasMore);
+    }
+
+    [Theory]
+    [InlineData("d.bad.skip", "?skip=-1")]
+    [InlineData("d.bad.take0", "?take=0")]
+    [InlineData("d.bad.take51", "?take=51")]
+    public async Task Should_ReturnBadRequest_When_PagingIsOutOfRange(
+        string username,
+        string queryString
+    )
+    {
+        var (debtor, _) = await SeedDebtorAsync(username);
+
+        var response = await debtor.GetAsync($"/api/debts/history{queryString}");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Should_ReturnOnlyDebtsWhereCallerIsDebtor_NotCreditor()
     {
         var (debtor, debtorId) = await SeedDebtorAsync("d.side");
@@ -187,9 +252,12 @@ public sealed class GetDebtHistoryTests : DoenerControlTestBase
         return (client, id);
     }
 
-    private static async Task<GetDebtHistoryResponse> GetHistoryAsync(AuthTestClient auth)
+    private static async Task<GetDebtHistoryResponse> GetHistoryAsync(
+        AuthTestClient auth,
+        string queryString = ""
+    )
     {
-        var response = await auth.GetAsync("/api/debts/history");
+        var response = await auth.GetAsync($"/api/debts/history{queryString}");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadFromJsonAsync<GetDebtHistoryResponse>(
             TestContext.Current.CancellationToken

@@ -17,6 +17,8 @@ import DirectionsCarOutlined from "@mui/icons-material/DirectionsCarOutlined";
 import EditOutlined from "@mui/icons-material/EditOutlined";
 import EmojiEventsOutlined from "@mui/icons-material/EmojiEventsOutlined";
 import EuroOutlined from "@mui/icons-material/EuroOutlined";
+import ExpandLessOutlined from "@mui/icons-material/ExpandLessOutlined";
+import ExpandMoreOutlined from "@mui/icons-material/ExpandMoreOutlined";
 import FastfoodOutlined from "@mui/icons-material/FastfoodOutlined";
 import KebabDiningOutlined from "@mui/icons-material/KebabDiningOutlined";
 import LocalFireDepartmentOutlined from "@mui/icons-material/LocalFireDepartmentOutlined";
@@ -62,6 +64,8 @@ export const ICON_MAP = {
   edit: EditOutlined,
   emoji_events: EmojiEventsOutlined,
   euro: EuroOutlined,
+  expand_less: ExpandLessOutlined,
+  expand_more: ExpandMoreOutlined,
   fastfood: FastfoodOutlined,
   kebab_dining: KebabDiningOutlined,
   local_fire_department: LocalFireDepartmentOutlined,

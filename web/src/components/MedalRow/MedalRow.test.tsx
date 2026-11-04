@@ -48,4 +48,18 @@ describe("MedalRow", () => {
     expect(screen.getByText("· du")).toBeInTheDocument();
     expect(screen.getByText("Markus Wagner")).toBeInTheDocument();
   });
+
+  it("zeigt eine optionale Unterzeile unter dem Namen", () => {
+    renderWithTheme(
+      <MedalRow
+        rank={2}
+        displayName="Sara Yılmaz"
+        avatarColorHex="#ED701C"
+        count={97}
+        subline="🛵 Holt 1,5 von 10 ab"
+      />,
+    );
+
+    expect(screen.getByText("🛵 Holt 1,5 von 10 ab")).toBeInTheDocument();
+  });
 });

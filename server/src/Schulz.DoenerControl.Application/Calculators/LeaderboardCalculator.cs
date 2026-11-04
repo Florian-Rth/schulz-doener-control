@@ -22,7 +22,9 @@ public static class LeaderboardCalculator
                 NameFormatter.InitialsOf(entry.DisplayName),
                 entry.Count,
                 rankByCount[entry.Count],
-                entry.UserId == currentUserId
+                entry.UserId == currentUserId,
+                entry.PickupCount,
+                PickupsPerTenOrders(entry.PickupCount, entry.Count)
             ))
             .ToList();
 
@@ -34,6 +36,10 @@ public static class LeaderboardCalculator
             nextRank
         );
     }
+
+    [Pure]
+    public static decimal PickupsPerTenOrders(int pickupCount, int orderCount) =>
+        orderCount <= 0 ? 0m : Math.Round(pickupCount * 10m / orderCount, 1);
 
     // Maps each distinct count to its dense rank: the highest count is rank 1, the next distinct
     // (lower) count rank 2, and so on — regardless of how many people tie at any given count.

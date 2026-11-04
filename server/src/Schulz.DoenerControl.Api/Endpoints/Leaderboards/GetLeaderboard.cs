@@ -21,7 +21,9 @@ public sealed record LeaderboardEntrySummaryDto(
     int Count,
     bool IsMe,
     string? Medal,
-    string? TierEmoji
+    string? TierEmoji,
+    int PickupCount,
+    decimal PickupsPerTenOrders
 );
 
 public sealed record GetLeaderboardResponse(
@@ -108,7 +110,9 @@ public sealed class GetLeaderboard : Endpoint<GetLeaderboardRequest, GetLeaderbo
             entry.Count,
             entry.IsCurrentUser,
             MedalFor(entry.Rank),
-            entry.TierEmoji
+            entry.TierEmoji,
+            entry.PickupCount,
+            entry.PickupsPerTenOrders
         );
 
     private static string? MedalFor(int rank) =>

@@ -1,18 +1,39 @@
 using FastEndpoints;
+using FluentValidation;
 using Schulz.DoenerControl.Application.Debts;
 using Schulz.DoenerControl.Application.Security;
 
 namespace Schulz.DoenerControl.Api.Endpoints.Debts;
 
-public sealed record GetDebtHistoryResponse(IReadOnlyList<DebtHistoryDto> Payments);
-
-// The "Meine letzten Zahlungen" history: the caller's most recently settled debts (what they paid),
-// each row describing the creditor they paid. Newest-settled first, capped at the last 10.
-// Authenticated.
-public sealed class GetDebtHistory : EndpointWithoutRequest<GetDebtHistoryResponse>
+public sealed class GetDebtHistoryRequest
 {
-    private const int HistoryTake = 10;
+    [QueryParam]
+    public int Skip { get; set; }
 
+    [QueryParam]
+    public int Take { get; set; } = GetDebtHistoryRequestValidator.DefaultTake;
+}
+
+public sealed record GetDebtHistoryResponse(IReadOnlyList<DebtHistoryDto> Payments, bool HasMore);
+
+public sealed class GetDebtHistoryRequestValidator : Validator<GetDebtHistoryRequest>
+{
+    private const int MaxTake = 50;
+    public const int DefaultTake = 10;
+
+    public GetDebtHistoryRequestValidator()
+    {
+        RuleFor(request => request.Skip).GreaterThanOrEqualTo(0);
+        RuleFor(request => request.Take).InclusiveBetween(1, MaxTake);
+    }
+}
+
+// The "Meine letzten Zahlungen" history: the caller's settled debts (what they paid), each row
+// describing the creditor they paid. Newest-settled first, paged via ?skip=&take= (default: the
+// last 10) with HasMore telling the card whether "Mehr anzeigen" can load older ones.
+// Authenticated.
+public sealed class GetDebtHistory : Endpoint<GetDebtHistoryRequest, GetDebtHistoryResponse>
+{
     private readonly IDebtService debtService;
     private readonly ICurrentUser currentUser;
 
@@ -27,7 +48,7 @@ public sealed class GetDebtHistory : EndpointWithoutRequest<GetDebtHistoryRespon
         Get("/api/debts/history");
     }
 
-    public override async Task HandleAsync(CancellationToken ct)
+    public override async Task HandleAsync(GetDebtHistoryRequest req, CancellationToken ct)
     {
         if (currentUser.UserId is not { } callerId)
         {
@@ -35,16 +56,19 @@ public sealed class GetDebtHistory : EndpointWithoutRequest<GetDebtHistoryRespon
             return;
         }
 
-        var result = await debtService.GetSettledForDebtorAsync(callerId, HistoryTake, ct);
+        var result = await debtService.GetSettledForDebtorAsync(
+            new GetPaymentHistoryQuery(callerId, req.Skip, req.Take),
+            ct
+        );
         if (!result.IsSuccess)
         {
             await Send.ErrorsAsync(cancellation: ct);
             return;
         }
 
-        var response = new GetDebtHistoryResponse(
-            result.Value.Select(DebtMapper.ToHistoryDto).ToList()
-        );
-        await Send.OkAsync(response, cancellation: ct);
+        await Send.OkAsync(MapToResponse(result.Value), cancellation: ct);
     }
+
+    private static GetDebtHistoryResponse MapToResponse(DebtHistoryPage page) =>
+        new(page.Payments.Select(DebtMapper.ToHistoryDto).ToList(), page.HasMore);
 }

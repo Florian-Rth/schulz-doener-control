@@ -26,7 +26,9 @@ const DashboardTierSchema = z.object({
 
 // One leaderboard row. `medal` carries the 🥇/🥈/🥉 glyph for the top 3, null
 // otherwise; `isMe` highlights the caller's row. `tierEmoji` is the person's
-// Döner-Tier glyph (🐺/🐎/…), null when they have no tier yet.
+// Döner-Tier glyph (🐺/🐎/…), null when they have no tier yet. `pickupCount` is
+// how often they were the Abholer this year; `pickupsPerTenOrders` normalises
+// that to "Abholungen pro 10 Bestellungen" (one decimal).
 const LeaderboardRowSchema = z.object({
   rank: z.number().int(),
   userId: z.string(),
@@ -36,6 +38,8 @@ const LeaderboardRowSchema = z.object({
   isMe: z.boolean(),
   medal: z.string().nullable(),
   tierEmoji: z.string().nullable(),
+  pickupCount: z.number().int(),
+  pickupsPerTenOrders: z.number(),
 });
 
 const DashboardLeaderboardSchema = z.object({
@@ -161,7 +165,7 @@ const DashboardDebtsSchema = z.object({
 });
 
 // GET /api/debts/history (FEATURE 4 / B12) — the caller's own settled payments,
-// newest-settled first, capped at 10. A standalone read-only payload (NOT part
+// newest-settled first, paged via ?skip=&take= (`hasMore` = older pages exist). A standalone read-only payload (NOT part
 // of the dashboard aggregate). `amountLabel` already includes the trailing
 // " €" — unlike the older dashboard debt rows — so it is rendered as-is.
 // `settledAt` is an ISO-8601 timestamp the card formats into a short German date.
@@ -177,6 +181,7 @@ const PaymentHistoryRowSchema = z.object({
 
 export const PaymentHistorySchema = z.object({
   payments: z.array(PaymentHistoryRowSchema),
+  hasMore: z.boolean(),
 });
 
 // GET /api/debts/receivables (FEATURE C-2) — what the collector is still owed:

@@ -70,28 +70,40 @@ public sealed class DebtService : IDebtService
         return Result<ReceivablesLedgerDetails>.Success(BuildReceivables(open, settled));
     }
 
-    public async Task<Result<IReadOnlyList<DebtHistorySummary>>> GetSettledForDebtorAsync(
-        Guid callerId,
-        int take,
+    public async Task<Result<DebtHistoryPage>> GetSettledForDebtorAsync(
+        GetPaymentHistoryQuery query,
         CancellationToken ct
     )
     {
-        // SQLite cannot ORDER BY a DateTimeOffset, so load the caller's settled debts then order and
-        // cap in memory (newest-settled first). Rows describe the creditor — the colleague paid.
-        var settled = await database
+        // SQLite cannot ORDER BY a DateTimeOffset, so the ordering happens in memory over just the
+        // (id, settled-at) pairs; only the requested page is then loaded with its creditor.
+        var settledOrder = await database
             .Debts.AsNoTracking()
-            .Include(debt => debt.CreditorUser)
             .Where(debt => debt.Status == PaymentStatus.Settled)
-            .Where(debt => debt.DebtorUserId == callerId)
+            .Where(debt => debt.DebtorUserId == query.CallerUserId)
+            .Select(debt => new { debt.Id, SettledAt = debt.SettledAt ?? debt.CreatedAt })
             .ToListAsync(ct);
 
-        var rows = settled
+        var pageIds = settledOrder
             .OrderByDescending(debt => debt.SettledAt)
-            .Take(take)
-            .Select(debt => MapHistoryRow(debt, debt.CreditorUser))
+            .Skip(query.Skip)
+            .Take(query.Take)
+            .Select(debt => debt.Id)
             .ToList();
 
-        return Result<IReadOnlyList<DebtHistorySummary>>.Success(rows);
+        var pageDebts = await database
+            .Debts.AsNoTracking()
+            .Include(debt => debt.CreditorUser)
+            .Where(debt => pageIds.Contains(debt.Id))
+            .ToListAsync(ct);
+
+        var rows = pageDebts
+            .OrderBy(debt => pageIds.IndexOf(debt.Id))
+            .Select(debt => MapHistoryRow(debt, debt.CreditorUser))
+            .ToList();
+        var hasMore = settledOrder.Count > query.Skip + rows.Count;
+
+        return Result<DebtHistoryPage>.Success(new DebtHistoryPage(rows, hasMore));
     }
 
     public async Task<Result<DebtDetails>> SettleAsync(

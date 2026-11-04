@@ -49,6 +49,8 @@ const baseLeaderboard = {
       isMe: false,
       medal: "🥇",
       tierEmoji: "🐺",
+      pickupCount: 0,
+      pickupsPerTenOrders: 0,
     },
     {
       rank: 2,
@@ -59,6 +61,8 @@ const baseLeaderboard = {
       isMe: false,
       medal: "🥈",
       tierEmoji: "🦅",
+      pickupCount: 0,
+      pickupsPerTenOrders: 0,
     },
     {
       rank: 3,
@@ -69,6 +73,8 @@ const baseLeaderboard = {
       isMe: false,
       medal: "🥉",
       tierEmoji: null,
+      pickupCount: 0,
+      pickupsPerTenOrders: 0,
     },
     {
       rank: 4,
@@ -79,6 +85,8 @@ const baseLeaderboard = {
       isMe: true,
       medal: null,
       tierEmoji: "🐎",
+      pickupCount: 0,
+      pickupsPerTenOrders: 0,
     },
   ],
   doenerToNextRank: 6,
@@ -211,6 +219,7 @@ const paymentHistory = {
       reason: "Pommes-Schulden",
     },
   ],
+  hasMore: false,
 };
 
 const buildDashboard = (overrides: Partial<Dashboard> = {}): Dashboard => ({
@@ -245,7 +254,7 @@ const useDashboardHandlers = (dashboard: Dashboard): void => {
     http.get("*/api/dashboard", () => HttpResponse.json(dashboard)),
     // The "Meine letzten Zahlungen" card fetches this independently of the
     // dashboard aggregate; default to empty so it renders nothing.
-    http.get("*/api/debts/history", () => HttpResponse.json({ payments: [] })),
+    http.get("*/api/debts/history", () => HttpResponse.json({ payments: [], hasMore: false })),
     // The "Was mir noch zusteht" card likewise self-fetches; default to empty.
     http.get("*/api/debts/receivables", () => HttpResponse.json(emptyReceivables)),
   );
@@ -365,6 +374,51 @@ describe("DashboardPage", () => {
     expect(await findByText("· du")).toBeInTheDocument();
     const untilNextLines = untilNextTemplates.map((template) => untilNextSentence(template, 6, 3));
     expect(await findByText(oneOf(untilNextLines))).toBeInTheDocument();
+  });
+
+  it("klappt die Bestenliste auf alle Kollegen auf und zeigt die Abholer-Quote", async () => {
+    const rowsWithChaser = [
+      ...baseLeaderboard.rows.map((row) =>
+        row.isMe ? { ...row, pickupCount: 3, pickupsPerTenOrders: 2.5 } : row,
+      ),
+      {
+        rank: 5,
+        userId: "dddd",
+        displayName: "Jana Fischer",
+        avatarColorHex: "#45B8A1",
+        count: 40,
+        isMe: false,
+        medal: null,
+        tierEmoji: null,
+        pickupCount: 0,
+        pickupsPerTenOrders: 0,
+      },
+    ];
+    useDashboardHandlers(
+      buildDashboard({ leaderboard: { ...baseLeaderboard, rows: rowsWithChaser } }),
+    );
+    const user = userEvent.setup();
+    const { findByText, findByRole, queryByText } = renderApp({ initialPath: "/" });
+
+    // collapsed: podium + the caller, the fifth colleague stays hidden
+    expect(await findByText("🛵 Holt 2,5 von 10 ab")).toBeInTheDocument();
+    expect(queryByText("Jana Fischer")).not.toBeInTheDocument();
+
+    await user.click(await findByRole("button", { name: "Alle 5 anzeigen" }));
+    expect(await findByText("Jana Fischer")).toBeInTheDocument();
+
+    await user.click(await findByRole("button", { name: homeCopy.leaderboardShowLess }));
+    await waitFor(() => {
+      expect(queryByText("Jana Fischer")).not.toBeInTheDocument();
+    });
+  });
+
+  it("zeigt keinen Aufklapp-Button, wenn die Bestenliste schon komplett sichtbar ist", async () => {
+    useDashboardHandlers(buildDashboard());
+    const { findByText, queryByRole } = renderApp({ initialPath: "/" });
+
+    expect(await findByText("Tobias Klein")).toBeInTheDocument();
+    expect(queryByRole("button", { name: /Alle \d+ anzeigen/ })).not.toBeInTheDocument();
   });
 
   it("zeigt für offene Schulden funktionierende PayPal-Buttons", async () => {
@@ -501,7 +555,7 @@ describe("DashboardPage", () => {
       http.get("*/api/auth/me", () =>
         HttpResponse.json({ ...authenticatedSession, role: "Admin" }),
       ),
-      http.get("*/api/debts/history", () => HttpResponse.json({ payments: [] })),
+      http.get("*/api/debts/history", () => HttpResponse.json({ payments: [], hasMore: false })),
       http.get("*/api/debts/receivables", () => HttpResponse.json(emptyReceivables)),
       http.get("*/api/dashboard", () =>
         HttpResponse.json(buildDashboard({ day: { ...openDay, amICollector: false } })),
@@ -530,7 +584,7 @@ describe("DashboardPage", () => {
     let forceEndHit = false;
     mswServer.use(
       http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
-      http.get("*/api/debts/history", () => HttpResponse.json({ payments: [] })),
+      http.get("*/api/debts/history", () => HttpResponse.json({ payments: [], hasMore: false })),
       http.get("*/api/debts/receivables", () => HttpResponse.json(emptyReceivables)),
       http.get("*/api/dashboard", () =>
         HttpResponse.json(buildDashboard({ day: { ...openDay, amICollector: true } })),
@@ -571,7 +625,7 @@ describe("DashboardPage", () => {
     let dashboardFetches = 0;
     mswServer.use(
       http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
-      http.get("*/api/debts/history", () => HttpResponse.json({ payments: [] })),
+      http.get("*/api/debts/history", () => HttpResponse.json({ payments: [], hasMore: false })),
       http.get("*/api/debts/receivables", () => HttpResponse.json(emptyReceivables)),
       http.get("*/api/dashboard", () => {
         dashboardFetches += 1;
@@ -614,7 +668,7 @@ describe("DashboardPage", () => {
     let dashboardFetches = 0;
     mswServer.use(
       http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
-      http.get("*/api/debts/history", () => HttpResponse.json({ payments: [] })),
+      http.get("*/api/debts/history", () => HttpResponse.json({ payments: [], hasMore: false })),
       http.get("*/api/debts/receivables", () => HttpResponse.json(emptyReceivables)),
       http.get("*/api/dashboard", () => {
         dashboardFetches += 1;
@@ -649,7 +703,7 @@ describe("DashboardPage", () => {
   it("zeigt eine deutsche Fehlermeldung, wenn das Schließen mit 409 fehlschlägt", async () => {
     mswServer.use(
       http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
-      http.get("*/api/debts/history", () => HttpResponse.json({ payments: [] })),
+      http.get("*/api/debts/history", () => HttpResponse.json({ payments: [], hasMore: false })),
       http.get("*/api/debts/receivables", () => HttpResponse.json(emptyReceivables)),
       http.get("*/api/dashboard", () =>
         HttpResponse.json(
@@ -675,7 +729,7 @@ describe("DashboardPage", () => {
   it("zeigt eine deutsche Fehlermeldung, wenn der Tag-Schluss mit 403 fehlschlägt", async () => {
     mswServer.use(
       http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
-      http.get("*/api/debts/history", () => HttpResponse.json({ payments: [] })),
+      http.get("*/api/debts/history", () => HttpResponse.json({ payments: [], hasMore: false })),
       http.get("*/api/debts/receivables", () => HttpResponse.json(emptyReceivables)),
       http.get("*/api/dashboard", () =>
         HttpResponse.json(
@@ -703,7 +757,7 @@ describe("DashboardPage", () => {
     let dashboardFetches = 0;
     mswServer.use(
       http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
-      http.get("*/api/debts/history", () => HttpResponse.json({ payments: [] })),
+      http.get("*/api/debts/history", () => HttpResponse.json({ payments: [], hasMore: false })),
       http.get("*/api/debts/receivables", () => HttpResponse.json(emptyReceivables)),
       http.get("*/api/dashboard", () => {
         dashboardFetches += 1;
@@ -741,7 +795,7 @@ describe("DashboardPage", () => {
     let releaseSettle: () => void = () => {};
     mswServer.use(
       http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
-      http.get("*/api/debts/history", () => HttpResponse.json({ payments: [] })),
+      http.get("*/api/debts/history", () => HttpResponse.json({ payments: [], hasMore: false })),
       http.get("*/api/debts/receivables", () => HttpResponse.json(emptyReceivables)),
       http.get("*/api/dashboard", () => HttpResponse.json(buildDashboard())),
       http.post("*/api/debts/:debtId/settle", async () => {
@@ -825,11 +879,40 @@ describe("DashboardPage", () => {
     expect(amount.closest("div")?.querySelector("a")).toBeNull();
   });
 
+  it("lädt ältere Zahlungen seitenweise nach", async () => {
+    const requestedSkips: string[] = [];
+    mswServer.use(
+      http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
+      http.get("*/api/dashboard", () => HttpResponse.json(buildDashboard())),
+      http.get("*/api/debts/history", ({ request }) => {
+        const skip = new URL(request.url).searchParams.get("skip") ?? "";
+        requestedSkips.push(skip);
+        return skip === "0"
+          ? HttpResponse.json({ payments: [paymentHistory.payments[0]], hasMore: true })
+          : HttpResponse.json({ payments: [paymentHistory.payments[1]], hasMore: false });
+      }),
+      http.get("*/api/debts/receivables", () => HttpResponse.json(emptyReceivables)),
+    );
+    const user = userEvent.setup();
+    const { findByText, findByRole, queryByRole } = renderApp({ initialPath: "/" });
+
+    expect(await findByText("Dürüm-Schulden")).toBeInTheDocument();
+    await user.click(await findByRole("button", { name: homeCopy.paymentHistoryLoadMore }));
+
+    expect(await findByText("Pommes-Schulden")).toBeInTheDocument();
+    expect(requestedSkips).toEqual(["0", "10"]);
+    await waitFor(() => {
+      expect(
+        queryByRole("button", { name: homeCopy.paymentHistoryLoadMore }),
+      ).not.toBeInTheDocument();
+    });
+  });
+
   it("zeigt die Zahlungs-Historie-Karte nicht, wenn es keine Zahlungen gibt", async () => {
     mswServer.use(
       http.get("*/api/auth/me", () => HttpResponse.json(authenticatedSession)),
       http.get("*/api/dashboard", () => HttpResponse.json(buildDashboard())),
-      http.get("*/api/debts/history", () => HttpResponse.json({ payments: [] })),
+      http.get("*/api/debts/history", () => HttpResponse.json({ payments: [], hasMore: false })),
       http.get("*/api/debts/receivables", () => HttpResponse.json(emptyReceivables)),
     );
     const { findByText, queryByText } = renderApp({ initialPath: "/" });
@@ -845,7 +928,7 @@ describe("DashboardPage", () => {
         HttpResponse.json({ ...authenticatedSession, payPalHandleSet: false, payPalHandle: null }),
       ),
       http.get("*/api/dashboard", () => HttpResponse.json(buildDashboard())),
-      http.get("*/api/debts/history", () => HttpResponse.json({ payments: [] })),
+      http.get("*/api/debts/history", () => HttpResponse.json({ payments: [], hasMore: false })),
       http.get("*/api/debts/receivables", () => HttpResponse.json(emptyReceivables)),
     );
     const { findByText } = renderApp({ initialPath: "/" });
