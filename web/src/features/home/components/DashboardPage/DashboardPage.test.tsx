@@ -401,7 +401,7 @@ describe("DashboardPage", () => {
     const { findByText, findByRole, queryByText } = renderApp({ initialPath: "/" });
 
     // collapsed: podium + the caller, the fifth colleague stays hidden
-    expect(await findByText("🛵 Holt 2,5 von 10 ab")).toBeInTheDocument();
+    expect(await findByText("🛵 Abholscore 2,5")).toBeInTheDocument();
     expect(queryByText("Jana Fischer")).not.toBeInTheDocument();
 
     await user.click(await findByRole("button", { name: "Alle 5 anzeigen" }));

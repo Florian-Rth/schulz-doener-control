@@ -56,10 +56,10 @@ describe("MedalRow", () => {
         displayName="Sara Yılmaz"
         avatarColorHex="#ED701C"
         count={97}
-        subline="🛵 Holt 1,5 von 10 ab"
+        subline="🛵 Abholscore 1,5"
       />,
     );
 
-    expect(screen.getByText("🛵 Holt 1,5 von 10 ab")).toBeInTheDocument();
+    expect(screen.getByText("🛵 Abholscore 1,5")).toBeInTheDocument();
   });
 });

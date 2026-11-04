@@ -326,9 +326,10 @@ export const leaderboardShowAll = (total: number): string => `Alle ${total} anze
 
 const pickupQuoteFormat = new Intl.NumberFormat("de-DE", { maximumFractionDigits: 1 });
 
-// "🛵 Holt 2,5 von 10 ab" — the Abholer-Quote under each leaderboard name.
+// "🛵 Abholscore 2,5" under each leaderboard name: pickups per 10 of the
+// person's OWN orders — you only fetch on days you order, so that is the fair base.
 export const pickupQuote = (pickupsPerTenOrders: number): string =>
-  `🛵 Holt ${pickupQuoteFormat.format(pickupsPerTenOrders)} von 10 ab`;
+  `🛵 Abholscore ${pickupQuoteFormat.format(pickupsPerTenOrders)}`;
 
 // "Aus N Bestellungen der letzten 3 Monate" — the tier order-count line.
 export const tierOrderCountSentence = (count: number): string =>
