@@ -1,0 +1,1 @@
+export { WeitwurfPage } from "./WeitwurfPage";

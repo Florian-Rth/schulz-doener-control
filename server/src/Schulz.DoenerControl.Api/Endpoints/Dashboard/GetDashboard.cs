@@ -98,7 +98,15 @@ public sealed record DashboardPrintLineDto(
     string Description,
     int Quantity,
     int LineTotalCents,
-    bool IsPickup
+    bool IsPickup,
+    string? ProductIcon,
+    // Structured answers for the Abholer's counter mode (3D Döner replay): the meat option key, the
+    // sauce option keys, the free-text answer (incl. the "ohne Zwiebeln" Gemüse protocol) and
+    // whether this is a bread-based Döner the 3D stage should show.
+    string? MeatKey,
+    IReadOnlyList<string> SauceKeys,
+    string ExtraText,
+    bool IsBreadDoener
 );
 
 public sealed record DashboardDebtRowDto(
@@ -263,7 +271,12 @@ public sealed class GetDashboard : EndpointWithoutRequest<GetDashboardResponse>
             line.Description,
             line.Quantity,
             line.LineTotalCents,
-            line.IsPickup
+            line.IsPickup,
+            line.ProductIcon,
+            line.Build.MeatKey,
+            line.Build.SauceKeys,
+            line.Build.ExtraText,
+            line.Build.IsBreadDoener
         );
 
     private static DashboardAbholerDto? MapAbholer(AbholerSummary? abholer) =>

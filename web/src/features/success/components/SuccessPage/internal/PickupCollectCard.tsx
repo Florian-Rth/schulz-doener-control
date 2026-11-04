@@ -2,6 +2,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { FC } from "react";
 import { MaterialIcon } from "@/components";
+import { useFunnyLine } from "@/lib/use-funny-line";
 import { collectSentence, successCopy } from "../../../copy";
 import { formatEur } from "../../../money";
 
@@ -12,6 +13,8 @@ interface PickupCollectCardProps {
 
 // Navy "you collect today" card. Shown when the caller is the pickup person.
 export const PickupCollectCard: FC<PickupCollectCardProps> = ({ collectCents, collectCount }) => {
+  const pickupTitle = useFunnyLine(successCopy.pickupTitles);
+
   return (
     <Stack
       sx={(theme) => ({
@@ -24,9 +27,7 @@ export const PickupCollectCard: FC<PickupCollectCardProps> = ({ collectCents, co
       })}
     >
       <MaterialIcon name="directions_car" sx={{ fontSize: 34, color: "gold.main" }} />
-      <Typography sx={{ fontSize: "1.0625rem", fontWeight: 700 }}>
-        {successCopy.pickupTitle}
-      </Typography>
+      <Typography sx={{ fontSize: "1.0625rem", fontWeight: 700 }}>{pickupTitle}</Typography>
       <Typography
         sx={{
           fontSize: "0.8125rem",

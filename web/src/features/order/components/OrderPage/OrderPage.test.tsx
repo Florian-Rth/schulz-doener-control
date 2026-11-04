@@ -1,9 +1,26 @@
 import { waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { HttpResponse, http } from "msw";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { mswServer } from "@/test/mswServer";
 import { renderApp } from "@/test/renderApp";
+import { bestellFeierCopy } from "../../copy";
+
+// jsdom has no WebGL — replace the three.js stage of the Bestell-Feier with a
+// probe that exposes what would be in the bread.
+vi.mock("@/components/DoenerStage/internal/scene/DoenerScene", () => ({
+  DoenerScene: ({
+    build,
+    presenting,
+  }: {
+    build: { meat: string | null; veggies: string[]; sauces: string[] };
+    presenting: boolean;
+  }) => (
+    <div data-testid="doener-scene" data-presenting={String(presenting)}>
+      {[build.meat ?? "", ...build.veggies, ...build.sauces].join("|")}
+    </div>
+  ),
+}));
 
 const authenticatedSession = {
   userId: "11111111-1111-1111-1111-111111111111",
@@ -410,7 +427,7 @@ describe("OrderPage", () => {
     expect(captured).toBeNull();
   });
 
-  it("sendet lines[] mit answers + Menge im PUT-Payload und navigiert zur Erfolgsseite", async () => {
+  it("sendet lines[] mit answers + Menge, feiert den eigenen Döner und navigiert nach 'Weiter' zur Erfolgsseite", async () => {
     seedXsrfCookie();
     let captured: unknown = null;
     useOrderHandlers({
@@ -419,7 +436,7 @@ describe("OrderPage", () => {
       },
     });
     const user = userEvent.setup();
-    const { findByRole, router } = renderApp({ initialPath: "/order" });
+    const { findByRole, findByTestId, router } = renderApp({ initialPath: "/order" });
 
     await user.click(await findByRole("button", { name: /^Döner/ }));
     await user.click(await findByRole("button", { name: "Kalb" }));
@@ -428,6 +445,11 @@ describe("OrderPage", () => {
     await user.click(await findByRole("button", { name: "Menge erhöhen" }));
     await user.click(await findByRole("button", { name: /Bestellung abgeben/ }));
 
+    // The Bestell-Feier plays first: the submitted Döner spins on the turntable.
+    expect(await findByTestId("doener-scene")).toHaveAttribute("data-presenting", "true");
+    expect(router.state.location.pathname).toBe("/order");
+
+    await user.click(await findByRole("button", { name: bestellFeierCopy.next }));
     await waitFor(() => {
       expect(router.state.location.pathname).toBe("/erledigt");
     });
@@ -450,6 +472,25 @@ describe("OrderPage", () => {
     expect(body.lines[0].answers.sauce.options).toEqual(["Knoblauch", "Scharf"]);
     expect(body.lines[0].priceCents).toBe(750);
     expect(body.lines[0].quantity).toBe(2);
+  });
+
+  it("feiert eine Pizza ohne 3D und geht per Tipp irgendwo weiter", async () => {
+    seedXsrfCookie();
+    useOrderHandlers();
+    const user = userEvent.setup();
+    const { findByRole, findByText, queryByTestId, router } = renderApp({ initialPath: "/order" });
+
+    await user.click(await findByRole("button", { name: /^Pizza/ }));
+    await user.click(await findByRole("button", { name: "Salami" }));
+    await user.click(await findByRole("button", { name: /Bestellung abgeben/ }));
+
+    const hint = await findByText(bestellFeierCopy.skipHint);
+    expect(queryByTestId("doener-scene")).not.toBeInTheDocument();
+
+    await user.click(hint);
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/erledigt");
+    });
   });
 
   it("blendet 'Meine Bestellung entfernen' aus, wenn noch keine Bestellung existiert", async () => {

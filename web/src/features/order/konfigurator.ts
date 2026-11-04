@@ -1,15 +1,14 @@
+import { VEGGIE_LABELS, type VeggieKey } from "@/components";
 import type { Category, Field, MenuItem } from "./types";
 
 // Pure domain logic for the Döner-Konfigurator. The configurator is a playful
 // alternative UI for the existing Döner fields: it writes the `meat` and
 // `sauce` answers and folds the Gemüse choices into the free-text field
-// ("ohne Zwiebeln, ohne Rotkohl"), so the backend needs no new data.
+// ("ohne Zwiebeln, ohne Rotkohl"), so the backend needs no new data. That text
+// protocol is shared (DoenerStage's build.ts) so any screen can rebuild a Döner.
 
 export const MEAT_FIELD_KEY = "meat";
 export const SAUCE_FIELD_KEY = "sauce";
-
-export const VEGGIE_KEYS = ["salat", "tomate", "gurke", "zwiebeln", "rotkohl"] as const;
-export type VeggieKey = (typeof VEGGIE_KEYS)[number];
 
 export interface Veggie {
   key: VeggieKey;
@@ -23,7 +22,7 @@ export interface Veggie {
 export const VEGGIES: readonly Veggie[] = [
   {
     key: "salat",
-    label: "Salat",
+    label: VEGGIE_LABELS.salat,
     emoji: "🥬",
     questions: [
       "Salat drauf, Chef?",
@@ -34,7 +33,7 @@ export const VEGGIES: readonly Veggie[] = [
   },
   {
     key: "tomate",
-    label: "Tomaten",
+    label: VEGGIE_LABELS.tomate,
     emoji: "🍅",
     questions: [
       "Tomaten dazu?",
@@ -45,7 +44,7 @@ export const VEGGIES: readonly Veggie[] = [
   },
   {
     key: "gurke",
-    label: "Gurken",
+    label: VEGGIE_LABELS.gurke,
     emoji: "🥒",
     questions: [
       "Gurken auch?",
@@ -56,7 +55,7 @@ export const VEGGIES: readonly Veggie[] = [
   },
   {
     key: "zwiebeln",
-    label: "Zwiebeln",
+    label: VEGGIE_LABELS.zwiebeln,
     emoji: "🧅",
     questions: [
       "Zwiebeln? Denk an das Meeting um 14 Uhr.",
@@ -67,7 +66,7 @@ export const VEGGIES: readonly Veggie[] = [
   },
   {
     key: "rotkohl",
-    label: "Rotkohl",
+    label: VEGGIE_LABELS.rotkohl,
     emoji: "🟣",
     questions: [
       "Noch Rotkohl obendrauf?",
@@ -77,45 +76,6 @@ export const VEGGIES: readonly Veggie[] = [
     ],
   },
 ];
-
-export type VeggieDecisions = Partial<Record<VeggieKey, boolean>>;
-
-const MIT_ALLEM = "mit allem";
-
-// Every spelling the configurator itself writes or understands, so re-applying
-// replaces its previous tokens instead of stacking "ohne Zwiebeln" twice.
-const VEGGIE_ALIASES: Record<VeggieKey, readonly string[]> = {
-  salat: ["salat"],
-  tomate: ["tomate", "tomaten"],
-  gurke: ["gurke", "gurken"],
-  zwiebeln: ["zwiebel", "zwiebeln"],
-  rotkohl: ["rotkohl"],
-};
-
-const normalize = (token: string): string => token.trim().toLowerCase().replace(/\s+/g, " ");
-
-const veggieForOhneToken = (token: string): VeggieKey | null => {
-  const normalized = normalize(token);
-  if (!normalized.startsWith("ohne ")) {
-    return null;
-  }
-  const rest = normalized.slice("ohne ".length);
-  for (const key of VEGGIE_KEYS) {
-    if (VEGGIE_ALIASES[key].includes(rest)) {
-      return key;
-    }
-  }
-  return null;
-};
-
-const splitTokens = (text: string): string[] =>
-  text
-    .split(/[,;\n]/)
-    .map((token) => token.trim())
-    .filter((token) => token !== "");
-
-const isKonfiguratorToken = (token: string): boolean =>
-  normalize(token) === MIT_ALLEM || veggieForOhneToken(token) !== null;
 
 // Only bread-based Döner products get the configurator. Boxes share the Döner
 // category (meat + sauce fields) but come without bread, so they are excluded by
@@ -137,33 +97,3 @@ export const supportsKonfigurator = (
 
 export const findTextField = (fields: readonly Field[]): Field | undefined =>
   fields.find((field) => field.type === "text");
-
-// Reads the Gemüse choices back out of an existing free-text answer: every
-// veggie is "drauf" unless the text says "ohne <veggie>".
-export const parseVeggieDecisions = (text: string): Record<VeggieKey, boolean> => {
-  const decisions: Record<VeggieKey, boolean> = {
-    salat: true,
-    tomate: true,
-    gurke: true,
-    zwiebeln: true,
-    rotkohl: true,
-  };
-  for (const token of splitTokens(text)) {
-    const key = veggieForOhneToken(token);
-    if (key !== null) {
-      decisions[key] = false;
-    }
-  }
-  return decisions;
-};
-
-// Writes the Gemüse choices into the free-text answer: earlier configurator
-// tokens are replaced, the colleague's own notes ("Soße separat") are kept.
-export const mergeExtraText = (text: string, decisions: VeggieDecisions): string => {
-  const ownNotes = splitTokens(text).filter((token) => !isKonfiguratorToken(token));
-  const without = VEGGIES.filter((veggie) => decisions[veggie.key] === false).map(
-    (veggie) => `ohne ${veggie.label}`,
-  );
-  const prefix = without.length === 0 ? [MIT_ALLEM] : without;
-  return [...prefix, ...ownNotes].join(", ");
-};

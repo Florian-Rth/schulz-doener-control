@@ -3,6 +3,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { FC } from "react";
 import { MaterialIcon, RedChromeSurface } from "@/components";
+import { useFunnyLine } from "@/lib/use-funny-line";
 import { settingsCopy } from "../../../copy";
 
 interface SettingsHeaderProps {
@@ -11,6 +12,8 @@ interface SettingsHeaderProps {
 
 // Red chrome header for the settings hub: back button + eyebrow/title.
 export const SettingsHeader: FC<SettingsHeaderProps> = ({ onBack }) => {
+  const title = useFunnyLine(settingsCopy.titles);
+
   return (
     <RedChromeSurface
       start={
@@ -35,7 +38,7 @@ export const SettingsHeader: FC<SettingsHeaderProps> = ({ onBack }) => {
           {settingsCopy.eyebrow}
         </Typography>
         <Typography sx={{ fontSize: "1.0625rem", fontWeight: 700, color: "primary.contrastText" }}>
-          {settingsCopy.title}
+          {title}
         </Typography>
       </Stack>
     </RedChromeSurface>

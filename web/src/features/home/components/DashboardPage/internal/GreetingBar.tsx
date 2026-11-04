@@ -1,7 +1,8 @@
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { FC } from "react";
-import { greetingSublineForWeekday } from "../../../copy";
+import { useFunnyLine } from "@/lib/use-funny-line";
+import { greetingSublinesForWeekday } from "../../../copy";
 import { useDashboardContext } from "../../../dashboard-context";
 
 // "Moin, {firstName} 🥙" + a Döner pun for today's weekday. Reads the greeting name from the
@@ -9,7 +10,7 @@ import { useDashboardContext } from "../../../dashboard-context";
 // avatar lives in the app bar, not here.
 export const GreetingBar: FC = () => {
   const { firstName } = useDashboardContext();
-  const subline = greetingSublineForWeekday(new Date().getDay());
+  const subline = useFunnyLine(greetingSublinesForWeekday(new Date().getDay()));
 
   return (
     <Stack sx={{ px: 0.25, pt: 1 }}>

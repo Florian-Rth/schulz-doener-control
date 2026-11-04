@@ -3,7 +3,9 @@ import { HttpResponse, http } from "msw";
 import { describe, expect, it } from "vitest";
 import type { OrderResult } from "@/features/success";
 import { mswServer } from "@/test/mswServer";
+import { oneOf } from "@/test/oneOf";
 import { renderApp } from "@/test/renderApp";
+import { successCopy } from "../../copy";
 
 const authenticatedSession = {
   userId: "11111111-1111-1111-1111-111111111111",
@@ -85,7 +87,7 @@ describe("SuccessPage", () => {
       initialPath: `/erledigt?orderId=${ORDER_ID}`,
     });
 
-    expect(await findByText("Erledigt, Chef")).toBeInTheDocument();
+    expect(await findByText(oneOf(successCopy.titles))).toBeInTheDocument();
     // Both ordered lines render, the second prefixed with its quantity.
     expect(await findByText("Dürüm Kalb")).toBeInTheDocument();
     expect(await findByText("2× Pizza Margherita")).toBeInTheDocument();
@@ -107,7 +109,7 @@ describe("SuccessPage", () => {
       initialPath: `/erledigt?orderId=${ORDER_ID}`,
     });
 
-    expect(await findByText("Du holst heute ab, Chef!")).toBeInTheDocument();
+    expect(await findByText(oneOf(successCopy.pickupTitles))).toBeInTheDocument();
     expect(await findByText(/Du sammelst 15,50 € von 2 Kollegen ein\./)).toBeInTheDocument();
     // No pay-to-abholer button in the pickup branch.
     expect(queryByRole("link", { name: /per PayPal senden/ })).not.toBeInTheDocument();
@@ -134,14 +136,14 @@ describe("SuccessPage", () => {
 
     expect(await findByText("Bestellung konnte nicht geladen werden, Chef.")).toBeInTheDocument();
     // The celebratory success header is withheld on a load failure.
-    expect(queryByText("Erledigt, Chef")).not.toBeInTheDocument();
+    expect(queryByText(oneOf(successCopy.titles))).not.toBeInTheDocument();
 
     // Retry now succeeds → the result renders and the error clears.
     mswServer.use(http.get("*/api/orders/:id/result", () => HttpResponse.json(owesResult)));
     const user = userEvent.setup();
     await user.click(await findByRole("button", { name: "Nochmal versuchen" }));
 
-    expect(await findByText("Erledigt, Chef")).toBeInTheDocument();
+    expect(await findByText(oneOf(successCopy.titles))).toBeInTheDocument();
     expect(queryByText("Bestellung konnte nicht geladen werden, Chef.")).not.toBeInTheDocument();
   });
 });

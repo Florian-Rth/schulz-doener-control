@@ -1,6 +1,7 @@
 import Typography from "@mui/material/Typography";
 import type { FC } from "react";
 import { IconChipBox, MaterialIcon, PageLayout, RedChromeSurface } from "@/components";
+import { useFunnyLine } from "@/lib/use-funny-line";
 import { installGuideCopy } from "../../copy";
 import { useInstallGuide } from "../../hooks/use-install-guide";
 import { InstallGuideContext } from "../../install-guide-context";
@@ -12,6 +13,7 @@ import { InstallSteps } from "./internal/InstallSteps";
 // delegated to PageLayout; no hardcoded positioning here.
 export const InstallGuide: FC = () => {
   const guide = useInstallGuide();
+  const eyebrow = useFunnyLine(installGuideCopy.eyebrows);
 
   return (
     <InstallGuideContext.Provider value={guide}>
@@ -28,7 +30,7 @@ export const InstallGuide: FC = () => {
             }
           >
             <Typography variant="eyebrow" sx={{ color: "primary.contrastText", opacity: 0.85 }}>
-              {installGuideCopy.eyebrow}
+              {eyebrow}
             </Typography>
             <Typography
               sx={{ fontSize: "1.25rem", fontWeight: 700, color: "primary.contrastText" }}

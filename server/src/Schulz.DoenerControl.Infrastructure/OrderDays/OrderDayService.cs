@@ -343,7 +343,7 @@ public sealed class OrderDayService : IOrderDayService
         var info = menuInfo.GetValueOrDefault(line.ProductId);
         // Kitchen sheet resolves a preset (BaseItemId set) to its base item's name + sort position, so
         // the joke name never reaches the shop and the line groups with its real article type.
-        var (printName, printSort) = ResolveKitchen(line.ProductId, info, baseInfo);
+        var (printName, printSort, printIcon) = ResolveKitchen(line.ProductId, info, baseInfo);
         var category = categoryByProduct.GetValueOrDefault(line.ProductId);
         return new PrintLineInput(
             // Unknown products sink to the end of the sheet rather than jumping to the front.
@@ -355,24 +355,30 @@ public sealed class OrderDayService : IOrderDayService
             OrderLabelBuilder.BuildDescription(category, line.Answers),
             line.Quantity,
             line.Quantity * line.PriceCents,
-            order.IsPickup
+            order.IsPickup,
+            printIcon,
+            PrintLineBuildResolver.Resolve(category, line.Answers, NamesOf(info, printName))
         );
     }
 
     // Resolves the kitchen-facing (name, sortOrder) for a product: the base item's when the product is
     // a preset, otherwise the item's own; unknown products sink to the end under their raw id.
-    private static (string Name, int Sort) ResolveKitchen(
+    private static (string Name, int Sort, string? Icon) ResolveKitchen(
         string productId,
         MenuItemInfo? info,
         IReadOnlyDictionary<string, MenuItemInfo> baseInfo
     )
     {
         if (info is null)
-            return (productId, int.MaxValue);
+            return (productId, int.MaxValue, null);
         if (info.BaseItemId is { } baseId && baseInfo.TryGetValue(baseId, out var baseItem))
-            return (baseItem.Name, baseItem.SortOrder);
-        return (info.Name, info.SortOrder);
+            return (baseItem.Name, baseItem.SortOrder, baseItem.Icon);
+        return (info.Name, info.SortOrder, info.Icon);
     }
+
+    [System.Diagnostics.Contracts.Pure]
+    private static IReadOnlyCollection<string> NamesOf(MenuItemInfo? info, string printName) =>
+        info is null || info.Name == printName ? [printName] : [info.Name, printName];
 
     // Resolves the designated Abholer strictly from OrderDay.CollectorUserId (no opener/first-pickup
     // heuristic): null when nobody is designated. PayPalUrl is intentionally always null on the live
@@ -424,12 +430,19 @@ public sealed class OrderDayService : IOrderDayService
                 item.SortOrder,
                 item.BaseItemId,
                 item.CategoryId,
+                item.MaterialIcon,
             })
             .ToListAsync(ct);
 
         return rows.ToDictionary(
             row => row.Id,
-            row => new MenuItemInfo(row.Name, row.SortOrder, row.BaseItemId, row.CategoryId)
+            row => new MenuItemInfo(
+                row.Name,
+                row.SortOrder,
+                row.BaseItemId,
+                row.CategoryId,
+                row.MaterialIcon
+            )
         );
     }
 
@@ -458,12 +471,19 @@ public sealed class OrderDayService : IOrderDayService
                 item.SortOrder,
                 item.BaseItemId,
                 item.CategoryId,
+                item.MaterialIcon,
             })
             .ToListAsync(ct);
 
         return rows.ToDictionary(
             row => row.Id,
-            row => new MenuItemInfo(row.Name, row.SortOrder, row.BaseItemId, row.CategoryId)
+            row => new MenuItemInfo(
+                row.Name,
+                row.SortOrder,
+                row.BaseItemId,
+                row.CategoryId,
+                row.MaterialIcon
+            )
         );
     }
 
@@ -529,7 +549,8 @@ public sealed class OrderDayService : IOrderDayService
         string Name,
         int SortOrder,
         string? BaseItemId,
-        Guid? CategoryId
+        Guid? CategoryId,
+        string Icon
     );
 
     // The store a freshly opened Döner-Tag belongs to: the single active store (lowest SortOrder).

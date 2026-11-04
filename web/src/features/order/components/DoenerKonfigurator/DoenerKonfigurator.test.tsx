@@ -14,7 +14,7 @@ const oneOf =
 
 // jsdom has no WebGL — replace the three.js stage with a probe that exposes
 // what would be in the bread.
-vi.mock("./internal/scene/DoenerScene", () => ({
+vi.mock("@/components/DoenerStage/internal/scene/DoenerScene", () => ({
   DoenerScene: ({
     build,
     presenting,
@@ -159,8 +159,6 @@ describe("DoenerKonfigurator", () => {
     expect(dialog.getByText(oneOf(konfiguratorCopy.meatQuestions))).toBeInTheDocument();
     expect(dialog.getByText("Schritt 1 von 8")).toBeInTheDocument();
     await user.click(dialog.getByRole("button", { name: "Hähnchen" }));
-    // Something just slammed into the bread.
-    expect(dialog.getByText(oneOf(konfiguratorCopy.impactWords))).toBeInTheDocument();
 
     // Salat, Tomaten yes · Gurken, Zwiebeln no · Rotkohl yes.
     const yes = (): Promise<void> =>

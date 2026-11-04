@@ -33,14 +33,6 @@ export const AppGlobalStyles: FC = () => {
         [`@keyframes ${theme.keyframes.spin360}`]: {
           to: { transform: "rotate(360deg)" },
         },
-        // Comic "KLATSCH!" burst of the Döner-Konfigurator: slams in, then fades.
-        [`@keyframes ${theme.keyframes.impactPop}`]: {
-          "0%": { opacity: 0, transform: "scale(.3) rotate(-14deg)" },
-          "18%": { opacity: 1, transform: "scale(1.35) rotate(-6deg)" },
-          "32%": { transform: "scale(1) rotate(-8deg)" },
-          "75%": { opacity: 1, transform: "scale(1.05) rotate(-8deg)" },
-          "100%": { opacity: 0, transform: "scale(1.2) rotate(-10deg) translateY(-18px)" },
-        },
         // Honour the OS "reduce motion" setting. Emotion hashes the keyframe
         // class names, so we cannot target them by token; instead we neutralise
         // animations app-wide (covers the infinite pulseDot, the slideDown toast

@@ -5,6 +5,7 @@ import { Link } from "@tanstack/react-router";
 import type { FC } from "react";
 import logoUrl from "@/assets/logo.png";
 import { PrimaryButton } from "@/components/buttons";
+import { useFunnyLine } from "@/lib/use-funny-line";
 import { authCopy } from "../../copy";
 import { useRegisterForm } from "../../hooks/use-register-form";
 import { RegisterField } from "./internal/RegisterField";
@@ -26,6 +27,7 @@ export const RegisterPage: FC<RegisterPageProps> = ({ registrationMode }) => {
   const { form, onSubmit, isPending, serverError, registered, secretKeyMissing } = useRegisterForm({
     registrationMode,
   });
+  const subline = useFunnyLine(authCopy.registerSublines);
 
   return (
     <Stack
@@ -86,7 +88,7 @@ export const RegisterPage: FC<RegisterPageProps> = ({ registrationMode }) => {
             <Typography
               sx={{ fontSize: 13, color: "muted.main", maxWidth: 260, lineHeight: 1.45, mb: 1.5 }}
             >
-              {authCopy.registerSubline}
+              {subline}
             </Typography>
 
             <Stack

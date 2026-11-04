@@ -5,7 +5,8 @@ namespace Schulz.DoenerControl.Application.Calculators;
 
 // Raw input to the sheet builder: one persisted order line with its resolved labels and the menu
 // SortOrder that buckets it by article type. The caller (the OrderDay projection) resolves the
-// product name, meat/variant label and sort order before handing lines here.
+// product name, meat/variant label, sort order and the structured Döner answers before handing
+// lines here.
 public sealed record PrintLineInput(
     int SortOrder,
     string Section,
@@ -14,7 +15,9 @@ public sealed record PrintLineInput(
     string Description,
     int Quantity,
     int LineTotalCents,
-    bool IsPickup
+    bool IsPickup,
+    string? ProductIcon,
+    PrintLineBuild Build
 );
 
 // Turns the day's raw order lines into the Abholer's order sheet: sorts every line into article-type
@@ -49,7 +52,9 @@ public static class PrintOrderListBuilder
                         line.Quantity,
                         line.LineTotalCents,
                         MoneyFormatter.ToGermanString(line.LineTotalCents),
-                        line.IsPickup
+                        line.IsPickup,
+                        line.ProductIcon,
+                        line.Build
                     )
             )
             .ToList();

@@ -1,10 +1,15 @@
 import { waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { HttpResponse, http } from "msw";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { Dashboard } from "@/features/home";
 import { mswServer } from "@/test/mswServer";
 import { renderApp } from "@/test/renderApp";
+
+// jsdom has no WebGL — the Theken-Modus stage renders a probe instead.
+vi.mock("@/components/DoenerStage/internal/scene/DoenerScene", () => ({
+  DoenerScene: () => <div data-testid="doener-scene" />,
+}));
 
 const authenticatedSession = {
   userId: "11111111-1111-1111-1111-111111111111",
@@ -113,6 +118,11 @@ const openDay = {
       quantity: 1,
       lineTotalCents: 750,
       isPickup: false,
+      productIcon: "kebab_dining",
+      meatKey: "haehnchen",
+      sauceKeys: [],
+      extraText: "",
+      isBreadDoener: true,
     },
     {
       number: 2,
@@ -123,6 +133,11 @@ const openDay = {
       quantity: 1,
       lineTotalCents: 850,
       isPickup: true,
+      productIcon: "wrap_text",
+      meatKey: "kalb",
+      sauceKeys: ["knoblauch", "scharf"],
+      extraText: "",
+      isBreadDoener: true,
     },
     {
       number: 3,
@@ -133,6 +148,11 @@ const openDay = {
       quantity: 1,
       lineTotalCents: 900,
       isPickup: false,
+      productIcon: "local_pizza",
+      meatKey: null,
+      sauceKeys: [],
+      extraText: "",
+      isBreadDoener: false,
     },
   ],
 };
@@ -289,5 +309,23 @@ describe("PrintListPage", () => {
       expect(emailHit).toBe(true);
     });
     expect(await findByText("Liste ist unterwegs an markus@schulz.st, Chef.")).toBeInTheDocument();
+  });
+
+  it("öffnet den Theken-Modus mit der ersten Bestellung", async () => {
+    useDashboardHandlers(buildDashboard());
+    const { findByRole, findByText, getByRole, queryByRole } = renderApp({
+      initialPath: "/druck",
+    });
+    const user = userEvent.setup();
+
+    await user.click(await findByRole("button", { name: /Theken-Modus/ }));
+
+    const dialog = getByRole("dialog", { name: "Theken-Modus" });
+    expect(dialog).toBeInTheDocument();
+    expect(await findByText("1 / 3")).toBeInTheDocument();
+    await user.click(getByRole("button", { name: "Theken-Modus schließen" }));
+    await waitFor(() => {
+      expect(queryByRole("dialog")).not.toBeInTheDocument();
+    });
   });
 });

@@ -4,6 +4,7 @@ import Typography from "@mui/material/Typography";
 import { Link } from "@tanstack/react-router";
 import type { FC } from "react";
 import { MaterialIcon, SecondaryButton } from "@/components";
+import { useFunnyLine } from "@/lib/use-funny-line";
 import { homeCopy } from "../../../copy";
 import { usePushNudge } from "../../../hooks/use-push-nudge";
 
@@ -13,6 +14,8 @@ import { usePushNudge } from "../../../hooks/use-push-nudge";
 // explicitly denied, or aren't switch-on-able on this device.
 export const PushNudge: FC = () => {
   const { visible, dismiss } = usePushNudge();
+  const title = useFunnyLine(homeCopy.pushNudgeTitles);
+  const body = useFunnyLine(homeCopy.pushNudgeBodies);
 
   if (!visible) {
     return null;
@@ -31,10 +34,10 @@ export const PushNudge: FC = () => {
         <MaterialIcon name="notifications_active" sx={{ fontSize: 22, color: "primary.main" }} />
         <Stack sx={{ flex: 1, minWidth: 0, gap: 0.25 }}>
           <Typography sx={{ fontSize: "0.875rem", fontWeight: 700, color: "navy.main" }}>
-            {homeCopy.pushNudgeTitle}
+            {title}
           </Typography>
           <Typography sx={{ fontSize: "0.75rem", color: "label.main", lineHeight: 1.45 }}>
-            {homeCopy.pushNudgeBody}
+            {body}
           </Typography>
         </Stack>
         <IconButton size="small" aria-label={homeCopy.pushNudgeDismissLabel} onClick={dismiss}>

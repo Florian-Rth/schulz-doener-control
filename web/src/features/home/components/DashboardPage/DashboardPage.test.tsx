@@ -4,7 +4,9 @@ import { HttpResponse, http } from "msw";
 import { describe, expect, it } from "vitest";
 import type { Dashboard } from "@/features/home";
 import { mswServer } from "@/test/mswServer";
+import { oneOf } from "@/test/oneOf";
 import { renderApp } from "@/test/renderApp";
+import { homeCopy, untilNextSentence, untilNextTemplates } from "../../copy";
 
 const authenticatedSession = {
   userId: "11111111-1111-1111-1111-111111111111",
@@ -291,11 +293,34 @@ describe("DashboardPage", () => {
     expect(await findByText("Bestellschluss 12:47 Uhr")).toBeInTheDocument();
   });
 
+  it("verlinkt während der Abholer unterwegs ist auf den Döner-Weitwurf, nicht für den Abholer selbst", async () => {
+    const waitingDay = { ...openDay, isOrderingClosed: true, cutoffLabel: "12:47" };
+    useDashboardHandlers(buildDashboard({ day: waitingDay }));
+    const first = renderApp({ initialPath: "/" });
+
+    const tile = await first.findByRole("link", { name: /Warten auf den Abholer/ });
+    expect(tile).toHaveAttribute("href", "/weitwurf");
+    first.unmount();
+
+    useDashboardHandlers(buildDashboard({ day: { ...waitingDay, amICollector: true } }));
+    const second = renderApp({ initialPath: "/" });
+    expect(await second.findByText("Döner-Tag läuft")).toBeInTheDocument();
+    expect(second.queryByRole("link", { name: /Warten auf den Abholer/ })).not.toBeInTheDocument();
+  });
+
+  it("bietet den Döner-Weitwurf nicht an, solange noch bestellt wird", async () => {
+    useDashboardHandlers(buildDashboard());
+    const { findByText, queryByRole } = renderApp({ initialPath: "/" });
+
+    expect(await findByText("Döner-Tag läuft")).toBeInTheDocument();
+    expect(queryByRole("link", { name: /Warten auf den Abholer/ })).not.toBeInTheDocument();
+  });
+
   it("zeigt im CLOSED-Zustand die Eröffnungs-CTA", async () => {
     useDashboardHandlers(buildDashboard({ day: closedDay }));
     const { findByRole, findByText } = renderApp({ initialPath: "/" });
 
-    expect(await findByText(/Heute hat noch niemand Hunger angemeldet/)).toBeInTheDocument();
+    expect(await findByText(oneOf(homeCopy.dayClosedTitles))).toBeInTheDocument();
     expect(await findByRole("button", { name: /Ich will heute Döner!/ })).toBeInTheDocument();
   });
 
@@ -311,7 +336,8 @@ describe("DashboardPage", () => {
     // current-user highlight: name + "· du"
     expect(await findByText("Markus Wagner")).toBeInTheDocument();
     expect(await findByText("· du")).toBeInTheDocument();
-    expect(await findByText(/Nur noch 6 Döner bis Platz 3/)).toBeInTheDocument();
+    const untilNextLines = untilNextTemplates.map((template) => untilNextSentence(template, 6, 3));
+    expect(await findByText(oneOf(untilNextLines))).toBeInTheDocument();
   });
 
   it("zeigt für offene Schulden funktionierende PayPal-Buttons", async () => {
@@ -319,6 +345,7 @@ describe("DashboardPage", () => {
     const { findByText, findAllByRole } = renderApp({ initialPath: "/" });
 
     expect(await findByText("Offene Zahlungen")).toBeInTheDocument();
+    expect(await findByText(oneOf(homeCopy.paymentsNudges))).toBeInTheDocument();
     expect(await findByText("Ayran-Schulden")).toBeInTheDocument();
 
     const payLinks = await findAllByRole("link", { name: /PayPal/ });
@@ -796,7 +823,7 @@ describe("DashboardPage", () => {
     );
     const { findByText } = renderApp({ initialPath: "/" });
 
-    expect(await findByText("Kein PayPal hinterlegt, Chef")).toBeInTheDocument();
+    expect(await findByText(oneOf(homeCopy.paypalNudgeTitles))).toBeInTheDocument();
   });
 
   it("blendet den PayPal-Hinweis aus, wenn ein PayPal-Handle hinterlegt ist", async () => {
@@ -805,7 +832,7 @@ describe("DashboardPage", () => {
     const { findByText, queryByText } = renderApp({ initialPath: "/" });
 
     expect(await findByText("Döner-Tag läuft")).toBeInTheDocument();
-    expect(queryByText("Kein PayPal hinterlegt, Chef")).not.toBeInTheDocument();
+    expect(queryByText(oneOf(homeCopy.paypalNudgeTitles))).not.toBeInTheDocument();
   });
 
   it("ordnet die offenen Zahlungen direkt unter den Döner-Tag, vor Tier und Stats", async () => {

@@ -1,14 +1,16 @@
 import { useState } from "react";
 import {
-  findTextField,
-  MEAT_FIELD_KEY,
+  type DoenerBuild,
   mergeExtraText,
   parseVeggieDecisions,
+  type VeggieDecisions,
+} from "@/components";
+import {
+  findTextField,
+  MEAT_FIELD_KEY,
   SAUCE_FIELD_KEY,
   VEGGIES,
   type Veggie,
-  type VeggieDecisions,
-  type VeggieKey,
 } from "../konfigurator";
 import { useOrderFormContext } from "../order-context";
 import type { Field, FieldOption } from "../types";
@@ -28,13 +30,6 @@ const STEPS: readonly KonfiguratorStep[] = [
 
 const SAUCE_STEP_INDEX = STEPS.findIndex((step) => step.kind === "sauce");
 const DONE_STEP_INDEX = STEPS.length - 1;
-
-/** What currently sits in the bread — drives the 3D scene. */
-export interface DoenerBuild {
-  meat: string | null;
-  veggies: VeggieKey[];
-  sauces: string[];
-}
 
 export interface UseDoenerKonfiguratorResult {
   step: KonfiguratorStep;

@@ -2,6 +2,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { FC } from "react";
 import { GhostButton, PrimaryButton } from "@/components";
+import { useFunnyLine } from "@/lib/use-funny-line";
 import { pushCopy } from "../../../copy";
 import { usePushContext } from "../../../push-context";
 
@@ -22,6 +23,7 @@ const Notice: FC<{ title: string; body: string }> = ({ title, body }) => {
 // degradation notice. Consumes the push context.
 export const PushControl: FC = () => {
   const { status, isBusy, subscribe, unsubscribe } = usePushContext();
+  const subscribedLine = useFunnyLine(pushCopy.subscribedLines);
 
   switch (status) {
     case "unsupported":
@@ -37,7 +39,7 @@ export const PushControl: FC = () => {
             role="status"
             sx={{ fontSize: "0.8125rem", fontWeight: 700, color: "success.main" }}
           >
-            {pushCopy.subscribed}
+            {subscribedLine}
           </Typography>
           <GhostButton onClick={unsubscribe}>{pushCopy.disable}</GhostButton>
         </Stack>

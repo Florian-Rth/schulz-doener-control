@@ -9,6 +9,7 @@ import {
   RedChromeSurface,
   SecondaryButton,
 } from "@/components";
+import { useFunnyLine } from "@/lib/use-funny-line";
 import { cutoffSentence, homeCopy, participantPill } from "../../../copy";
 import { useDashboardContext } from "../../../dashboard-context";
 import { useDayStatus } from "../../../hooks/use-day-status";
@@ -17,6 +18,7 @@ import { AdminEndDayButton } from "./AdminEndDayButton";
 import { CollectorControls } from "./CollectorControls";
 import { OrderRowItem } from "./OrderRowItem";
 import { TakeOverCollectorButton } from "./TakeOverCollectorButton";
+import { WaitingGameTile } from "./WaitingGameTile";
 
 interface DayOpenCardProps {
   day: DashboardDay;
@@ -28,6 +30,10 @@ interface DayOpenCardProps {
 export const DayOpenCard: FC<DayOpenCardProps> = ({ day }) => {
   const { goOrder, claimCollector } = useDashboardContext();
   const { statusLine, iHaveOrdered, hasNoCollector, canTakeOver, isEmpty } = useDayStatus(day);
+  const noCollectorTitle = useFunnyLine(homeCopy.noCollectorTitles);
+  const noCollectorBody = useFunnyLine(homeCopy.noCollectorBodies);
+  const noOrdersYet = useFunnyLine(homeCopy.noOrdersYet);
+  const orderingClosedInfo = useFunnyLine(homeCopy.orderingClosedInfos);
 
   // Subtitle is purely state-driven, never time-based: the "Bestellschluss"
   // line only appears once the collector has closed ordering (cutoffLabel is
@@ -112,12 +118,12 @@ export const DayOpenCard: FC<DayOpenCardProps> = ({ day }) => {
                 <Typography
                   sx={{ fontSize: "0.8125rem", fontWeight: 700, color: "warning.contrastText" }}
                 >
-                  {homeCopy.noCollectorTitle}
+                  {noCollectorTitle}
                 </Typography>
                 <Typography
                   sx={{ fontSize: "0.75rem", color: "warning.contrastText", lineHeight: 1.4 }}
                 >
-                  {iHaveOrdered ? homeCopy.noCollectorBody : homeCopy.noCollectorOrderFirst}
+                  {iHaveOrdered ? noCollectorBody : homeCopy.noCollectorOrderFirst}
                 </Typography>
               </Stack>
             </Stack>
@@ -163,7 +169,7 @@ export const DayOpenCard: FC<DayOpenCardProps> = ({ day }) => {
           <Typography
             sx={{ fontSize: "0.8125rem", color: "muted.main", textAlign: "center", py: 1.5 }}
           >
-            {homeCopy.noOrdersYet}
+            {noOrdersYet}
           </Typography>
         ) : (
           <Stack sx={{ gap: 0.25 }}>
@@ -206,9 +212,12 @@ export const DayOpenCard: FC<DayOpenCardProps> = ({ day }) => {
           >
             <MaterialIcon name="lock" sx={{ fontSize: 18, color: "primary.main" }} />
             <Typography sx={{ fontSize: "0.75rem", color: "navy.main", lineHeight: 1.4 }}>
-              {homeCopy.orderingClosedInfo}
+              {orderingClosedInfo}
             </Typography>
           </Stack>
+        ) : null}
+        {day.isOrderingClosed && day.abholer !== null && !day.amICollector ? (
+          <WaitingGameTile />
         ) : null}
         <CollectorControls day={day} />
         {/* A non-collector admin reaches the destructive abort here — the

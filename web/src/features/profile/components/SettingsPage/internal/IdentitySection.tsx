@@ -3,6 +3,7 @@ import Typography from "@mui/material/Typography";
 import type { FC } from "react";
 import { Avatar } from "@/components";
 import type { Session } from "@/features/auth";
+import { useFunnyLine } from "@/lib/use-funny-line";
 import { settingsCopy } from "../../../copy";
 import { DisplayNameForm } from "../../DisplayNameForm";
 import { WorkEmailForm } from "../../WorkEmailForm";
@@ -16,11 +17,10 @@ interface IdentitySectionProps {
 // editable display-name form. The avatar re-derives its initials/color from the
 // session, which the form's save invalidates — so it updates right after a save.
 export const IdentitySection: FC<IdentitySectionProps> = ({ user }) => {
+  const title = useFunnyLine(settingsCopy.identitySectionTitles);
+
   return (
-    <SettingsSection
-      eyebrow={settingsCopy.identitySectionEyebrow}
-      title={settingsCopy.identitySectionTitle}
-    >
+    <SettingsSection eyebrow={settingsCopy.identitySectionEyebrow} title={title}>
       <Stack direction="row" sx={{ alignItems: "center", gap: 1.5 }}>
         <Avatar displayName={user.displayName} colorHex={user.avatarColorHex} size={48} />
         <Stack sx={{ gap: 0.25, minWidth: 0 }}>

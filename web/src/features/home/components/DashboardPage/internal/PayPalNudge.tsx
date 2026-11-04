@@ -5,6 +5,7 @@ import { Link } from "@tanstack/react-router";
 import { type FC, useState } from "react";
 import { MaterialIcon, SecondaryButton } from "@/components";
 import { useAuth } from "@/features/auth";
+import { useFunnyLine } from "@/lib/use-funny-line";
 import { homeCopy } from "../../../copy";
 
 // Pink-tint reminder for a user who hasn't stored a PayPal link yet — without it
@@ -14,6 +15,8 @@ import { homeCopy } from "../../../copy";
 export const PayPalNudge: FC = () => {
   const { user } = useAuth();
   const [dismissed, setDismissed] = useState(false);
+  const title = useFunnyLine(homeCopy.paypalNudgeTitles);
+  const body = useFunnyLine(homeCopy.paypalNudgeBodies);
 
   if (user === null || user.payPalHandleSet || dismissed) {
     return null;
@@ -32,10 +35,10 @@ export const PayPalNudge: FC = () => {
         <MaterialIcon name="account_balance_wallet" sx={{ fontSize: 22, color: "primary.main" }} />
         <Stack sx={{ flex: 1, minWidth: 0, gap: 0.25 }}>
           <Typography sx={{ fontSize: "0.875rem", fontWeight: 700, color: "navy.main" }}>
-            {homeCopy.paypalNudgeTitle}
+            {title}
           </Typography>
           <Typography sx={{ fontSize: "0.75rem", color: "label.main", lineHeight: 1.45 }}>
-            {homeCopy.paypalNudgeBody}
+            {body}
           </Typography>
         </Stack>
         <IconButton
